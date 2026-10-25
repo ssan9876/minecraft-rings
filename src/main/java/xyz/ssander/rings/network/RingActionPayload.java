@@ -20,7 +20,9 @@ public record RingActionPayload(Action action) implements CustomPacketPayload {
 		/** The force field key: a force field round the wearer, or a bubble round what they look at. */
 		FORCE_FIELD,
 		/** The scan key. */
-		SCAN
+		SCAN,
+		/** The ring power key: what the ring's colour does (see ColorPowers). */
+		POWER
 	}
 
 	@Override

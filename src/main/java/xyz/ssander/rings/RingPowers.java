@@ -41,7 +41,7 @@ public final class RingPowers {
 	/** Particles in each pulse of the stream from the lantern to the ring. */
 	private static final int STREAM_PARTICLES = 24;
 	/** The ring's energy shields its wearer: about a full set of iron armor, on top of what they wear. */
-	private static final AttributeModifier RING_ARMOR = new AttributeModifier(Rings.id("ring_armor"), 8.0, AttributeModifier.Operation.ADD_VALUE);
+	private static final Identifier RING_ARMOR = Rings.id("ring_armor");
 	private static final AttributeModifier RING_TOUGHNESS = new AttributeModifier(Rings.id("ring_toughness"), 2.0, AttributeModifier.Operation.ADD_VALUE);
 
 	private RingPowers() {
@@ -105,7 +105,10 @@ public final class RingPowers {
 			RingBeam.tick(player);
 		}
 		updateFlight(player, active != null && active.grantsFlight());
-		updateArmor(player, active != null);
+		updateArmor(player, active != null ? active.color() : null);
+		if (active != null) {
+			ColorPowers.tick(player, active.color());
+		}
 		updateCostume(player, active != null ? active.costume() : null);
 		RingColor worn = ring != null ? ring.color() : null;
 		if (worn != player.getAttached(RingAttachments.WORN_RING)) {
@@ -229,9 +232,18 @@ public final class RingPowers {
 		}
 	}
 
-	private static void updateArmor(ServerPlayer player, boolean wanted) {
-		updateModifier(player.getAttribute(Attributes.ARMOR), RING_ARMOR, wanted);
-		updateModifier(player.getAttribute(Attributes.ARMOR_TOUGHNESS), RING_TOUGHNESS, wanted);
+	/** The ring's armor, for a ring of the colour (or none for no ring on). */
+	private static void updateArmor(ServerPlayer player, @Nullable RingColor color) {
+		AttributeInstance armor = player.getAttribute(Attributes.ARMOR);
+		double wanted = color != null ? ColorPowers.armor(color) : 0.0;
+		AttributeModifier current = armor == null ? null : armor.getModifier(RING_ARMOR);
+		if (armor != null && (current == null ? wanted != 0.0 : current.amount() != wanted)) {
+			armor.removeModifier(RING_ARMOR);
+			if (wanted != 0.0) {
+				armor.addTransientModifier(new AttributeModifier(RING_ARMOR, wanted, AttributeModifier.Operation.ADD_VALUE));
+			}
+		}
+		updateModifier(player.getAttribute(Attributes.ARMOR_TOUGHNESS), RING_TOUGHNESS, color != null);
 	}
 
 	/** Transient, so it isn't saved: the next tick after loading puts it back if the ring is still on. */

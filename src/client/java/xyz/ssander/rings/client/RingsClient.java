@@ -19,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.EntityTypes;
 
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.network.ActivateRingPayload;
@@ -30,6 +31,7 @@ public class RingsClient implements ClientModInitializer {
 	public static KeyMapping constructKey;
 	public static KeyMapping forceFieldKey;
 	public static KeyMapping scanKey;
+	public static KeyMapping powerKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -44,6 +46,8 @@ public class RingsClient implements ClientModInitializer {
 				new KeyMapping("key.rings.force_field", InputConstants.KEY_B, category));
 		scanKey = KeyMappingHelper.registerKeyMapping(
 				new KeyMapping("key.rings.scan", InputConstants.KEY_Z, category));
+		powerKey = KeyMappingHelper.registerKeyMapping(
+				new KeyMapping("key.rings.power", InputConstants.KEY_C, category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (activateKey.consumeClick()) {
@@ -59,6 +63,9 @@ public class RingsClient implements ClientModInitializer {
 				if (client.player != null) {
 					ClientPlayNetworking.send(new RingActionPayload(RingActionPayload.Action.FORCE_FIELD));
 				}
+			}
+			while (powerKey.consumeClick()) {
+				usePower(client);
 			}
 			while (scanKey.consumeClick()) {
 				if (client.player != null) {
@@ -88,11 +95,24 @@ public class RingsClient implements ClientModInitializer {
 
 		EntityRendererRegistry.register(Rings.CONSTRUCT_FIST, ConstructFistRenderer::new);
 		EntityRendererRegistry.register(Rings.FORCE_BUBBLE, ForceBubbleRenderer::new);
+		EntityRendererRegistry.register(Rings.ENERGY_BOLT, EnergyBoltRenderer::new);
 
 		HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Rings.id("power_meter"), new RingHud());
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Rings.id("scan"), new RingScan());
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Rings.id("oath"), new RingOath());
 		HudElementRegistry.attachElementBefore(VanillaHudElements.CROSSHAIR, Rings.id("force_field"), new ForceFields());
+	}
+
+	/** The ring power key: the colour's power, or for a pink ring with sneak held, the list of friends to go to. */
+	private static void usePower(Minecraft client) {
+		if (client.player == null || client.gui.screen() != null) {
+			return;
+		}
+		if (RingAttachments.activeColor(client.player) == RingColor.PINK && client.player.isShiftKeyDown()) {
+			client.gui.setScreen(new FriendScreen());
+			return;
+		}
+		ClientPlayNetworking.send(new RingActionPayload(RingActionPayload.Action.POWER));
 	}
 
 	/** Holding the construct key opens the wheel, if the ring is on. */

@@ -36,6 +36,7 @@ import xyz.ssander.rings.network.CreateConstructPayload;
 import xyz.ssander.rings.network.FireBeamPayload;
 import xyz.ssander.rings.network.RingActionPayload;
 import xyz.ssander.rings.network.RingAnimationPayload;
+import xyz.ssander.rings.network.TeleportToPayload;
 
 public class Rings implements ModInitializer {
 	public static final String MOD_ID = "rings";
@@ -84,6 +85,10 @@ public class Rings implements ModInitializer {
 	/** A bubble of a ring's force field, carrying someone along beside the wearer. */
 	public static final EntityType<ForceBubble> FORCE_BUBBLE = registerEntity("force_bubble",
 			EntityType.Builder.<ForceBubble>of(ForceBubble::new, MobCategory.MISC).sized(0.6F, 0.6F).clientTrackingRange(10).updateInterval(1).noSummon());
+
+	/** A bolt of energy: the red ring's plasma, and the shots of the creatures of space. */
+	public static final EntityType<EnergyBolt> ENERGY_BOLT = registerEntity("energy_bolt",
+			EntityType.Builder.<EnergyBolt>of(EnergyBolt::new, MobCategory.MISC).sized(0.4F, 0.4F).clientTrackingRange(8).updateInterval(1).noSummon());
 
 	/** Construct tools, made by the construct wheel in the ring's colour (their dye) and gone when it switches off. */
 	public static final ConstructItem CONSTRUCT_SWORD = register("construct_sword", ConstructItem::new,
@@ -135,6 +140,8 @@ public class Rings implements ModInitializer {
 		RingAttachments.init();
 		RingReturn.init();
 		RingProtection.init();
+		Thralls.init();
+		ColorPowers.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {
 			RINGS.values().forEach(output::accept);
@@ -150,12 +157,16 @@ public class Rings implements ModInitializer {
 		ServerPlayNetworking.registerGlobalReceiver(ActivateRingPayload.TYPE, (payload, context) -> RingPowers.toggle(context.player()));
 		PayloadTypeRegistry.serverboundPlay().register(RingActionPayload.TYPE, RingActionPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(RingActionPayload.TYPE, (payload, context) -> RingAbilities.use(context.player(), payload.action()));
+		PayloadTypeRegistry.serverboundPlay().register(TeleportToPayload.TYPE, TeleportToPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(TeleportToPayload.TYPE, (payload, context) -> ColorPowers.teleportTo(context.player(), payload.friend()));
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 				RingPowers.tick(player);
 				Space.tick(player);
 			}
+			Thralls.tick(server);
+			MobMoods.tick();
 		});
 	}
 }

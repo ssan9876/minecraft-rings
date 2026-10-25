@@ -22,6 +22,9 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.monster.skeleton.Skeleton;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
@@ -33,7 +36,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import xyz.ssander.rings.ColorPowers;
 import xyz.ssander.rings.ForceBubble;
+import xyz.ssander.rings.MobMoods;
+import xyz.ssander.rings.Thralls;
 import xyz.ssander.rings.HardLightBlock;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingBeam;
@@ -46,6 +52,7 @@ import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Space;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.client.ConstructWheelScreen;
+import xyz.ssander.rings.client.FriendScreen;
 import xyz.ssander.rings.client.RingAnimations;
 import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingScan;
@@ -61,6 +68,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		if (System.getenv("RINGS_POSES") != null) {
 			filmPoses(context);
+			return;
+		}
+		if (System.getenv("RINGS_COLORS") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				colorPowers(context, world.getConnection(), world.getServer());
+			}
 			return;
 		}
 		if (System.getenv("RINGS_POWERS") != null) {
@@ -582,6 +596,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			// Force field, bubble, scan, the save from death, and rings finding their way back
 			ringPowers(context, connection, server);
 
+			// Each colour's own power
+			colorPowers(context, connection, server);
+
 			// With nobody else about for the ring to choose, it stays with its wearer through death
 			server.runCommand("clear @a");
 			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
@@ -904,6 +921,195 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		check(server, p -> RingColor.YELLOW.costume().equals(p.getAttached(RingAttachments.COSTUME)), "the yellow ring wears the yellow suit");
 		activate(context, connection);
 		server.runCommand("clear @a");
+	}
+
+	/** Each colour's own power and gift. Run on its own with RINGS_COLORS=1. */
+	private static void colorPowers(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runCommand("gamemode survival @a");
+		server.runCommand("time set noon");
+		server.runCommand("clear @a");
+		server.runCommand("kill @e[type=!minecraft:player]");
+
+		// Green: a burst of will throws back what's near; constructs cost less
+		wear(context, connection, server, RingColor.GREEN);
+		server.runCommand("summon minecraft:pig 3.5 -60 0.5 {NoAI:1b}");
+		server.runCommand("summon minecraft:pig -2.5 -60 2.5 {NoAI:1b}");
+		context.waitTicks(3);
+		power(context, connection);
+		context.waitTicks(3);
+		check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(16), pig -> pig.getHealth() >= pig.getMaxHealth()).isEmpty(),
+				"the green ring's burst of will strikes what's near");
+		filmPower(context, "green");
+		check(server, p -> ColorPowers.constructCost(RingConstructs.Construct.WALL, RingColor.GREEN) < RingConstructs.Construct.WALL.cost(),
+				"green rings make constructs for less");
+		server.runCommand("kill @e[type=minecraft:pig]");
+
+		// Yellow: a wave of terror sends creatures running
+		wear(context, connection, server, RingColor.YELLOW);
+		server.runCommand("summon minecraft:zombie 4.5 -60 4.5 {PersistenceRequired:1b}");
+		context.waitTicks(3);
+		power(context, connection);
+		context.waitTicks(10);
+		check(server, p -> p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(32)).stream().allMatch(MobMoods::isAfraid),
+				"the yellow ring's wave of terror frightens creatures");
+		filmPower(context, "yellow");
+		context.waitTicks(30);
+		check(server, p -> p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(32)).stream().allMatch(z -> z.distanceTo(p) > 7.0),
+				"frightened creatures run away");
+		server.runCommand("kill @e[type=minecraft:zombie]");
+
+		// Red: burning plasma; rage gives strength and halves the ring's armor
+		wear(context, connection, server, RingColor.RED);
+		server.runCommand("summon minecraft:pig 0.5 -60 10.5 {NoAI:1b}");
+		context.waitTicks(3);
+		context.getInput().lookAt(new BlockPos(0, -60, 10));
+		context.waitTicks(2);
+		power(context, connection);
+		context.waitTicks(3);
+		filmPower(context, "red");
+		context.waitTicks(15);
+		check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(16), pig -> pig.getHealth() < pig.getMaxHealth()).size() == 1,
+				"the red ring's plasma hits what it's aimed at");
+		check(server, p -> p.hasEffect(MobEffects.STRENGTH) && p.getAttributeValue(Attributes.ARMOR) == 4.0, "a red ring's rage gives strength for half the armor");
+		server.runCommand("kill @e[type=minecraft:pig]");
+
+		// Blue: hope heals
+		wear(context, connection, server, RingColor.BLUE);
+		server.runOnServer(s -> player(s).setHealth(8.0F));
+		power(context, connection);
+		check(server, p -> p.getHealth() > 12.0F, "the blue ring's hope heals");
+		filmPower(context, "blue");
+
+		// Orange: defeated creatures are claimed, and copies called up fight for the wearer
+		wear(context, connection, server, RingColor.ORANGE);
+		server.runCommand("summon minecraft:zombie 3.5 -60 3.5 {NoAI:1b,PersistenceRequired:1b}");
+		context.waitTicks(3);
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Zombie zombie = p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(16)).getFirst();
+			zombie.hurtServer(p.level(), p.damageSources().playerAttack(p), 1000.0F);
+		});
+		context.waitTicks(25);
+		check(server, p -> RingAttachments.getRing(p).getOrDefault(RingComponents.CLAIMS, java.util.List.of()).contains(Identifier.withDefaultNamespace("zombie")),
+				"the orange ring claims what its wearer defeats");
+		server.runCommand("kill @e[type=minecraft:item]");
+		power(context, connection);
+		context.waitTicks(5);
+		check(server, p -> p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(16), z -> Thralls.of(z) != null && Thralls.of(z).color() == RingColor.ORANGE).size() >= 1,
+				"the orange ring calls up copies of what it's claimed");
+		context.waitTicks(20);
+		check(server, p -> p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(16), z -> z.getTarget() == p).isEmpty(),
+				"the copies don't go for their master");
+		connection.waitForClientboundPackets();
+		checkClient(context, mc -> mc.level.getEntitiesOfClass(Zombie.class, mc.player.getBoundingBox().inflate(16), z -> z.getAttached(Thralls.THRALL_COLOR) == RingColor.ORANGE).size() >= 1,
+				"the copies' colour syncs to the client for their outline");
+		filmPower(context, "orange");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			for (Zombie zombie : p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(16))) {
+				zombie.hurtServer(p.level(), p.damageSources().generic(), 1000.0F);
+			}
+		});
+		context.waitTicks(3);
+		check(server, p -> p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(16)).isEmpty()
+				&& p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(16), e -> e.getItem().is(Items.ROTTEN_FLESH)).isEmpty(),
+				"raised creatures fade when they die, leaving nothing");
+		server.runCommand("kill @e[type=minecraft:item]");
+
+		// Pink: a crystal that charms; sneak for the list of friends to go to
+		wear(context, connection, server, RingColor.PINK);
+		server.runCommand("summon minecraft:pig 0.5 -60 6.5 {NoAI:1b}");
+		context.waitTicks(3);
+		context.getInput().lookAt(new BlockPos(0, -60, 6));
+		context.waitTicks(2);
+		power(context, connection);
+		check(server, p -> isHardLight(p, new BlockPos(1, -60, 6), RingColor.PINK) && isHardLight(p, new BlockPos(0, -59, 6), RingColor.PINK),
+				"the pink ring traps a creature in crystal");
+		filmPower(context, "pink");
+		context.getInput().holdKey(options -> options.keyShift);
+		context.waitTicks(2);
+		context.getInput().pressKey(RingsClient.powerKey);
+		context.waitTicks(3);
+		checkClient(context, mc -> mc.gui.screen() instanceof FriendScreen, "sneak and the ring power key opens the list of friends");
+		context.takeScreenshot("colors-pink-friends");
+		context.setScreen(() -> null);
+		context.getInput().releaseKey(options -> options.keyShift);
+		server.runCommand("kill @e[type=minecraft:pig]");
+
+		// White: heals the wearer when nobody needs bringing back
+		wear(context, connection, server, RingColor.WHITE);
+		server.runOnServer(s -> player(s).setHealth(5.0F));
+		power(context, connection);
+		check(server, p -> p.getHealth() == p.getMaxHealth(), "the white ring heals its wearer");
+		filmPower(context, "white");
+
+		// Black: drains life, and what it kills rises to fight for it
+		wear(context, connection, server, RingColor.BLACK);
+		server.runCommand("summon minecraft:pig 3.5 -60 0.5 {NoAI:1b}");
+		server.runCommand("summon minecraft:skeleton 0.5 -60 4.5 {NoAI:1b,PersistenceRequired:1b}");
+		context.waitTicks(3);
+		server.runOnServer(s -> player(s).setHealth(10.0F));
+		power(context, connection);
+		check(server, p -> p.getHealth() > 10.0F, "the black ring drains life into its wearer");
+		filmPower(context, "black");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			for (LivingEntity victim : p.level().getEntitiesOfClass(LivingEntity.class, p.getBoundingBox().inflate(16), e -> e != p)) {
+				victim.hurtServer(p.level(), p.damageSources().playerAttack(p), 1000.0F);
+			}
+		});
+		context.waitTicks(50);
+		check(server, p -> p.level().getEntitiesOfClass(Skeleton.class, p.getBoundingBox().inflate(16), z -> Thralls.of(z) != null).size() == 1,
+				"a skeleton killed by a black ring rises as a Black Lantern");
+		check(server, p -> p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(16), z -> Thralls.of(z) != null).size() == 1,
+				"a pig killed by a black ring rises as a zombie Black Lantern");
+		connection.waitForClientboundPackets();
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 150.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("colors-black-lanterns");
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		activate(context, connection);
+		context.waitTicks(5);
+		check(server, p -> p.level().getEntitiesOfClass(Mob.class, p.getBoundingBox().inflate(16), m -> Thralls.of(m) != null).size() == 2,
+				"Black Lanterns stay while their master's about");
+		server.runCommand("kill @e[type=!minecraft:player]");
+		server.runCommand("clear @a");
+	}
+
+	/** Wears a ring of the colour, fully charged and switched on, standing at the test spot. */
+	private static void wear(ClientGameTestContext context, TestServerConnection connection, TestServerContext server, RingColor color) {
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			p.removeAttached(RingAttachments.ACTIVE);
+			p.setHealth(p.getMaxHealth());
+			RingAttachments.setRing(p, new ItemStack(Rings.ring(color)));
+			p.teleportTo(0.5, -60.0, 0.5);
+			p.setYRot(0.0F);
+			p.setXRot(0.0F);
+		});
+		context.waitTicks(3);
+		activate(context, connection);
+		check(server, p -> RingAttachments.activeColor(p) == color, "the " + color.id() + " ring is on");
+		context.waitTicks(25);
+	}
+
+	private static void power(ClientGameTestContext context, TestServerConnection connection) {
+		context.getInput().pressKey(RingsClient.powerKey);
+		connection.waitForServerboundPackets();
+		context.waitTick();
+	}
+
+	private static void filmPower(ClientGameTestContext context, String name) {
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 150.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("colors-" + name);
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
 	}
 
 	/** Flying on the ring, as if the player had taken off. */

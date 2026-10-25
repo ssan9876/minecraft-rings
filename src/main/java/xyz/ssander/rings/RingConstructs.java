@@ -105,7 +105,8 @@ public final class RingConstructs {
 		if (now - LAST_MADE.getOrDefault(player, Long.MIN_VALUE / 2) < COOLDOWN) {
 			return;
 		}
-		if (RingItem.charge(stack) < construct.cost()) {
+		int cost = ColorPowers.constructCost(construct, ring.color());
+		if (RingItem.charge(stack) < cost) {
 			player.sendOverlayMessage(Component.translatable("message.rings.construct_no_power", stack.getHoverName()));
 			return;
 		}
@@ -130,7 +131,7 @@ public final class RingConstructs {
 		}
 
 		LAST_MADE.put(player, now);
-		RingItem.addCharge(stack, -construct.cost());
+		RingItem.addCharge(stack, -cost);
 		RingPowers.playAnimation(player, RingAnimationPayload.Kind.CONSTRUCT, color);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.2F, 1.4F);
 		level.sendParticles(color.dust(0.5F, 1.0F), player.getX(), player.getY() + 1.2, player.getZ(), 20, 0.4, 0.4, 0.4, 0.0);
@@ -238,20 +239,29 @@ public final class RingConstructs {
 			player.sendOverlayMessage(Component.translatable("message.rings.cage_no_target"));
 			return false;
 		}
-		AABB box = target.getBoundingBox();
-		if (box.getXsize() > CAGE_MAX_SIZE || box.getYsize() > CAGE_MAX_SIZE || box.getZsize() > CAGE_MAX_SIZE) {
+		if (!boxIn(level, target, color, CAGE_LIFETIME)) {
 			player.sendOverlayMessage(Component.translatable("message.rings.cage_too_big", target.getDisplayName()));
 			return false;
 		}
+		return true;
+	}
 
-		// A hollow box one block out from the target all round, floor and roof included
+	/**
+	 * Closes a hollow box of hard light round the target, one block out all round, floor and roof included, and
+	 * stops it moving. Returns false, making nothing, if it's too big.
+	 */
+	static boolean boxIn(ServerLevel level, Entity target, RingColor color, int lifetime) {
+		AABB box = target.getBoundingBox();
+		if (box.getXsize() > CAGE_MAX_SIZE || box.getYsize() > CAGE_MAX_SIZE || box.getZsize() > CAGE_MAX_SIZE) {
+			return false;
+		}
 		int minX = Mth.floor(box.minX) - 1, minY = Mth.floor(box.minY) - 1, minZ = Mth.floor(box.minZ) - 1;
 		int maxX = Mth.floor(box.maxX) + 1, maxY = Mth.ceil(box.maxY), maxZ = Mth.floor(box.maxZ) + 1;
 		for (int x = minX; x <= maxX; x++) {
 			for (int y = minY; y <= maxY; y++) {
 				for (int z = minZ; z <= maxZ; z++) {
 					if (x == minX || x == maxX || y == minY || y == maxY || z == minZ || z == maxZ) {
-						HardLightBlock.place(level, new BlockPos(x, y, z), color, CAGE_LIFETIME);
+						HardLightBlock.place(level, new BlockPos(x, y, z), color, lifetime);
 					}
 				}
 			}

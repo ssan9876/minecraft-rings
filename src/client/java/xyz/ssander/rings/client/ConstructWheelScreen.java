@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.DyedItemColor;
 
+import xyz.ssander.rings.ColorPowers;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingConstructs.Construct;
 import xyz.ssander.rings.RingItem;
@@ -102,7 +103,7 @@ public class ConstructWheelScreen extends Screen {
 		Component title = this.selected >= 0 ? Component.translatable(constructs[this.selected].translationKey()) : this.title;
 		graphics.text(this.font, title, centreX - this.font.width(title) / 2, centreY - 9, bright, true);
 		if (this.selected >= 0) {
-			float percent = 100.0F * constructs[this.selected].cost() / RingItem.MAX_CHARGE;
+			float percent = 100.0F * ColorPowers.constructCost(constructs[this.selected], this.color) / RingItem.MAX_CHARGE;
 			Component cost = Component.translatable("screen.rings.construct_cost", String.format("%.1f", percent));
 			graphics.text(this.font, cost, centreX - this.font.width(cost) / 2, centreY + 3, 0xFFC0C0C0, true);
 		}

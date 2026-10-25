@@ -1,9 +1,17 @@
 package xyz.ssander.rings;
 
+import java.util.List;
+import java.util.function.Consumer;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.TooltipDisplay;
 import org.jspecify.annotations.Nullable;
 
 /** A ring worn in the ring slot. Its powers switch on and off with the activate key and run on its charge. */
@@ -41,6 +49,18 @@ public class RingItem extends Item {
 		int charge = Mth.clamp(charge(stack) + amount, 0, MAX_CHARGE);
 		stack.set(RingComponents.CHARGE, charge);
 		return charge;
+	}
+
+	/** What the ring's colour can do (see ColorPowers), and what an orange ring has claimed. */
+	@Override
+	public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
+		builder.accept(Component.translatable("tooltip.rings." + this.color.id() + ".power").withStyle(ChatFormatting.GRAY));
+		builder.accept(Component.translatable("tooltip.rings." + this.color.id() + ".gift").withStyle(ChatFormatting.DARK_GRAY));
+		List<Identifier> claims = stack.getOrDefault(RingComponents.CLAIMS, List.of());
+		if (!claims.isEmpty()) {
+			builder.accept(Component.translatable("tooltip.rings.claims", Component.literal(String.join(", ", claims.stream()
+					.map(id -> BuiltInRegistries.ENTITY_TYPE.getValue(id).getDescription().getString()).toList()))).withStyle(ChatFormatting.GOLD));
+		}
 	}
 
 	@Override

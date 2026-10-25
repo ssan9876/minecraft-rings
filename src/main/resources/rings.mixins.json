@@ -6,6 +6,7 @@
 		"InventoryMenuMixin",
 		"ItemEntityMixin",
 		"LivingEntityMixin",
+		"MobAccessor",
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin"
 	],
