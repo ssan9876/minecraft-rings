@@ -13,8 +13,9 @@ STACK="${STACK:-/opt/minecraft}"
 
 cd "$(dirname "$0")"
 ./gradlew build --console=plain -q
-jar="$(ls build/libs/rings-*.jar | grep -v -- '-sources\.jar$' | head -1)"
-name="$(basename "$jar")"
+version="$(sed -n 's/^version=//p' gradle.properties)"
+name="rings-$version.jar"
+jar="build/libs/$name"
 
 online="$(ssh "$PVE_HOST" "pct exec $CTID -- docker exec minecraft rcon-cli list" || true)"
 if [ "${FORCE:-}" != 1 ] && ! grep -q "There are 0 " <<<"$online"; then
