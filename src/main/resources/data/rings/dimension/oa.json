@@ -1,0 +1,11 @@
+{
+  "type": "rings:oa",
+  "generator": {
+    "type": "minecraft:noise",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "rings:oa"
+    },
+    "settings": "rings:oa"
+  }
+}

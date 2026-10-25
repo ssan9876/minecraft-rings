@@ -40,6 +40,7 @@ import xyz.ssander.rings.RingComponents;
 import xyz.ssander.rings.RingConstructs;
 import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.RingSlot;
+import xyz.ssander.rings.Space;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.client.ConstructWheelScreen;
 import xyz.ssander.rings.client.RingAnimations;
@@ -56,6 +57,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		if (System.getenv("RINGS_POSES") != null) {
 			filmPoses(context);
+			return;
+		}
+		if (System.getenv("RINGS_SPACE") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				exploreSpace(context, world.getConnection(), world.getServer());
+			}
 			return;
 		}
 
@@ -544,6 +552,10 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			}
 			server.runCommand("clear @a");
 
+			// Up into space, to each planet and home again
+			exploreSpace(context, connection, server);
+			server.runCommand("clear @a");
+
 			// Dying drops the ring like the rest of the inventory
 			server.runCommand("clear @a");
 			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
@@ -584,6 +596,108 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			check(server, p -> RingAttachments.getRing(p).isEmpty(), "creative can clear the ring slot");
 			context.setScreen(() -> null);
 		}
+	}
+
+	/**
+	 * Space: up from the Earth into space, into the Moon, Mars and Oa, back out and home. Checks gravity and air on
+	 * the way, and films each place. Run on its own with RINGS_SPACE=1.
+	 */
+	private static void exploreSpace(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runCommand("gamemode survival @a");
+		server.runCommand("time set noon");
+		server.runCommand("clear @a");
+		server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
+		server.runCommand("tp @a 0.5 -60 0.5 0 0");
+		context.waitTicks(3);
+		activate(context, connection);
+		check(server, RingAttachments::isActive, "the ring is on for the trip");
+
+		// Up and out: flying above the edge of space over the Earth
+		server.runCommand("tp @a 0.5 455 0.5");
+		fly(context, connection, server);
+		context.waitTicks(5);
+		check(server, p -> p.level().dimension() == Space.SPACE, "flying high enough leaves for space");
+		check(server, p -> p.getAttributeValue(Attributes.GRAVITY) < 0.03, "space has little gravity");
+		connection.waitForChunksRender();
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		context.runOnClient(mc -> { mc.player.setYRot(180.0F); mc.player.setXRot(-10.0F); });
+		context.waitTicks(5);
+		context.takeScreenshot("space-1-moon-ahead");
+		context.runOnClient(mc -> mc.player.setXRot(75.0F));
+		context.waitTicks(3);
+		context.takeScreenshot("space-2-earth-below");
+		context.runOnClient(mc -> { mc.player.setYRot(-70.0F); mc.player.setXRot(-5.0F); });
+		context.waitTicks(3);
+		context.takeScreenshot("space-3-mars");
+		context.runOnClient(mc -> { mc.player.setYRot(60.0F); mc.player.setXRot(-8.0F); });
+		context.waitTicks(3);
+		context.takeScreenshot("space-4-oa");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+
+		// Into each planet, look around, and back up to space
+		for (Space.Planet planet : Space.Planet.values()) {
+			Vec3 centre = planet.centre();
+			server.runCommand("execute in rings:space run tp @a " + centre.x + " " + centre.y + " " + centre.z);
+			context.waitTicks(5);
+			check(server, p -> p.level().dimension() == planet.dimension(), "flying into " + planet.id() + " lands on it");
+			fly(context, connection, server);
+			server.runOnServer(s -> player(s).teleportTo(0.5, 200.0, 0.5));
+			for (int i = 0; i < 400 && !server.computeOnServer(s -> {
+				ServerPlayer p = player(s);
+				return p.level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, p.getBlockX(), p.getBlockZ()) > p.level().getMinY() + 1;
+			}); i++) {
+				context.waitTick();
+			}
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				int ground = p.level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, p.getBlockX(), p.getBlockZ());
+				p.teleportTo(p.getX(), ground + 12, p.getZ());
+			});
+			connection.waitForChunksRender();
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.runOnClient(mc -> { mc.player.setYRot(0.0F); mc.player.setXRot(15.0F); });
+			context.waitTicks(20);
+			context.takeScreenshot("space-5-" + planet.id() + "-ground");
+			context.runOnClient(mc -> mc.player.setXRot(-40.0F));
+			for (float yaw : new float[] {0.0F, 120.0F, 240.0F}) {
+				context.runOnClient(mc -> mc.player.setYRot(yaw));
+				context.waitTicks(3);
+				context.takeScreenshot("space-6-" + planet.id() + "-sky-" + (int) yaw);
+			}
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			if (planet == Space.Planet.MOON) {
+				check(server, p -> Math.abs(p.getAttributeValue(Attributes.GRAVITY) - 0.08 / 6.0) < 0.001, "the Moon has a sixth of the Earth's gravity");
+				// No air without the ring
+				activate(context, connection);
+				context.waitTicks(40);
+				check(server, p -> p.getAirSupply() < p.getMaxAirSupply() - 20, "without the ring there's no air on the Moon");
+				activate(context, connection);
+				fly(context, connection, server);
+			}
+			server.runCommand("execute as @a at @s run tp @s ~ 405 ~");
+			context.waitTicks(5);
+			check(server, p -> p.level().dimension() == Space.SPACE, "flying up from " + planet.id() + " goes back to space");
+		}
+
+		// Home: down through the Earth's atmosphere, to where the trip started
+		server.runCommand("execute in rings:space run tp @a 0.5 -2 0.5");
+		context.waitTicks(5);
+		check(server, p -> p.level().dimension() == net.minecraft.world.level.Level.OVERWORLD && Math.abs(p.getX() - 0.5) < 2 && Math.abs(p.getZ() - 0.5) < 2,
+				"diving down to the Earth comes home where the trip started");
+		activate(context, connection);
+		server.runCommand("tp @a 0.5 -60 0.5");
+		context.waitTicks(3);
+	}
+
+	/** Flying on the ring, as if the player had taken off. */
+	private static void fly(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			p.getAbilities().flying = true;
+			p.onUpdateAbilities();
+		});
+		connection.waitForClientboundPackets();
+		context.waitTicks(2);
 	}
 
 	/** Quick look at each ring animation, mid-pose, from the side, front and back. Run with RINGS_POSES=1. */

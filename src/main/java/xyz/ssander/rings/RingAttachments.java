@@ -1,6 +1,7 @@
 package xyz.ssander.rings;
 
 import com.mojang.serialization.Codec;
+import net.minecraft.core.BlockPos;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
@@ -34,6 +35,10 @@ public final class RingAttachments {
 	/** Set while the wearer is firing the ring's beam. Synced to every client so everyone sees the beam. */
 	public static final AttachmentType<Boolean> FIRING = AttachmentRegistry.create(Rings.id("firing"),
 			builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
+
+	/** Where on the Earth a player left for space, so they come back down there. */
+	public static final AttachmentType<BlockPos> EARTH_RETURN = AttachmentRegistry.create(Rings.id("earth_return"),
+			builder -> builder.persistent(BlockPos.CODEC).copyOnDeath());
 
 	private RingAttachments() {
 	}

@@ -23,6 +23,19 @@ Options → Controls → Rings.
 
 Switching it on, you thrust the ring to the sky. Everyone else sees all of this too.
 
+**Space:** fly up past Y 450 on a ring and you're in space, over the curve of the Earth, with three planets hanging
+in the stars. Fly into one to land on it:
+
+| Planet | What it's like |
+|---|---|
+| The Moon | Grey dust and stone under a black sky, the Earth hanging over it. A sixth of the Earth's gravity. No air. |
+| Mars | Red sand and rock under a butterscotch sky. 38% of the Earth's gravity. No air. |
+| Oa | Home of the Lantern Corps: green land under a green sky, with the violet giant Korugar overhead. Breathable. |
+
+Fly back up past Y 400 to return to space, and down into the Earth to come home where you left. In space and on
+airless planets only an active ring keeps you breathing: if it goes out, your air runs out like underwater.
+Low gravity means higher jumps, slower falls and softer landings. Beds and respawn anchors don't work off the Earth.
+
 **Constructs:** hold **Construct Wheel** (default `V`) while the ring is on, point at a construct and let go (or
 click) to make it out of the ring's light, in its colour. Each costs a little power (the wheel shows how much).
 
@@ -32,8 +45,16 @@ click) to make it out of the ring's light, in its colour. Each costs a little po
 | Bridge | A bridge 3 wide and 16 long from your feet, for a minute |
 | Cage | A box of hard light around the creature you look at, for 15 seconds |
 | Giant Fist | A fist that flies where you look and smashes whatever it hits, throwing everything near it back |
+| Stairs | A staircase of hard light 3 wide, 12 steps up, for 45 seconds |
+| Dome | A dome of hard light over you, 4 blocks out, for 20 seconds |
+| Grab | A chain of light that yanks the creature you look at to you |
+| Giant Hammer | A hammer brought down where you look, its shockwave throwing everything near it up |
 | Sword | A diamond-strength sword in your hand |
-| Pickaxe | A netherite-speed pickaxe |
+| Axe, Pickaxe, Shovel | Netherite-speed tools |
+
+Stairs climb 12 steps ahead, the dome is a shell of hard light over you, Grab yanks the creature you look at to
+you on a chain of light, and the Giant Hammer comes down where you look with a shockwave that throws everything
+up. The axe and shovel are netherite-fast, like the pickaxe.
 
 Hard light only fills empty space, breaks no blocks and drops nothing. Construct tools last while the ring stays on
 (up to 5 minutes) and fade away if dropped.
@@ -100,6 +121,8 @@ Needs JDK 25.
 | `./deploy.sh` | Builds and installs the mod on the server, then restarts it |
 | `python tools/gen_textures.py` | Redraws every colour's ring, suit and lantern textures, and the slot icon |
 | `python tools/gen_resources.py` | Writes every colour's models, recipes, loot tables and names |
+| `python tools/gen_worlds.py` | Writes space and the planets (dimensions, terrain, skies) and their maps |
+| `RINGS_SPACE=1 ./gradlew runClientGameTest` | Only flies to space and each planet and back, filming each |
 | `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
 
 ## Releasing

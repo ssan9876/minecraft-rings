@@ -54,6 +54,7 @@ public class RingsClient implements ClientModInitializer {
 			RingBeams.tick(client);
 		});
 		LevelRenderEvents.COLLECT_SUBMITS.register(RingBeams::render);
+		LevelRenderEvents.COLLECT_SUBMITS.register(SpaceSky::render);
 
 		RingAnimations.init();
 		UpdateNotice.init();

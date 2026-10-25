@@ -1,0 +1,11 @@
+{
+  "type": "rings:moon",
+  "generator": {
+    "type": "minecraft:noise",
+    "biome_source": {
+      "type": "minecraft:fixed",
+      "biome": "rings:moon"
+    },
+    "settings": "rings:moon"
+  }
+}

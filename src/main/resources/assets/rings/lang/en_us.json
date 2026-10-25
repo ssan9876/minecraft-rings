@@ -60,5 +60,12 @@
   "construct.rings.hammer": "Giant Hammer",
   "construct.rings.axe": "Axe",
   "construct.rings.shovel": "Shovel",
-  "message.rings.grab_no_target": "Look at a creature to grab it"
+  "message.rings.grab_no_target": "Look at a creature to grab it",
+  "message.rings.space_enter": "Entering space",
+  "message.rings.space_earth": "Returning to Earth",
+  "message.rings.planet_moon": "Landing on the Moon",
+  "message.rings.planet_mars": "Landing on Mars",
+  "message.rings.planet_oa": "Landing on Oa",
+  "death.attack.rings.vacuum": "%1$s couldn't breathe in space",
+  "death.attack.rings.vacuum.player": "%1$s couldn't breathe in space"
 }

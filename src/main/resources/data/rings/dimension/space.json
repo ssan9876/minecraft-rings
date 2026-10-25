@@ -1,0 +1,13 @@
+{
+  "type": "rings:space",
+  "generator": {
+    "type": "minecraft:flat",
+    "settings": {
+      "biome": "rings:space",
+      "features": false,
+      "lakes": false,
+      "layers": [],
+      "structure_overrides": []
+    }
+  }
+}

@@ -144,6 +144,7 @@ public class Rings implements ModInitializer {
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 				RingPowers.tick(player);
+				Space.tick(player);
 			}
 		});
 	}
