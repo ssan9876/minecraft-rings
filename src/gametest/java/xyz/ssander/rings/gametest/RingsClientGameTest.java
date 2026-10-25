@@ -37,6 +37,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import xyz.ssander.rings.ColorPowers;
+import xyz.ssander.rings.ConstructBeast;
+import xyz.ssander.rings.ConstructJet;
 import xyz.ssander.rings.ForceBubble;
 import xyz.ssander.rings.MobMoods;
 import xyz.ssander.rings.Thralls;
@@ -68,6 +70,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		if (System.getenv("RINGS_POSES") != null) {
 			filmPoses(context);
+			return;
+		}
+		if (System.getenv("RINGS_CREATURES") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				constructCreatures(context, world.getConnection(), world.getServer());
+			}
 			return;
 		}
 		if (System.getenv("RINGS_COLORS") != null) {
@@ -418,7 +427,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			checkClient(context, mc -> mc.gui.screen() instanceof ConstructWheelScreen, "the construct key opens the wheel");
 			double[] wallSlot = context.computeOnClient(mc -> {
 				double scale = (double) mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth();
-				return new double[] {mc.getWindow().getScreenWidth() / 2.0, mc.getWindow().getScreenHeight() / 2.0 - (78 + 12) * scale};
+				return new double[] {mc.getWindow().getScreenWidth() / 2.0, mc.getWindow().getScreenHeight() / 2.0 - (88 + 12) * scale};
 			});
 			context.getInput().setCursorPos(wallSlot[0], wallSlot[1]);
 			context.waitTicks(2);
@@ -598,6 +607,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 
 			// Each colour's own power
 			colorPowers(context, connection, server);
+
+			// Construct creatures and the jet
+			constructCreatures(context, connection, server);
 
 			// With nobody else about for the ring to choose, it stays with its wearer through death
 			server.runCommand("clear @a");
@@ -1077,6 +1089,113 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				"Black Lanterns stay while their master's about");
 		server.runCommand("kill @e[type=!minecraft:player]");
 		server.runCommand("clear @a");
+	}
+
+	/** Construct creatures fighting for their maker, and the jet flown up to space and back. Run on its own with RINGS_CREATURES=1. */
+	private static void constructCreatures(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runCommand("gamemode survival @a");
+		server.runCommand("time set noon");
+		server.runCommand("clear @a");
+		server.runCommand("kill @e[type=!minecraft:player]");
+		wear(context, connection, server, RingColor.GREEN);
+
+		// A wolf and a golem, which go for a zombie near by
+		server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.WOLF));
+		context.waitTicks(12);
+		server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.GOLEM));
+		check(server, p -> p.level().getEntitiesOfClass(ConstructBeast.class, p.getBoundingBox().inflate(8)).size() == 2, "the wheel makes a wolf and a golem");
+		server.runOnServer(s -> player(s).level().getEntitiesOfClass(ConstructBeast.class, player(s).getBoundingBox().inflate(8))
+				.forEach(beast -> beast.setNoAi(true)));
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		context.runOnClient(mc -> mc.player.setXRot(25.0F));
+		context.waitTicks(5);
+		context.takeScreenshot("creatures-0-made");
+		TestCamera.yawOffset = 120.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("creatures-0-made-side");
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.player.setXRot(0.0F));
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runOnServer(s -> player(s).level().getEntitiesOfClass(ConstructBeast.class, player(s).getBoundingBox().inflate(8))
+				.forEach(beast -> beast.setNoAi(false)));
+		server.runCommand("summon minecraft:zombie 0.5 -60 9.5 {NoAI:1b,PersistenceRequired:1b}");
+		context.waitTicks(30);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 150.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("creatures-1-wolf-golem");
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		for (int i = 0; i < 200 && !server.computeOnServer(s -> player(s).level().getEntitiesOfClass(Zombie.class, player(s).getBoundingBox().inflate(32)).isEmpty()); i++) {
+			context.waitTick();
+		}
+		check(server, p -> p.level().getEntitiesOfClass(Zombie.class, p.getBoundingBox().inflate(32)).isEmpty(), "construct creatures fight for their maker");
+		server.runCommand("kill @e[type=rings:construct_wolf]");
+		server.runCommand("kill @e[type=rings:construct_golem]");
+		server.runCommand("kill @e[type=minecraft:item]");
+
+		// The jet: the maker climbs straight in to fly it, with a pig along for the ride
+		server.runCommand("tp @a 0.5 -55 0.5 0 0");
+		context.waitTicks(3);
+		server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.JET));
+		context.waitTicks(3);
+		check(server, p -> p.getVehicle() instanceof ConstructJet, "making a jet puts its maker at the controls");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Pig pig = new Pig(net.minecraft.world.entity.EntityTypes.PIG, p.level());
+			pig.snapTo(p.getX(), p.getY(), p.getZ());
+			p.level().addFreshEntity(pig);
+			pig.startRiding(p.getVehicle(), true, true);
+		});
+		context.waitTicks(3);
+		check(server, p -> p.getVehicle().getPassengers().size() == 2, "the jet has room for more");
+		connection.waitForClientboundPackets();
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 140.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("creatures-2-jet");
+		double startY = server.computeOnServer(s -> player(s).getY());
+		context.runOnClient(mc -> mc.player.setXRot(-30.0F));
+		context.getInput().holdKey(options -> options.keyUp);
+		context.waitTicks(40);
+		TestCamera.yawOffset = 90.0F;
+		context.waitTick();
+		context.takeScreenshot("creatures-3-jet-flying");
+		check(server, p -> p.getY() > startY + 10.0, "the jet flies where its pilot looks");
+
+		// Straight up, sprinting, into space, and back down to the Earth
+		context.runOnClient(mc -> mc.player.setXRot(-89.0F));
+		context.getInput().holdKey(options -> options.keySprint);
+		for (int i = 0; i < 600 && server.computeOnServer(s -> player(s).level().dimension() != Space.SPACE); i++) {
+			context.waitTick();
+		}
+		check(server, p -> p.level().dimension() == Space.SPACE && p.getVehicle() instanceof ConstructJet, "the jet flies up into space with its pilot");
+		check(server, p -> p.getVehicle().getPassengers().size() == 2, "the jet's passengers come too");
+		connection.waitForChunksRender();
+		context.waitTicks(10);
+		context.takeScreenshot("creatures-4-jet-space");
+		context.runOnClient(mc -> mc.player.setXRot(89.0F));
+		for (int i = 0; i < 600 && server.computeOnServer(s -> player(s).level().dimension() != net.minecraft.world.level.Level.OVERWORLD); i++) {
+			context.waitTick();
+		}
+		check(server, p -> p.level().dimension() == net.minecraft.world.level.Level.OVERWORLD && p.getVehicle() instanceof ConstructJet, "the jet flies home");
+		context.getInput().releaseKey(options -> options.keySprint);
+		context.getInput().releaseKey(options -> options.keyUp);
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runOnServer(s -> player(s).stopRiding());
+		context.waitTicks(3);
+		check(server, p -> !p.isPassenger(), "the pilot can climb out");
+		for (int i = 0; i < 300 && !server.computeOnServer(s -> player(s).level().getEntitiesOfClass(ConstructJet.class, player(s).getBoundingBox().inflate(64)).isEmpty()); i++) {
+			context.waitTick();
+		}
+		check(server, p -> p.level().getEntitiesOfClass(ConstructJet.class, p.getBoundingBox().inflate(64)).isEmpty(), "a jet left alone fades");
+		server.runCommand("kill @e[type=!minecraft:player]");
+		server.runCommand("tp @a 0.5 -60 0.5");
+		activate(context, connection);
 	}
 
 	/** Wears a ring of the colour, fully charged and switched on, standing at the test spot. */

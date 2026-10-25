@@ -26,7 +26,7 @@ import xyz.ssander.rings.network.CreateConstructPayload;
  * of the screen. Point the mouse at one and let go of the key (or click) to make it.
  */
 public class ConstructWheelScreen extends Screen {
-	private static final int RADIUS = 78;
+	private static final int RADIUS = 88;
 	private static final int SLOT = 26;
 	/** The mouse has to be this far from the middle to pick anything, so letting go in the middle cancels. */
 	private static final int DEAD_ZONE = 18;
@@ -56,6 +56,9 @@ public class ConstructWheelScreen extends Screen {
 				case AXE -> tinted(new ItemStack(Rings.CONSTRUCT_AXE));
 				case PICKAXE -> tinted(new ItemStack(Rings.CONSTRUCT_PICKAXE));
 				case SHOVEL -> tinted(new ItemStack(Rings.CONSTRUCT_SHOVEL));
+				case WOLF -> new ItemStack(Items.BONE);
+				case GOLEM -> new ItemStack(Items.CARVED_PUMPKIN);
+				case JET -> new ItemStack(Items.ELYTRA);
 			};
 		}
 	}

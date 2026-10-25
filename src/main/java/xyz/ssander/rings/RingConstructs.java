@@ -14,10 +14,12 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -53,7 +55,13 @@ public final class RingConstructs {
 		/** A pickaxe, as fast as netherite. */
 		PICKAXE(45, "pickaxe"),
 		/** A shovel, as fast as netherite. */
-		SHOVEL(45, "shovel");
+		SHOVEL(45, "shovel"),
+		/** A wolf of light that fights for its maker. */
+		WOLF(60, "wolf"),
+		/** A golem of light, slow and mighty, that fights for its maker. */
+		GOLEM(90, "golem"),
+		/** A jet of light, with its maker at the controls and room for three more. */
+		JET(60, "jet");
 
 		private final int cost;
 		private final String name;
@@ -85,6 +93,10 @@ public final class RingConstructs {
 	/** How far away the cage can reach, and the biggest thing it fits around, in blocks. */
 	private static final double CAGE_RANGE = 24.0;
 	private static final double CAGE_MAX_SIZE = 4.0;
+	/** How long construct creatures last, and how many a wearer can have at once. */
+	private static final int WOLF_LIFETIME = 60 * 20;
+	private static final int GOLEM_LIFETIME = 45 * 20;
+	private static final int MAX_BEASTS = 3;
 	/** Ticks between constructs. */
 	private static final int COOLDOWN = 10;
 
@@ -125,6 +137,9 @@ public final class RingConstructs {
 			case AXE -> tool(player, Rings.CONSTRUCT_AXE, color, now);
 			case PICKAXE -> tool(player, Rings.CONSTRUCT_PICKAXE, color, now);
 			case SHOVEL -> tool(player, Rings.CONSTRUCT_SHOVEL, color, now);
+			case WOLF -> beast(level, player, Rings.CONSTRUCT_WOLF, color, WOLF_LIFETIME);
+			case GOLEM -> beast(level, player, Rings.CONSTRUCT_GOLEM, color, GOLEM_LIFETIME);
+			case JET -> jet(level, player, color);
 		};
 		if (!made) {
 			return;
@@ -283,6 +298,40 @@ public final class RingConstructs {
 		}
 		player.sendOverlayMessage(Component.translatable("message.rings.construct_no_room"));
 		return false;
+	}
+
+	/** A creature of light, a couple of blocks ahead of the wearer, that fights for them. */
+	private static boolean beast(ServerLevel level, ServerPlayer player, EntityType<ConstructBeast> type, RingColor color, int lifetime) {
+		int beasts = level.getEntities(EntityTypeTest.forClass(ConstructBeast.class),
+				beast -> Thralls.of(beast) != null && Thralls.of(beast).owner().filter(player.getUUID()::equals).isPresent()).size();
+		if (beasts >= MAX_BEASTS) {
+			player.sendOverlayMessage(Component.translatable("message.rings.too_many_thralls"));
+			return false;
+		}
+		// Ahead of the wearer, side by side with any already made
+		float yaw = player.getYRot() * Mth.DEG_TO_RAD;
+		Vec3 right = new Vec3(-Mth.cos(yaw), 0.0, -Mth.sin(yaw));
+		Vec3 ahead = player.position().add(-Mth.sin(yaw) * 2.5, 0.0, Mth.cos(yaw) * 2.5).add(right.scale((beasts - 1) * 1.8));
+		return Thralls.raise(level, type, ahead, player.getUUID(), color, lifetime) != null;
+	}
+
+	/** A jet of light, with the wearer climbing straight into the pilot's seat. */
+	private static boolean jet(ServerLevel level, ServerPlayer player, RingColor color) {
+		if (player.isPassenger()) {
+			player.sendOverlayMessage(Component.translatable("message.rings.construct_blocked"));
+			return false;
+		}
+		// One jet at a time: making another lets the old one go
+		for (ConstructJet old : level.getEntities(EntityTypeTest.forClass(ConstructJet.class), jet -> jet.owner() == player)) {
+			old.fade(level);
+		}
+		ConstructJet jet = ConstructJet.madeBy(player, color);
+		level.addFreshEntity(jet);
+		if (!player.startRiding(jet, true, true)) {
+			jet.discard();
+			return false;
+		}
+		return true;
 	}
 
 	private static boolean failed(ServerPlayer player) {

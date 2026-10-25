@@ -7,6 +7,7 @@ import java.util.function.Function;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.Registry;
@@ -90,6 +91,14 @@ public class Rings implements ModInitializer {
 	public static final EntityType<EnergyBolt> ENERGY_BOLT = registerEntity("energy_bolt",
 			EntityType.Builder.<EnergyBolt>of(EnergyBolt::new, MobCategory.MISC).sized(0.4F, 0.4F).clientTrackingRange(8).updateInterval(1).noSummon());
 
+	/** Construct creatures and the construct jet. */
+	public static final EntityType<ConstructBeast> CONSTRUCT_WOLF = registerEntity("construct_wolf",
+			EntityType.Builder.<ConstructBeast>of(ConstructBeast::new, MobCategory.MISC).sized(0.6F, 0.85F).clientTrackingRange(10).noSummon());
+	public static final EntityType<ConstructBeast> CONSTRUCT_GOLEM = registerEntity("construct_golem",
+			EntityType.Builder.<ConstructBeast>of(ConstructBeast::new, MobCategory.MISC).sized(1.4F, 2.4F).clientTrackingRange(10).noSummon());
+	public static final EntityType<ConstructJet> CONSTRUCT_JET = registerEntity("construct_jet",
+			EntityType.Builder.<ConstructJet>of(ConstructJet::new, MobCategory.MISC).sized(2.0F, 0.9F).clientTrackingRange(10).updateInterval(1).noSummon());
+
 	/** Construct tools, made by the construct wheel in the ring's colour (their dye) and gone when it switches off. */
 	public static final ConstructItem CONSTRUCT_SWORD = register("construct_sword", ConstructItem::new,
 			constructTool(new Item.Properties().sword(ToolMaterial.DIAMOND, 3.0F, -2.4F)));
@@ -141,6 +150,8 @@ public class Rings implements ModInitializer {
 		RingReturn.init();
 		RingProtection.init();
 		Thralls.init();
+		FabricDefaultAttributeRegistry.register(CONSTRUCT_WOLF, ConstructBeast.wolfAttributes());
+		FabricDefaultAttributeRegistry.register(CONSTRUCT_GOLEM, ConstructBeast.golemAttributes());
 		ColorPowers.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {

@@ -152,5 +152,11 @@
   "tooltip.rings.white.power": "Ring power: bring back a player who just died near you, or heal",
   "tooltip.rings.white.gift": "Life: you slowly heal while the ring is on",
   "tooltip.rings.black.power": "Ring power: drain the life of everything near you",
-  "tooltip.rings.black.gift": "Death: what you kill rises as a Black Lantern to fight for you"
+  "tooltip.rings.black.gift": "Death: what you kill rises as a Black Lantern to fight for you",
+  "construct.rings.wolf": "Wolf",
+  "construct.rings.golem": "Golem",
+  "construct.rings.jet": "Jet",
+  "entity.rings.construct_wolf": "Construct Wolf",
+  "entity.rings.construct_golem": "Construct Golem",
+  "entity.rings.construct_jet": "Construct Jet"
 }

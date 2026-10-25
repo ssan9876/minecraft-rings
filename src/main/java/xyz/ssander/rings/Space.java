@@ -14,7 +14,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -100,41 +102,64 @@ public final class Space {
 	private Space() {
 	}
 
+	/** A trip somewhere else: where to, where to come out, and what to tell the traveller. */
+	public record Trip(ResourceKey<Level> to, Vec3 position, String message) {
+		boolean toEarth() {
+			return this.to == Level.OVERWORLD;
+		}
+	}
+
+	/**
+	 * Where something flying at this spot should go, if anywhere: up out of the Earth's sky to space, from space
+	 * down to the Earth (to {@code home}) or into a planet, and up out of a planet's sky back to space.
+	 */
+	public static @Nullable Trip trip(ResourceKey<Level> dimension, Vec3 pos, BlockPos home, RandomSource random) {
+		Planet planet = Planet.of(dimension);
+		if (dimension == Level.OVERWORLD && pos.y > LEAVE_EARTH_Y) {
+			return new Trip(SPACE, SPACE_ARRIVAL.add(random.nextDouble() * 6 - 3, 0.0, random.nextDouble() * 6 - 3), "message.rings.space_enter");
+		}
+		if (dimension == SPACE) {
+			if (pos.y < EARTH_Y) {
+				return new Trip(Level.OVERWORLD, new Vec3(home.getX() + 0.5, EARTH_ARRIVAL_Y, home.getZ() + 0.5), "message.rings.space_earth");
+			}
+			for (Planet target : Planet.values()) {
+				if (pos.distanceTo(target.centre) < target.radius) {
+					return new Trip(target.dimension, new Vec3(random.nextDouble() * 32 - 16, PLANET_ARRIVAL_Y, random.nextDouble() * 32 - 16),
+							"message.rings.planet_" + target.name);
+				}
+			}
+		}
+		if (planet != null && pos.y > LEAVE_PLANET_Y) {
+			return new Trip(SPACE, planet.centre.add(0.0, planet.radius + 30.0, 0.0), "message.rings.space_enter");
+		}
+		return null;
+	}
+
+	/** Where on the Earth the player comes back down. */
+	static BlockPos home(ServerPlayer player) {
+		return player.getAttachedOrElse(RingAttachments.EARTH_RETURN, player.level().getServer().overworld().getRespawnData().pos());
+	}
+
 	/** Moves players between the Earth, space and the planets, and keeps gravity and air right. Runs every server tick. */
 	static void tick(ServerPlayer player) {
-		// Carried in a bubble, they go wherever the wearer goes, and the bubble keeps them breathing
-		if (player.getVehicle() instanceof ForceBubble) {
+		// Carried in a bubble or riding a jet, they go wherever it goes, and it keeps them breathing
+		if (player.getVehicle() instanceof ForceBubble || player.getVehicle() instanceof ConstructJet) {
 			return;
 		}
 		ResourceKey<Level> dimension = player.level().dimension();
 		Planet planet = Planet.of(dimension);
 		boolean ringFlying = player.getAttachedOrElse(RingAttachments.FLYING, false);
 
-		if (dimension == Level.OVERWORLD && ringFlying && player.getY() > LEAVE_EARTH_Y) {
-			player.setAttached(RingAttachments.EARTH_RETURN, player.blockPosition());
-			go(player, SPACE, SPACE_ARRIVAL.add(player.getRandom().nextDouble() * 6 - 3, 0.0, player.getRandom().nextDouble() * 6 - 3),
-					"message.rings.space_enter");
-			return;
-		}
-		if (dimension == SPACE) {
-			if (player.getY() < EARTH_Y) {
-				BlockPos home = player.getAttachedOrElse(RingAttachments.EARTH_RETURN, player.level().getServer().overworld().getRespawnData().pos());
-				go(player, Level.OVERWORLD, new Vec3(home.getX() + 0.5, EARTH_ARRIVAL_Y, home.getZ() + 0.5), "message.rings.space_earth");
-				if (!player.getAbilities().flying) {
-					player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, SAFE_RETURN_TICKS, 0, false, false, true));
-				}
-				return;
+		// Only the ring's power gets anyone off the Earth
+		Trip trip = trip(dimension, player.position(), home(player), player.getRandom());
+		if (trip != null && (dimension != Level.OVERWORLD || ringFlying)) {
+			if (dimension == Level.OVERWORLD) {
+				player.setAttached(RingAttachments.EARTH_RETURN, player.blockPosition());
 			}
-			for (Planet target : Planet.values()) {
-				if (player.position().distanceTo(target.centre) < target.radius) {
-					go(player, target.dimension, new Vec3(player.getRandom().nextDouble() * 32 - 16, PLANET_ARRIVAL_Y, player.getRandom().nextDouble() * 32 - 16),
-							"message.rings.planet_" + target.name);
-					return;
-				}
+			go(player, trip);
+			if (trip.toEarth() && !player.getAbilities().flying) {
+				player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, SAFE_RETURN_TICKS, 0, false, false, true));
 			}
-		}
-		if (planet != null && player.getY() > LEAVE_PLANET_Y) {
-			go(player, SPACE, planet.centre.add(0.0, planet.radius + 30.0, 0.0), "message.rings.space_enter");
 			return;
 		}
 
@@ -178,11 +203,12 @@ public final class Space {
 		}
 	}
 
-	private static void go(ServerPlayer player, ResourceKey<Level> to, Vec3 position, String message) {
-		ServerLevel level = player.level().getServer().getLevel(to);
+	private static void go(ServerPlayer player, Trip trip) {
+		ServerLevel level = player.level().getServer().getLevel(trip.to());
 		if (level == null) {
 			return;
 		}
+		Vec3 position = trip.position();
 		boolean flying = player.getAbilities().flying;
 		List<ForceBubble> bubbles = ForceBubble.carriedBy(player);
 		player.teleport(new TeleportTransition(level, position, player.getDeltaMovement(), player.getYRot(), player.getXRot(), TeleportTransition.DO_NOTHING));
@@ -194,7 +220,25 @@ public final class Space {
 		for (ForceBubble bubble : bubbles) {
 			bubble.teleport(new TeleportTransition(level, position.add(1.5, 0.0, 0.0), Vec3.ZERO, bubble.getYRot(), 0.0F, TeleportTransition.DO_NOTHING));
 		}
-		player.sendOverlayMessage(Component.translatable(message));
+		player.sendOverlayMessage(Component.translatable(trip.message()));
 		level.playSound(null, position.x, position.y, position.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 0.6F);
+	}
+
+	/** Takes a vehicle and everyone aboard on the trip. */
+	static void go(Entity vehicle, Trip trip) {
+		if (!(vehicle.level() instanceof ServerLevel from) || from.getServer().getLevel(trip.to()) == null) {
+			return;
+		}
+		ServerLevel level = from.getServer().getLevel(trip.to());
+		for (Entity passenger : vehicle.getPassengers()) {
+			if (passenger instanceof ServerPlayer player) {
+				if (from.dimension() == Level.OVERWORLD) {
+					player.setAttached(RingAttachments.EARTH_RETURN, player.blockPosition());
+				}
+				player.sendOverlayMessage(Component.translatable(trip.message()));
+			}
+		}
+		vehicle.teleport(new TeleportTransition(level, trip.position(), vehicle.getDeltaMovement(), vehicle.getYRot(), vehicle.getXRot(), TeleportTransition.DO_NOTHING));
+		level.playSound(null, trip.position().x, trip.position().y, trip.position().z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 0.6F);
 	}
 }

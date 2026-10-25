@@ -189,6 +189,9 @@ public final class RingPowers {
 		if (ForceBubble.isCarrying(player)) {
 			drain += RingAbilities.CARRY_DRAIN;
 		}
+		if (ConstructJet.isPiloting(player)) {
+			drain += ConstructJet.DRAIN;
+		}
 		return drain;
 	}
 
