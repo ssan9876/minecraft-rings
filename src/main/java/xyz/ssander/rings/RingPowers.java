@@ -58,7 +58,7 @@ public final class RingPowers {
 		level.sendParticles(active ? color.dust(0.0F, 1.5F) : color.dust(0.0F, 1.0F),
 				player.getX(), player.getY() + 1.0, player.getZ(), active ? 60 : 25, 0.5, 0.9, 0.5, 0.0);
 		if (active) {
-			playAnimation(player, RingAnimationPayload.Kind.ACTIVATE);
+			playAnimation(player, RingAnimationPayload.Kind.ACTIVATE, color);
 		}
 		player.sendOverlayMessage(Component.translatable(active ? "message.rings.activated" : "message.rings.deactivated", ring.getHoverName()));
 	}
@@ -124,7 +124,7 @@ public final class RingPowers {
 			level.sendParticles(lantern.color().dust(0.0F, 0.6F), point.x, point.y, point.z, 1, 0.03, 0.03, 0.03, 0.0);
 		}
 
-		playAnimation(player, RingAnimationPayload.Kind.CHARGE);
+		playAnimation(player, full ? RingAnimationPayload.Kind.CHARGE_FULL : RingAnimationPayload.Kind.CHARGE, lantern.color());
 		level.playSound(null, pos, full ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS,
 				1.0F, 0.6F + 1.2F * charge / RingItem.MAX_CHARGE);
 		player.sendOverlayMessage(full
@@ -137,8 +137,8 @@ public final class RingPowers {
 	}
 
 	/** Plays a ring animation on the player for them and everyone who can see them. */
-	private static void playAnimation(ServerPlayer player, RingAnimationPayload.Kind kind) {
-		RingAnimationPayload payload = new RingAnimationPayload(player.getId(), kind);
+	private static void playAnimation(ServerPlayer player, RingAnimationPayload.Kind kind, RingColor color) {
+		RingAnimationPayload payload = new RingAnimationPayload(player.getId(), kind, color);
 		ServerPlayNetworking.send(player, payload);
 		for (ServerPlayer watcher : PlayerLookup.tracking(player)) {
 			ServerPlayNetworking.send(watcher, payload);

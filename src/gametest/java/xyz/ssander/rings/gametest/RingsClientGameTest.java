@@ -223,12 +223,19 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			TestCamera.yawOffset = 90.0F;
 			camera(context, CameraType.THIRD_PERSON_BACK);
 			context.takeScreenshot("rings-9-charging-side");
-			context.waitTicks(25);
+			for (int i = 0; i < 60 && !server.computeOnServer(s -> RingItem.charge(RingAttachments.getRing(player(s))) == RingItem.MAX_CHARGE); i++) {
+				context.waitTick();
+			}
+			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE, "the power lantern charges the ring");
+			connection.waitForClientboundPackets();
+			context.waitTicks(8);
+			checkClient(context, mc -> RingAnimations.isPlaying(mc.player, RingAnimations.CHARGE_FULL), "a full ring bursts with power");
+			context.takeScreenshot("rings-9-full-burst-side");
 			context.getInput().releaseKey(options -> options.keyUse);
 			connection.waitForServerboundPackets();
-			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE, "the power lantern charges the ring");
-			context.waitTicks(15);
-			checkClient(context, mc -> !RingAnimations.isPlaying(mc.player, RingAnimations.CHARGE), "the charging pose ends after charging");
+			context.waitTicks(40);
+			checkClient(context, mc -> !RingAnimations.isPlaying(mc.player, RingAnimations.CHARGE)
+					&& !RingAnimations.isPlaying(mc.player, RingAnimations.CHARGE_FULL), "the charging animations end after charging");
 			TestCamera.yawOffset = 0.0F;
 			camera(context, CameraType.FIRST_PERSON);
 			context.waitTicks(25);
@@ -321,6 +328,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 
 			film(context, RingAnimations.ACTIVATE, 10);
 			film(context, RingAnimations.CHARGE, 8);
+			film(context, RingAnimations.CHARGE_FULL, 9);
 			film(context, RingAnimations.LAND, 4);
 			TestCamera.yawOffset = 0.0F;
 		}

@@ -30,40 +30,140 @@
 			}
 		},
 		"charge": {
-			"loop": "hold_on_last_frame",
-			"animation_length": 0.25,
+			"animation_length": 1.0,
+			"loopTick": 0.35,
 			"player_animation_library": {
 				"name": "charge",
-				"beginTick": 5
+				"beginTick": 7,
+				"applyBendToOtherBones": true
 			},
 			"bones": {
 				"right_arm": {
 					"rotation": {
-						"0.25": { "vector": [-80, 0, 0] }
+						"0.35": { "vector": [-78, -12, 0], "easing": "easeOutBack" },
+						"0.6": { "vector": [-88, -12, 0], "easing": "easeOutQuad" },
+						"1.0": { "vector": [-78, -12, 0], "easing": "easeInOutSine" }
 					}
 				},
 				"left_arm": {
 					"rotation": {
-						"0.25": { "vector": [-25, 0, -6] }
+						"0.35": { "vector": [-62, 38, 0], "easing": "easeOutQuad" },
+						"0.6": { "vector": [-70, 38, 0], "easing": "easeOutQuad" },
+						"1.0": { "vector": [-62, 38, 0], "easing": "easeInOutSine" }
+					}
+				},
+				"torso": {
+					"bend": {
+						"0.35": { "value": 12 },
+						"0.6": { "value": 18, "easing": "easeOutQuad" },
+						"1.0": { "value": 12, "easing": "easeInOutSine" }
+					}
+				},
+				"body": {
+					"position": {
+						"0.35": { "vector": [0, -0.8, 0] },
+						"0.6": { "vector": [0, -1.4, 0], "easing": "easeOutQuad" },
+						"1.0": { "vector": [0, -0.8, 0], "easing": "easeInOutSine" }
+					}
+				},
+				"left_leg": {
+					"rotation": {
+						"0.35": { "vector": [-24, 0, -3] }
+					},
+					"bend": {
+						"0.35": { "value": 28 }
+					}
+				},
+				"right_leg": {
+					"rotation": {
+						"0.35": { "vector": [18, 0, 4] }
 					}
 				}
 			}
 		},
 		"charge_end": {
-			"animation_length": 0.3,
+			"animation_length": 0.35,
 			"player_animation_library": {
 				"name": "charge_end",
-				"endTick": 0
+				"endTick": 0,
+				"applyBendToOtherBones": true
 			},
 			"bones": {
+				"right_arm": { "rotation": { "0.0": { "vector": [-78, -12, 0] } } },
+				"left_arm": { "rotation": { "0.0": { "vector": [-62, 38, 0] } } },
+				"torso": { "bend": { "0.0": { "value": 12 } } },
+				"body": { "position": { "0.0": { "vector": [0, -0.8, 0] } } },
+				"left_leg": {
+					"rotation": { "0.0": { "vector": [-24, 0, -3] } },
+					"bend": { "0.0": { "value": 28 } }
+				},
+				"right_leg": { "rotation": { "0.0": { "vector": [18, 0, 4] } } }
+			}
+		},
+		"charge_full": {
+			"animation_length": 1.7,
+			"player_animation_library": {
+				"name": "charge_full",
+				"beginTick": 3,
+				"endTick": 22,
+				"applyBendToOtherBones": true
+			},
+			"bones": {
+				"body": {
+					"position": {
+						"0.15": { "vector": [0, -2.5, 0] },
+						"0.4": { "vector": [0, 1.5, 0], "easing": "easeOutBack" },
+						"0.6": { "vector": [0, 0, 0], "easing": "easeInOutSine" }
+					}
+				},
+				"torso": {
+					"bend": {
+						"0.15": { "value": 25 },
+						"0.4": { "value": -12, "easing": "easeOutBack" },
+						"1.1": { "value": -8 }
+					}
+				},
+				"head": {
+					"rotation": {
+						"0.15": { "vector": [15, 0, 0] },
+						"0.4": { "vector": [-40, 0, 0], "easing": "easeOutQuad" },
+						"1.1": { "vector": [-40, 0, 0] }
+					}
+				},
 				"right_arm": {
 					"rotation": {
-						"0.0": { "vector": [-80, 0, 0] }
+						"0.15": { "vector": [25, 0, 15] },
+						"0.4": { "vector": [-178, 0, 6], "easing": "easeOutBack" },
+						"1.1": { "vector": [-176, 0, 6] }
 					}
 				},
 				"left_arm": {
 					"rotation": {
-						"0.0": { "vector": [-25, 0, -6] }
+						"0.15": { "vector": [-20, 20, -10] },
+						"0.4": { "vector": [10, 0, -45], "easing": "easeOutBack" },
+						"1.1": { "vector": [10, 0, -42] }
+					}
+				},
+				"right_leg": {
+					"rotation": {
+						"0.15": { "vector": [-20, 0, 5] },
+						"0.4": { "vector": [6, 0, 8], "easing": "easeOutQuad" },
+						"1.1": { "vector": [6, 0, 8] }
+					},
+					"bend": {
+						"0.15": { "value": 30 },
+						"0.4": { "value": 0, "easing": "easeOutQuad" }
+					}
+				},
+				"left_leg": {
+					"rotation": {
+						"0.15": { "vector": [-20, 0, -5] },
+						"0.4": { "vector": [6, 0, -8], "easing": "easeOutQuad" },
+						"1.1": { "vector": [6, 0, -8] }
+					},
+					"bend": {
+						"0.15": { "value": 30 },
+						"0.4": { "value": 0, "easing": "easeOutQuad" }
 					}
 				}
 			}

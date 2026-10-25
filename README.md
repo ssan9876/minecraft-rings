@@ -16,8 +16,10 @@ Switching it on, you thrust the ring to the sky. Everyone else sees all of this 
 **Power:** the ring runs on its charge, shown by the meter to the right of the hotbar and the bar on the item. A
 full ring lasts 30 minutes switched on, or 10 minutes of flying. When it runs out the ring switches off, and it
 won't switch back on until you charge it: **hold right-click on a Power Lantern of the ring's colour** while
-wearing or holding the ring (about 2 seconds from empty). You hold the ring out to the lantern while it charges.
-A lantern of another colour won't charge it.
+wearing or holding the ring (about 2 seconds from empty). While it charges you take the lantern oath: braced,
+ring fist thrust at the lantern and the other hand gripping the wrist, pulsing with each surge as energy spirals up
+around you. When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
+sky. A lantern of another colour won't charge it.
 
 Crafting (shaped). Every colour uses the same pattern with its own material:
 
