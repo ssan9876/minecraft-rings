@@ -20,6 +20,9 @@
     },
     "color=black": {
       "model": "rings:block/hard_light_black"
+    },
+    "color=yellow": {
+      "model": "rings:block/hard_light_yellow"
     }
   }
 }

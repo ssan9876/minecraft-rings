@@ -15,6 +15,7 @@ COLORS = {
     "orange": ("Orange", "minecraft:copper_block", "minecraft:copper_ingot"),
     "white": ("White", "minecraft:quartz_block", "minecraft:quartz"),
     "black": ("Black", "minecraft:obsidian", "minecraft:obsidian"),
+    "yellow": ("Yellow", "minecraft:gold_block", "minecraft:glowstone_dust"),
 }
 
 

@@ -98,6 +98,9 @@ public final class RingPowers {
 			if (RingBeam.isFiring(player)) {
 				player.removeAttached(RingAttachments.FIRING);
 			}
+			if (player.getAttachedOrElse(RingAttachments.SHIELD, false)) {
+				player.removeAttached(RingAttachments.SHIELD);
+			}
 		} else if (RingBeam.isFiring(player)) {
 			RingBeam.tick(player);
 		}
@@ -176,6 +179,12 @@ public final class RingPowers {
 		}
 		if (RingBeam.isFiring(player)) {
 			drain += DRAIN_FIRING;
+		}
+		if (player.getAttachedOrElse(RingAttachments.SHIELD, false)) {
+			drain += RingAbilities.SHIELD_DRAIN;
+		}
+		if (ForceBubble.isCarrying(player)) {
+			drain += RingAbilities.CARRY_DRAIN;
 		}
 		return drain;
 	}

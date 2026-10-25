@@ -22,11 +22,14 @@ import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.network.ActivateRingPayload;
+import xyz.ssander.rings.network.RingActionPayload;
 
 public class RingsClient implements ClientModInitializer {
 	public static KeyMapping activateKey;
 	public static KeyMapping beamKey;
 	public static KeyMapping constructKey;
+	public static KeyMapping forceFieldKey;
+	public static KeyMapping scanKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -37,6 +40,10 @@ public class RingsClient implements ClientModInitializer {
 				new KeyMapping("key.rings.beam", InputConstants.KEY_G, category));
 		constructKey = KeyMappingHelper.registerKeyMapping(
 				new KeyMapping("key.rings.construct", InputConstants.KEY_V, category));
+		forceFieldKey = KeyMappingHelper.registerKeyMapping(
+				new KeyMapping("key.rings.force_field", InputConstants.KEY_B, category));
+		scanKey = KeyMappingHelper.registerKeyMapping(
+				new KeyMapping("key.rings.scan", InputConstants.KEY_Z, category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (activateKey.consumeClick()) {
@@ -48,13 +55,26 @@ public class RingsClient implements ClientModInitializer {
 			while (constructKey.consumeClick()) {
 				openConstructWheel(client);
 			}
+			while (forceFieldKey.consumeClick()) {
+				if (client.player != null) {
+					ClientPlayNetworking.send(new RingActionPayload(RingActionPayload.Action.FORCE_FIELD));
+				}
+			}
+			while (scanKey.consumeClick()) {
+				if (client.player != null) {
+					ClientPlayNetworking.send(new RingActionPayload(RingActionPayload.Action.SCAN));
+				}
+			}
 
 			RingFlight.tick(client);
 			RingAnimations.tick(client);
 			RingBeams.tick(client);
+			RingScan.tick(client);
 		});
 		LevelRenderEvents.COLLECT_SUBMITS.register(RingBeams::render);
 		LevelRenderEvents.COLLECT_SUBMITS.register(SpaceSky::render);
+		LevelRenderEvents.COLLECT_SUBMITS.register(ForceFields::render);
+		LevelRenderEvents.COLLECT_SUBMITS.register(RingScan::render);
 
 		RingAnimations.init();
 		UpdateNotice.init();
@@ -67,8 +87,12 @@ public class RingsClient implements ClientModInitializer {
 		});
 
 		EntityRendererRegistry.register(Rings.CONSTRUCT_FIST, ConstructFistRenderer::new);
+		EntityRendererRegistry.register(Rings.FORCE_BUBBLE, ForceBubbleRenderer::new);
 
 		HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Rings.id("power_meter"), new RingHud());
+		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Rings.id("scan"), new RingScan());
+		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Rings.id("oath"), new RingOath());
+		HudElementRegistry.attachElementBefore(VanillaHudElements.CROSSHAIR, Rings.id("force_field"), new ForceFields());
 	}
 
 	/** Holding the construct key opens the wheel, if the ring is on. */

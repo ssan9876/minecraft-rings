@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import xyz.ssander.rings.ForceBubble;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingBeam;
@@ -92,6 +93,10 @@ public abstract class AvatarRendererMixin implements SlimArms {
 		ring.rings$setFlight(RingFlight.dive(player, partialTicks), RingFlight.hover(player, partialTicks));
 		ring.rings$setFastFlight(RingFlight.sonic(player, partialTicks), RingFlight.rise(player, partialTicks));
 		ring.rings$setWornRing(player.getAttached(RingAttachments.WORN_RING), costume != null);
+		// Carried in a force bubble, they float upright rather than sitting
+		if (player.getVehicle() instanceof ForceBubble) {
+			state.isPassenger = false;
+		}
 	}
 
 	// Hovering bobs gently up and down

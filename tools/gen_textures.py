@@ -72,6 +72,7 @@ COLORS = {
                      suit=(34, 34, 40), suit_dark=(22, 22, 26), suit_light=(52, 52, 60),
                      panel=(90, 92, 104), panel_light=(110, 112, 124), emblem=(220, 222, 230),
                      metal=(24, 24, 28), metal_dark=(12, 12, 14), metal_light=(56, 56, 64), rivet=(130, 130, 145)),
+    "yellow": Palette((240, 200, 30), emblem=(30, 28, 20)),
 }
 # Item and block names, matching RingColor (green keeps its 1.0 names)
 RING_IDS = {c: "hero_ring" if c == "green" else c + "_ring" for c in COLORS}
@@ -398,6 +399,16 @@ def construct_tool(pattern):
     return image
 
 
+def ring_band():
+    """The ring worn on the hand: plain white with a faint pattern, tinted with the ring's colours."""
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            v = 255 if (x + y) % 5 else 236
+            image.putpixel((x, y), (v, v, v, 255))
+    return image
+
+
 def icon():
     return ring_item(COLORS["green"]).resize((128, 128), Image.NEAREST)
 
@@ -410,6 +421,7 @@ if __name__ == "__main__":
         save(lantern_metal(palette), f"textures/block/{LANTERN_IDS[name]}_metal.png")
         save(hard_light(palette), f"textures/block/hard_light_{name}.png")
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
+    save(ring_band(), "textures/entity/ring_band.png")
     save(construct_tool(CONSTRUCT_SWORD), "textures/item/construct_sword.png")
     save(construct_tool(CONSTRUCT_PICKAXE), "textures/item/construct_pickaxe.png")
     save(construct_tool(CONSTRUCT_AXE), "textures/item/construct_axe.png")

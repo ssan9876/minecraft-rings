@@ -93,6 +93,7 @@ public final class RingAnimations {
 					case CHARGE -> charge(player, payload.color());
 					case CHARGE_FULL -> chargeFull(player, payload.color());
 					case CONSTRUCT -> play(player, CONSTRUCT);
+					case SCAN -> RingScan.start(player, payload.color());
 				}
 			}
 		});
@@ -109,6 +110,10 @@ public final class RingAnimations {
 			return;
 		}
 
+		if (player == minecraft.player) {
+			RingOath.charging(player, color);
+		}
+
 		// Strike the pose once, then keep it while the top-ups keep coming
 		Charging charging = CHARGING.get(player);
 		if (charging == null) {
@@ -120,6 +125,9 @@ public final class RingAnimations {
 	}
 
 	private static void chargeFull(Player player, RingColor color) {
+		if (player == Minecraft.getInstance().player) {
+			RingOath.full(player, color);
+		}
 		CHARGING.remove(player);
 		play(player, CHARGE_FULL);
 		BURSTS.add(new Burst(player, player.tickCount, color));
@@ -148,6 +156,7 @@ public final class RingAnimations {
 					&& minecraft.hitResult instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK
 					&& level.getBlockState(hit.getBlockPos()).getBlock() instanceof PowerLanternBlock) {
 				entry.setValue(new Charging(player.tickCount, charging.start(), charging.color()));
+				RingOath.charging(player, charging.color());
 			}
 			// Letting go ends the local player's pose straight away; other players' wait out the gaps
 			int hold = player == minecraft.player ? LOCAL_HOLD_TICKS : CHARGE_HOLD_TICKS;

@@ -22,6 +22,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.CreativeModeTab;
@@ -32,6 +33,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import xyz.ssander.rings.ForceBubble;
 import xyz.ssander.rings.HardLightBlock;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingBeam;
@@ -39,12 +41,14 @@ import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingComponents;
 import xyz.ssander.rings.RingConstructs;
 import xyz.ssander.rings.RingItem;
+import xyz.ssander.rings.RingProtection;
 import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Space;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.client.ConstructWheelScreen;
 import xyz.ssander.rings.client.RingAnimations;
 import xyz.ssander.rings.client.RingFlight;
+import xyz.ssander.rings.client.RingScan;
 import xyz.ssander.rings.client.RingsClient;
 import xyz.ssander.rings.client.SuperFlight;
 
@@ -57,6 +61,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 	public void runTest(ClientGameTestContext context) {
 		if (System.getenv("RINGS_POSES") != null) {
 			filmPoses(context);
+			return;
+		}
+		if (System.getenv("RINGS_POWERS") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				ringPowers(context, world.getConnection(), world.getServer());
+			}
 			return;
 		}
 		if (System.getenv("RINGS_FLIGHT") != null) {
@@ -568,16 +579,19 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			exploreSpace(context, connection, server);
 			server.runCommand("clear @a");
 
-			// Dying drops the ring like the rest of the inventory
+			// Force field, bubble, scan, the save from death, and rings finding their way back
+			ringPowers(context, connection, server);
+
+			// With nobody else about for the ring to choose, it stays with its wearer through death
 			server.runCommand("clear @a");
 			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
 			server.runCommand("kill @a");
 			context.waitTicks(2);
-			check(server, p -> RingAttachments.getRing(p).isEmpty(), "the ring leaves the ring slot on death");
-			check(server, p -> !p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(16),
-					e -> e.getItem().is(GREEN_RING)).isEmpty(), "the ring drops on death");
+			check(server, p -> p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(16),
+					e -> e.getItem().is(GREEN_RING)).isEmpty(), "the ring doesn't drop on death");
 			context.clickScreenButton("deathScreen.respawn");
 			context.waitTicks(5);
+			check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "the ring is still worn after respawning");
 
 			// Creative inventory: the ring slot sits right of the armor, and the server accepts it
 			server.runCommand("gamemode creative @a");
@@ -751,6 +765,145 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.waitTicks(10);
 			checkClient(context, mc -> !mc.player.isFallFlying() && mc.player.getAbilities().flying, "letting go goes back to hovering");
 		}
+	}
+
+	/**
+	 * The ring's powers on their own keys, and the ring looking after itself: the force field, a bubble carrying a
+	 * pig into space, the scan, the save from a fatal hit, and a ring finding its way back. Run on its own with
+	 * RINGS_POWERS=1.
+	 */
+	private static void ringPowers(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runCommand("gamemode survival @a");
+		server.runCommand("time set noon");
+		server.runCommand("clear @a");
+		server.runCommand("kill @e[type=!minecraft:player]");
+		server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
+		server.runCommand("tp @a 0.5 -60 0.5 0 0");
+		context.waitTicks(3);
+		activate(context, connection);
+		check(server, RingAttachments::isActive, "the ring is on");
+
+		// The force field takes hits in place of the wearer, out of the ring's charge
+		context.getInput().pressKey(RingsClient.forceFieldKey);
+		connection.waitForServerboundPackets();
+		context.waitTick();
+		check(server, RingProtection::isShielded, "the force field key puts the force field up");
+		int before = server.computeOnServer(s -> RingItem.charge(RingAttachments.getRing(player(s))));
+		server.runOnServer(s -> player(s).hurtServer(player(s).level(), player(s).damageSources().generic(), 6.0F));
+		check(server, p -> p.getHealth() == p.getMaxHealth(), "the force field stops the hit");
+		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) < before, "stopping it uses the ring's charge");
+		connection.waitForClientboundPackets();
+		context.waitTicks(10);
+		context.takeScreenshot("powers-1-shield-first-person");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 140.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("powers-1-shield");
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		context.getInput().pressKey(RingsClient.forceFieldKey);
+		connection.waitForServerboundPackets();
+		context.waitTick();
+		check(server, p -> !RingProtection.isShielded(p), "pressing it again takes the force field down");
+
+		// A bubble round a pig, carried up into space
+		server.runCommand("summon minecraft:pig 0.5 -60 5.5 {NoAI:1b}");
+		context.waitTicks(2);
+		context.getInput().lookAt(new BlockPos(0, -60, 5));
+		context.waitTicks(2);
+		context.getInput().pressKey(RingsClient.forceFieldKey);
+		connection.waitForServerboundPackets();
+		context.waitTicks(2);
+		check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(12), pig -> pig.getVehicle() instanceof ForceBubble).size() == 1,
+				"looking at a creature puts it in a bubble");
+		server.runCommand("tp @a 0.5 -50 0.5 0 0");
+		fly(context, connection, server);
+		context.waitTicks(20);
+		check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(4), pig -> pig.getVehicle() instanceof ForceBubble).size() == 1,
+				"the bubble follows the wearer");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 160.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("powers-2-bubble");
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runCommand("tp @a 0.5 455 0.5");
+		fly(context, connection, server);
+		context.waitTicks(10);
+		check(server, p -> p.level().dimension() == Space.SPACE, "the wearer flies into space");
+		check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(32), pig -> pig.getVehicle() instanceof ForceBubble).size() == 1,
+				"the pig in its bubble comes too");
+		check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(32)).getFirst().getAirSupply() > 0, "the bubble keeps the pig breathing");
+		context.getInput().pressKey(RingsClient.forceFieldKey);
+		connection.waitForServerboundPackets();
+		context.waitTicks(2);
+		check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(32), pig -> pig.getVehicle() == null).size() == 1,
+				"pressing it again lets the pig out");
+		server.runCommand("kill @e[type=minecraft:pig]");
+		server.runCommand("execute in minecraft:overworld run tp @a 0.5 -60 0.5 0 0");
+		context.waitTicks(5);
+
+		// The scan: creatures outlined through walls, ores glowing through the rock, and a readout of what's looked at
+		server.runCommand("fill -2 -64 6 2 -62 8 minecraft:stone");
+		server.runCommand("setblock 0 -63 7 minecraft:diamond_ore");
+		server.runCommand("setblock 1 -63 7 minecraft:gold_ore");
+		server.runCommand("summon minecraft:zombie 0.5 -60 9.5 {NoAI:1b,PersistenceRequired:1b}");
+		context.waitTicks(3);
+		context.getInput().lookAt(new BlockPos(0, -60, 9));
+		context.waitTicks(2);
+		context.getInput().pressKey(RingsClient.scanKey);
+		connection.waitForServerboundPackets();
+		connection.waitForClientboundPackets();
+		context.waitTicks(25);
+		checkClient(context, mc -> RingScan.isScanning(), "the scan key sends out a scan");
+		checkClient(context, mc -> RingScan.oreCount() >= 2, "the scan finds the ores nearby");
+		checkClient(context, mc -> mc.level.getEntitiesOfClass(Zombie.class, mc.player.getBoundingBox().inflate(16)).stream().allMatch(z -> RingScan.outline(z) == 0xFF4040),
+				"the scan outlines hostile creatures in red");
+		context.takeScreenshot("powers-3-scan-readout");
+		context.runOnClient(mc -> mc.player.setXRot(50.0F));
+		context.waitTicks(2);
+		context.takeScreenshot("powers-3-scan-ores");
+		server.runCommand("kill @e[type=minecraft:zombie]");
+
+		// A fatal hit: the ring saves its wearer, at a cost
+		server.runOnServer(s -> RingAttachments.getRing(player(s)).set(RingComponents.CHARGE, RingItem.MAX_CHARGE));
+		server.runOnServer(s -> player(s).hurtServer(player(s).level(), player(s).damageSources().generic(), 1000.0F));
+		check(server, p -> p.isAlive() && p.getHealth() > 0.0F, "the ring saves its wearer from a fatal hit");
+		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) <= RingItem.MAX_CHARGE - RingProtection.SAVE_COST, "saving them uses a quarter of the ring");
+		context.waitTicks(10);
+
+		// A ring dropped into the void comes straight back, and one left lying comes back after a while
+		activate(context, connection);
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			ItemEntity drop = new ItemEntity(p.level(), p.getX(), p.level().getMinY() - 2.0, p.getZ(), RingAttachments.getRing(p).copy());
+			drop.setThrower(p);
+			RingAttachments.setRing(p, ItemStack.EMPTY);
+			p.level().addFreshEntity(drop);
+		});
+		context.waitTicks(80);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "a ring dropped into the void flies back to its wearer");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			ItemEntity drop = new ItemEntity(p.level(), p.getX() + 6.0, p.getY() + 0.5, p.getZ(), RingAttachments.getRing(p).copy());
+			drop.setThrower(p);
+			drop.setPickUpDelay(40);
+			RingAttachments.setRing(p, ItemStack.EMPTY);
+			p.level().addFreshEntity(drop);
+		});
+		context.waitTicks(100);
+		check(server, p -> RingAttachments.getRing(p).isEmpty(), "a dropped ring lies a while first");
+		context.waitTicks(160);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "a dropped ring left lying flies back to its wearer");
+
+		// The yellow ring and its suit
+		server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(Rings.ring(RingColor.YELLOW))));
+		activate(context, connection);
+		check(server, p -> RingColor.YELLOW.costume().equals(p.getAttached(RingAttachments.COSTUME)), "the yellow ring wears the yellow suit");
+		activate(context, connection);
+		server.runCommand("clear @a");
 	}
 
 	/** Flying on the ring, as if the player had taken off. */

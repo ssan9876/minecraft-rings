@@ -28,7 +28,9 @@ public record RingAnimationPayload(int entityId, Kind kind, RingColor color) imp
 		/** The top-up that filled the ring: the power bursts out of the wearer. */
 		CHARGE_FULL,
 		/** A construct made: the ring fist thrust out as it takes shape. */
-		CONSTRUCT
+		CONSTRUCT,
+		/** A scan sent out: a pulse of the ring's energy, and for the wearer, what it finds (see RingScan). */
+		SCAN
 	}
 
 	@Override

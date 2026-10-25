@@ -9,6 +9,7 @@ import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import org.jspecify.annotations.Nullable;
 
 /** Per-player data. A missing attachment means "empty" or "off". */
 public final class RingAttachments {
@@ -40,6 +41,10 @@ public final class RingAttachments {
 	public static final AttachmentType<RingColor> WORN_RING = AttachmentRegistry.create(Rings.id("worn_ring"),
 			builder -> builder.syncWith(RingColor.STREAM_CODEC, AttachmentSyncPredicate.all()));
 
+	/** Set while the wearer's force field is up. Synced to every client so everyone sees it. */
+	public static final AttachmentType<Boolean> SHIELD = AttachmentRegistry.create(Rings.id("shield"),
+			builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
+
 	/** Where on the Earth a player left for space, so they come back down there. */
 	public static final AttachmentType<BlockPos> EARTH_RETURN = AttachmentRegistry.create(Rings.id("earth_return"),
 			builder -> builder.persistent(BlockPos.CODEC).copyOnDeath());
@@ -61,5 +66,10 @@ public final class RingAttachments {
 
 	public static boolean isActive(Player player) {
 		return player.getAttachedOrElse(ACTIVE, false);
+	}
+
+	/** The colour of the worn ring while it's switched on, otherwise null. */
+	public static @Nullable RingColor activeColor(Player player) {
+		return isActive(player) && getRing(player).getItem() instanceof RingItem ring ? ring.color() : null;
 	}
 }

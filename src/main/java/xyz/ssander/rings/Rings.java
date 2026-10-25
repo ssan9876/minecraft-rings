@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import xyz.ssander.rings.network.ActivateRingPayload;
 import xyz.ssander.rings.network.CreateConstructPayload;
 import xyz.ssander.rings.network.FireBeamPayload;
+import xyz.ssander.rings.network.RingActionPayload;
 import xyz.ssander.rings.network.RingAnimationPayload;
 
 public class Rings implements ModInitializer {
@@ -46,8 +47,9 @@ public class Rings implements ModInitializer {
 	static {
 		for (RingColor color : RingColor.values()) {
 			// Grants flight and turns the wearer into the colour's suit while active
+			// Rings don't burn (and find their way back from the void, see RingReturn)
 			RINGS.put(color, register(color.ringId(), props -> new RingItem(props, color),
-					new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+					new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
 
 			// Charges rings of its colour: hold right-click on it while wearing (or holding) one
 			PowerLanternBlock lantern = registerBlock(color.lanternId(), props -> new PowerLanternBlock(props, color),
@@ -78,6 +80,10 @@ public class Rings implements ModInitializer {
 
 	public static final EntityType<ConstructFist> CONSTRUCT_FIST = registerEntity("construct_fist",
 			EntityType.Builder.<ConstructFist>of(ConstructFist::new, MobCategory.MISC).sized(1.0F, 1.0F).clientTrackingRange(8).updateInterval(1).noSummon());
+
+	/** A bubble of a ring's force field, carrying someone along beside the wearer. */
+	public static final EntityType<ForceBubble> FORCE_BUBBLE = registerEntity("force_bubble",
+			EntityType.Builder.<ForceBubble>of(ForceBubble::new, MobCategory.MISC).sized(0.6F, 0.6F).clientTrackingRange(10).updateInterval(1).noSummon());
 
 	/** Construct tools, made by the construct wheel in the ring's colour (their dye) and gone when it switches off. */
 	public static final ConstructItem CONSTRUCT_SWORD = register("construct_sword", ConstructItem::new,
@@ -127,6 +133,8 @@ public class Rings implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		RingAttachments.init();
+		RingReturn.init();
+		RingProtection.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {
 			RINGS.values().forEach(output::accept);
@@ -140,6 +148,8 @@ public class Rings implements ModInitializer {
 		PayloadTypeRegistry.serverboundPlay().register(FireBeamPayload.TYPE, FireBeamPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(FireBeamPayload.TYPE, (payload, context) -> RingBeam.setFiring(context.player(), payload.firing()));
 		ServerPlayNetworking.registerGlobalReceiver(ActivateRingPayload.TYPE, (payload, context) -> RingPowers.toggle(context.player()));
+		PayloadTypeRegistry.serverboundPlay().register(RingActionPayload.TYPE, RingActionPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(RingActionPayload.TYPE, (payload, context) -> RingAbilities.use(context.player(), payload.action()));
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			for (ServerPlayer player : server.getPlayerList().getPlayers()) {

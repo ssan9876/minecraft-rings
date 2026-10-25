@@ -1,5 +1,7 @@
 package xyz.ssander.rings;
 
+import java.util.List;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -100,6 +102,10 @@ public final class Space {
 
 	/** Moves players between the Earth, space and the planets, and keeps gravity and air right. Runs every server tick. */
 	static void tick(ServerPlayer player) {
+		// Carried in a bubble, they go wherever the wearer goes, and the bubble keeps them breathing
+		if (player.getVehicle() instanceof ForceBubble) {
+			return;
+		}
 		ResourceKey<Level> dimension = player.level().dimension();
 		Planet planet = Planet.of(dimension);
 		boolean ringFlying = player.getAttachedOrElse(RingAttachments.FLYING, false);
@@ -178,10 +184,15 @@ public final class Space {
 			return;
 		}
 		boolean flying = player.getAbilities().flying;
+		List<ForceBubble> bubbles = ForceBubble.carriedBy(player);
 		player.teleport(new TeleportTransition(level, position, player.getDeltaMovement(), player.getYRot(), player.getXRot(), TeleportTransition.DO_NOTHING));
 		if (flying && player.getAbilities().mayfly) {
 			player.getAbilities().flying = true;
 			player.onUpdateAbilities();
+		}
+		// Whatever the wearer carries in a bubble comes too
+		for (ForceBubble bubble : bubbles) {
+			bubble.teleport(new TeleportTransition(level, position.add(1.5, 0.0, 0.0), Vec3.ZERO, bubble.getYRot(), 0.0F, TeleportTransition.DO_NOTHING));
 		}
 		player.sendOverlayMessage(Component.translatable(message));
 		level.playSound(null, position.x, position.y, position.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 0.6F);
