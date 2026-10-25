@@ -71,6 +71,20 @@ public abstract class PlayerModelMixin implements HeadOnlyModel {
 		}
 	}
 
+	// Firing the beam: the ring arm points along the line of sight, like aiming a bow, unless the dive pose already
+	// has the fist out ahead
+	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
+	private void rings$beamAim(AvatarRenderState state, CallbackInfo ci) {
+		RingRenderState ring = (RingRenderState) state;
+		if (!ring.rings$firing() || ring.rings$dive() > 0.5F) {
+			return;
+		}
+		HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
+		model.rightArm.xRot = model.head.xRot - Mth.HALF_PI;
+		model.rightArm.yRot = model.head.yRot;
+		model.rightArm.zRot = 0.0F;
+	}
+
 	@Unique
 	private static void rings$blend(ModelPart part, float amount, float xRot, float yRot, float zRot) {
 		part.xRot = Mth.lerp(amount, part.xRot, xRot);

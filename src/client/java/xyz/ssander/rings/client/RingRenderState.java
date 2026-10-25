@@ -11,6 +11,11 @@ public interface RingRenderState {
 
 	void rings$setFlight(float dive, float hover);
 
+	/** Whether the player is firing their ring's beam, holding the ring arm out along it. */
+	boolean rings$firing();
+
+	void rings$setFiring(boolean firing);
+
 	/** The player's own skin while they wear a costume (their head is drawn with it), otherwise null. */
 	@Nullable PlayerSkin rings$ownSkin();
 

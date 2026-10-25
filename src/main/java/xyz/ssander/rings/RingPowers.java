@@ -13,6 +13,9 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
@@ -27,8 +30,13 @@ public final class RingPowers {
 	/** Charge used each second while the ring is on, and while flying on it. */
 	private static final int DRAIN_ACTIVE = 1;
 	private static final int DRAIN_FLYING = 3;
+	/** Extra charge used each second while firing the beam. */
+	private static final int DRAIN_FIRING = 4;
 	/** Each interaction with a power lantern (every 4 ticks while right-click is held) adds this much. */
 	private static final int CHARGE_PER_USE = RingItem.MAX_CHARGE / 10;
+	/** The ring's energy shields its wearer: about a full set of iron armor, on top of what they wear. */
+	private static final AttributeModifier RING_ARMOR = new AttributeModifier(Rings.id("ring_armor"), 8.0, AttributeModifier.Operation.ADD_VALUE);
+	private static final AttributeModifier RING_TOUGHNESS = new AttributeModifier(Rings.id("ring_toughness"), 2.0, AttributeModifier.Operation.ADD_VALUE);
 
 	private RingPowers() {
 	}
@@ -71,8 +79,8 @@ public final class RingPowers {
 			if (ring == null) {
 				// Taking the ring off switches it off
 				player.removeAttached(RingAttachments.ACTIVE);
-			} else if (player.tickCount % 20 == 0
-					&& RingItem.addCharge(stack, -(player.getAbilities().flying ? DRAIN_FLYING : DRAIN_ACTIVE)) == 0) {
+			} else if (player.tickCount % 20 == 0 && RingItem.addCharge(stack,
+					-((player.getAbilities().flying ? DRAIN_FLYING : DRAIN_ACTIVE) + (RingBeam.isFiring(player) ? DRAIN_FIRING : 0))) == 0) {
 				player.removeAttached(RingAttachments.ACTIVE);
 				player.sendOverlayMessage(Component.translatable("message.rings.out_of_power", stack.getHoverName()));
 				player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0F, 0.6F);
@@ -80,7 +88,15 @@ public final class RingPowers {
 		}
 
 		RingItem active = RingAttachments.isActive(player) ? ring : null;
+		if (active == null) {
+			if (RingBeam.isFiring(player)) {
+				player.removeAttached(RingAttachments.FIRING);
+			}
+		} else if (RingBeam.isFiring(player)) {
+			RingBeam.tick(player);
+		}
 		updateFlight(player, active != null && active.grantsFlight());
+		updateArmor(player, active != null);
 		updateCostume(player, active != null ? active.costume() : null);
 
 		boolean ringFlying = active != null && active.grantsFlight() && player.getAbilities().flying;
@@ -169,6 +185,23 @@ public final class RingPowers {
 					player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, SAFE_LANDING_TICKS, 0, false, false, true));
 				}
 			}
+		}
+	}
+
+	private static void updateArmor(ServerPlayer player, boolean wanted) {
+		updateModifier(player.getAttribute(Attributes.ARMOR), RING_ARMOR, wanted);
+		updateModifier(player.getAttribute(Attributes.ARMOR_TOUGHNESS), RING_TOUGHNESS, wanted);
+	}
+
+	/** Transient, so it isn't saved: the next tick after loading puts it back if the ring is still on. */
+	private static void updateModifier(@Nullable AttributeInstance attribute, AttributeModifier modifier, boolean wanted) {
+		if (attribute == null || attribute.hasModifier(modifier.id()) == wanted) {
+			return;
+		}
+		if (wanted) {
+			attribute.addTransientModifier(modifier);
+		} else {
+			attribute.removeModifier(modifier.id());
 		}
 	}
 

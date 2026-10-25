@@ -14,6 +14,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.RingBeam;
 import xyz.ssander.rings.client.Costumes;
 import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingRenderState;
@@ -28,8 +29,10 @@ public abstract class AvatarRendererMixin {
 		ring.rings$setOwnSkin(null);
 		if (!(entity instanceof Player player)) {
 			ring.rings$setFlight(0.0F, 0.0F);
+			ring.rings$setFiring(false);
 			return;
 		}
+		ring.rings$setFiring(RingBeam.isFiring(player));
 
 		Costumes.Costume costume = Costumes.get(player.getAttached(RingAttachments.COSTUME));
 		if (costume != null) {

@@ -31,6 +31,10 @@ public final class RingAttachments {
 	public static final AttachmentType<Boolean> FLYING = AttachmentRegistry.create(Rings.id("flying"),
 			builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
 
+	/** Set while the wearer is firing the ring's beam. Synced to every client so everyone sees the beam. */
+	public static final AttachmentType<Boolean> FIRING = AttachmentRegistry.create(Rings.id("firing"),
+			builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
+
 	private RingAttachments() {
 	}
 

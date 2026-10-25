@@ -24,6 +24,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
 import xyz.ssander.rings.network.ActivateRingPayload;
+import xyz.ssander.rings.network.FireBeamPayload;
 import xyz.ssander.rings.network.RingAnimationPayload;
 
 public class Rings implements ModInitializer {
@@ -86,6 +87,8 @@ public class Rings implements ModInitializer {
 
 		PayloadTypeRegistry.serverboundPlay().register(ActivateRingPayload.TYPE, ActivateRingPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(RingAnimationPayload.TYPE, RingAnimationPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(FireBeamPayload.TYPE, FireBeamPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(FireBeamPayload.TYPE, (payload, context) -> RingBeam.setFiring(context.player(), payload.firing()));
 		ServerPlayNetworking.registerGlobalReceiver(ActivateRingPayload.TYPE, (payload, context) -> RingPowers.toggle(context.player()));
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {

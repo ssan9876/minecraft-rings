@@ -1,20 +1,24 @@
 # Rings
 
 A Fabric mod for Minecraft 26.3 that adds a ring slot to the player's inventory, above the offhand slot.
-Rings grant powers while switched on with the **Activate Ring** key (default `R`, rebindable under
-Options → Controls → Rings).
+Rings grant powers while switched on with the **Activate Ring** key (default `R`). Both keys are rebindable under
+Options → Controls → Rings.
 
 **Power rings** come in seven colours: green, blue, red, pink, orange, white and black. While one is on:
 - you can fly. Flying fast you tip into a superhero pose (fist out front, banking into turns) and leave a trail
   of the ring's energy. Flying straight up or down, or hovering, you stay upright. Coming down to land, you drop
   into a superhero landing: one knee down, fist to the ground;
 - you wear the ring's suit, in its colour with the lantern emblem, under your own head;
-- you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls.
+- you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls;
+- the ring's energy shields you: +8 armor and +2 armor toughness, about a full set of iron armor, on top of
+  whatever you wear;
+- hold **Fire Ring Beam** (default `G`) to fire a beam of the ring's energy from your fist to wherever you look,
+  up to 40 blocks. It hits for 2 hearts every half second with knockback, and uses extra power while it fires.
 
 Switching it on, you thrust the ring to the sky. Everyone else sees all of this too.
 
 **Power:** the ring runs on its charge, shown by the meter to the right of the hotbar and the bar on the item. A
-full ring lasts 30 minutes switched on, or 10 minutes of flying. When it runs out the ring switches off, and it
+full ring lasts 30 minutes switched on, 10 minutes of flying, or about 6 minutes of firing the beam. When it runs out the ring switches off, and it
 won't switch back on until you charge it: **hold right-click on a Power Lantern of the ring's colour** while
 wearing or holding the ring (about 2 seconds from empty). While it charges you take the lantern oath: braced,
 ring fist thrust at the lantern and the other hand gripping the wrist, pulsing with each surge as energy spirals up
@@ -110,6 +114,9 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
 - **Flying pose:** the server also syncs whether the wearer is flying on the ring. Each client eases flying players
   between a hover pose and a superhero pose by their horizontal speed (`RingFlight.java`), reusing the elytra body tilt, and
   `PlayerModelMixin` poses the arms and legs.
+- **Beam:** the key sends a packet when it goes down and up, and the server sets a firing attachment that syncs to
+  every client. `RingBeam` traces the line of sight (on the server for hits, on each client to draw it) and
+  `RingBeams` draws it as camera-facing strips in the world, with sparks and a hum.
 - **Animations:** `RingAnimations` registers a Player Animation Library layer on every player. The server sends
   each nearby client a packet when a ring switches on or charges; landing is spotted by each client from the
   synced flying flag. The layer only moves the bones an animation keys, on top of the vanilla and flying poses.

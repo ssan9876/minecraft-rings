@@ -19,6 +19,8 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.animal.pig.Pig;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
@@ -28,6 +30,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.RingBeam;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingComponents;
 import xyz.ssander.rings.RingItem;
@@ -241,6 +244,50 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.waitTicks(25);
 			context.takeScreenshot("rings-9-charged");
 
+			// The beam: only while the ring is on, it hurts what it hits, uses extra power, and the ring adds armor
+			server.runCommand("summon minecraft:pig 0.5 -60 8.5 {NoAI:1b}");
+			server.runCommand("tp @a 0.5 -60 0.5");
+			context.waitTicks(2);
+			context.getInput().lookAt(new BlockPos(0, -60, 8));
+			context.getInput().holdKey(options -> RingsClient.beamKey);
+			context.waitTicks(3);
+			connection.waitForServerboundPackets();
+			check(server, p -> !RingBeam.isFiring(p), "the beam won't fire while the ring is off");
+			context.getInput().releaseKey(options -> RingsClient.beamKey);
+			context.waitTicks(2);
+			check(server, p -> p.getAttributeValue(Attributes.ARMOR) == 0.0, "no ring armor while the ring is off");
+			activate(context, connection);
+			check(server, p -> p.getAttributeValue(Attributes.ARMOR) == 8.0 && p.getAttributeValue(Attributes.ARMOR_TOUGHNESS) == 2.0,
+					"an active ring gives armor");
+			server.runOnServer(s -> RingAttachments.getRing(player(s)).set(RingComponents.CHARGE, RingItem.MAX_CHARGE));
+			context.getInput().holdKey(options -> RingsClient.beamKey);
+			context.waitTicks(3);
+			connection.waitForServerboundPackets();
+			check(server, RingBeam::isFiring, "holding the beam key fires the beam");
+			connection.waitForClientboundPackets();
+			checkClient(context, mc -> RingBeam.isFiring(mc.player), "firing syncs to the client");
+			context.waitTicks(10);
+			context.takeScreenshot("rings-13-beam-first-person");
+			TestCamera.yawOffset = 90.0F;
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.takeScreenshot("rings-13-beam-side");
+			TestCamera.yawOffset = 160.0F;
+			context.waitTick();
+			context.takeScreenshot("rings-13-beam-front-quarter");
+			TestCamera.yawOffset = 0.0F;
+			context.waitTicks(20);
+			check(server, p -> p.level().getEntitiesOfClass(Pig.class, p.getBoundingBox().inflate(16), pig -> pig.getHealth() >= pig.getMaxHealth()).isEmpty(),
+					"the beam hurts what it hits");
+			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) <= RingItem.MAX_CHARGE - 5, "the beam uses extra power");
+			context.getInput().releaseKey(options -> RingsClient.beamKey);
+			context.waitTicks(2);
+			connection.waitForServerboundPackets();
+			check(server, p -> !RingBeam.isFiring(p), "letting go stops the beam");
+			camera(context, CameraType.FIRST_PERSON);
+			activate(context, connection);
+			check(server, p -> p.getAttributeValue(Attributes.ARMOR) == 0.0, "the ring armor goes when the ring switches off");
+			server.runCommand("kill @e[type=minecraft:pig]");
+
 			// Every colour: its rings, its lantern, and its suit with its outline and power meter
 			server.runCommand("clear @a");
 			server.runCommand("setblock 0 -60 2 air");
@@ -264,6 +311,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				camera(context, CameraType.THIRD_PERSON_FRONT);
 				context.waitTicks(30);
 				context.takeScreenshot("rings-12-suit-" + color.id());
+				context.getInput().holdKey(options -> RingsClient.beamKey);
+				TestCamera.yawOffset = 70.0F;
+				camera(context, CameraType.THIRD_PERSON_BACK);
+				context.waitTicks(5);
+				context.takeScreenshot("rings-14-beam-" + color.id());
+				context.getInput().releaseKey(options -> RingsClient.beamKey);
+				TestCamera.yawOffset = 0.0F;
 				activate(context, connection);
 				camera(context, CameraType.FIRST_PERSON);
 			}

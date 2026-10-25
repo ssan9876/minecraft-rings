@@ -200,6 +200,14 @@ public final class RingAnimations {
 		}
 	}
 
+	/** Cuts off the ring animation playing on the player, if any. */
+	public static void stop(Player player) {
+		CHARGING.remove(player);
+		if (ENABLED) {
+			Library.stop(player);
+		}
+	}
+
 	/** Whether that ring animation is playing on the player. */
 	public static boolean isPlaying(Player player, Identifier animation) {
 		return ENABLED && Library.isPlaying(player, animation);
@@ -228,6 +236,12 @@ public final class RingAnimations {
 			if (PlayerAnimationAccess.getPlayerAnimationLayer(player, LAYER) instanceof PlayerAnimationController controller) {
 				// Blend from whatever ring animation is playing, or from the vanilla pose
 				controller.replaceAnimationWithFade(AbstractFadeModifier.standardFadeIn(BLEND_TICKS, EasingType.EASE_IN_OUT_SINE), animation);
+			}
+		}
+
+		static void stop(Player player) {
+			if (PlayerAnimationAccess.getPlayerAnimationLayer(player, LAYER) instanceof PlayerAnimationController controller) {
+				controller.stopTriggeredAnimation();
 			}
 		}
 

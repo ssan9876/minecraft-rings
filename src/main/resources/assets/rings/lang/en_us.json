@@ -24,5 +24,9 @@
   "block.rings.white_power_lantern": "White Power Lantern",
   "item.rings.black_ring": "Black Power Ring",
   "block.rings.black_power_lantern": "Black Power Lantern",
-  "message.rings.wrong_lantern": "%s only charges at a %s"
+  "message.rings.wrong_lantern": "%s only charges at a %s",
+  "key.rings.beam": "Fire Ring Beam",
+  "message.rings.beam_inactive": "Switch your ring on to fire its beam",
+  "death.attack.rings.ring_beam": "%1$s was blasted by a ring beam",
+  "death.attack.rings.ring_beam.player": "%1$s was blasted by %2$s's ring beam"
 }
