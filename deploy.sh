@@ -27,5 +27,5 @@ ssh "$PVE_HOST" "set -e
 pct exec $CTID -- sh -c 'rm -f $STACK/mods/rings-*.jar'
 pct push $CTID /tmp/$name $STACK/mods/$name --user 1000 --group 1000
 rm /tmp/$name
-pct exec $CTID -- sh -c 'cd $STACK && docker compose restart minecraft'"
+pct exec $CTID -- sh -c 'cd $STACK && docker compose up -d --force-recreate minecraft'"
 echo "Installed $name. The server is back in about 30 s."
