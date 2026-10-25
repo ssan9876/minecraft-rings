@@ -8,8 +8,10 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.RingGlide;
 
 @Mixin(Player.class)
 public abstract class PlayerMixin {
@@ -24,6 +26,14 @@ public abstract class PlayerMixin {
 			if (drop != null) {
 				level.addFreshEntity(drop);
 			}
+		}
+	}
+
+	// An active ring lets its wearer glide like an elytra (the ring's elytra mode, see RingGlide)
+	@Inject(method = "canGlide", at = @At("RETURN"), cancellable = true)
+	private void rings$canGlideOnRing(CallbackInfoReturnable<Boolean> cir) {
+		if (!cir.getReturnValueZ() && RingGlide.canGlide((Player) (Object) this)) {
+			cir.setReturnValue(true);
 		}
 	}
 }

@@ -59,6 +59,10 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			filmPoses(context);
 			return;
 		}
+		if (System.getenv("RINGS_FLIGHT") != null) {
+			filmFlight(context);
+			return;
+		}
 		if (System.getenv("RINGS_SPACE") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
@@ -144,6 +148,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.getInput().holdKey(options -> options.keyUp);
 			context.getInput().holdKey(options -> options.keySprint);
 			context.waitTicks(12);
+			checkClient(context, mc -> mc.player.isFallFlying() && SuperFlight.isGliding() && !mc.player.getAbilities().flying,
+					"sprinting forward switches into elytra mode");
+			check(server, p -> p.isFallFlying() && p.getAttachedOrElse(RingAttachments.FLYING, false), "the server sees elytra mode");
 			context.takeScreenshot("rings-7-dive-side");
 			TestCamera.yawOffset = 140.0F;
 			context.waitTick();
@@ -158,6 +165,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.getInput().releaseKey(options -> options.keySprint);
 			context.getInput().releaseKey(options -> options.keyUp);
 			context.waitTicks(20);
+			checkClient(context, mc -> !mc.player.isFallFlying() && mc.player.getAbilities().flying, "letting go of forward goes back to hovering");
+			check(server, p -> !p.isFallFlying() && p.getAbilities().flying, "the server sees the hover");
 
 			// Come down to land, filmed from the side
 			context.getInput().holdKey(options -> options.keyShift);
@@ -198,6 +207,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			checkClient(context, mc -> SuperFlight.isActive(), "sneak and forward while ring flying is super flight");
 			checkClient(context, mc -> new Vec3(mc.player.getX() - mc.player.xo, mc.player.getY() - mc.player.yo, mc.player.getZ() - mc.player.zo).length() > 1.6,
 					"super flight builds up to sonic speed");
+			context.waitTicks(10);
+			checkClient(context, mc -> new Vec3(mc.player.getX() - mc.player.xo, mc.player.getY() - mc.player.yo, mc.player.getZ() - mc.player.zo).length() > 3.0,
+					"super flight builds up to over 3 blocks a tick");
 			checkClient(context, mc -> RingFlight.sonic(mc.player, 1.0F) > 0.5F, "sonic speed takes the sonic pose");
 			context.takeScreenshot("rings-7-super-first-person");
 			TestCamera.yawOffset = 90.0F;
@@ -687,6 +699,58 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		activate(context, connection);
 		server.runCommand("tp @a 0.5 -60 0.5");
 		context.waitTicks(3);
+	}
+
+	/** The ring on the hand, off and on, and elytra mode and super flight. Run on its own with RINGS_FLIGHT=1. */
+	private static void filmFlight(ClientGameTestContext context) {
+		try (TestSingleplayerContext world = context.worldBuilder().create()) {
+			TestServerConnection connection = world.getConnection();
+			TestServerContext server = world.getServer();
+			connection.waitForChunksRender();
+			server.runCommand("time set noon");
+			server.runCommand("weather clear");
+			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
+			server.runCommand("tp @a 0 -60 0 0 0");
+			context.waitTicks(10);
+			context.takeScreenshot("flight-ring-first-person");
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			// Close up on the ring hand
+			context.runOnClient(mc -> mc.options.fov().set(30));
+			TestCamera.yawOffset = -35.0F;
+			camera(context, CameraType.THIRD_PERSON_FRONT);
+			context.takeScreenshot("flight-ring-off");
+			activate(context, connection);
+			context.waitTicks(30);
+			context.takeScreenshot("flight-ring-on");
+			camera(context, CameraType.FIRST_PERSON);
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.takeScreenshot("flight-ring-on-first-person");
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.runOnClient(mc -> mc.options.fov().set(70));
+			TestCamera.yawOffset = 90.0F;
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			server.runCommand("tp @a 0 -40 0 0 0");
+			fly(context, connection, server);
+			context.getInput().holdKey(options -> options.keyUp);
+			context.getInput().holdKey(options -> options.keySprint);
+			context.waitTicks(15);
+			checkClient(context, mc -> mc.player.isFallFlying(), "sprinting forward switches into elytra mode");
+			context.takeScreenshot("flight-elytra-side");
+			context.getInput().holdKey(options -> options.keyShift);
+			context.waitTicks(30);
+			context.takeScreenshot("flight-super-side");
+			TestCamera.yawOffset = 150.0F;
+			context.waitTick();
+			context.takeScreenshot("flight-super-front-quarter");
+			TestCamera.yawOffset = 0.0F;
+			camera(context, CameraType.FIRST_PERSON);
+			context.takeScreenshot("flight-super-first-person");
+			context.getInput().releaseKey(options -> options.keyShift);
+			context.getInput().releaseKey(options -> options.keySprint);
+			context.getInput().releaseKey(options -> options.keyUp);
+			context.waitTicks(10);
+			checkClient(context, mc -> !mc.player.isFallFlying() && mc.player.getAbilities().flying, "letting go goes back to hovering");
+		}
 	}
 
 	/** Flying on the ring, as if the player had taken off. */

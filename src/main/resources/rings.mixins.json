@@ -5,6 +5,7 @@
 	"mixins": [
 		"InventoryMenuMixin",
 		"ItemEntityMixin",
+		"LivingEntityMixin",
 		"PlayerMixin",
 		"ServerGamePacketListenerImplMixin"
 	],

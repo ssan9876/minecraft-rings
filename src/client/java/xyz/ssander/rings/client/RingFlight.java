@@ -24,7 +24,7 @@ import xyz.ssander.rings.RingColor;
  * How ring-flying players look, for everyone watching. Each one eases between poses by how they're moving:
  * <ul>
  * <li>hovering: upright, limbs hanging loose, whichever way they move;</li>
- * <li>cruising, while sprinting or in super flight: tipped along the flight, fist out ahead, banking into turns;</li>
+ * <li>cruising, in the ring's elytra mode (see SuperFlight): vanilla's elytra pose, fist out ahead;</li>
  * <li>sonic, near super flight's top speed: streamlined, with a sonic boom on breaking through and a thick trail;</li>
  * <li>rising fast: upright, fist to the sky.</li>
  * </ul>
@@ -32,17 +32,10 @@ import xyz.ssander.rings.RingColor;
  * it was fast. Runs every client tick.
  */
 public final class RingFlight {
-	/**
-	 * Flying players stay upright whichever way they move, until they sprint (moving at least this fast
-	 * horizontally, in blocks per tick) or go faster than super flight's {@link #SUPER_SPEED}: then they tip into the
-	 * cruising pose. In super flight that includes diving down head first.
-	 */
-	private static final double SPRINT_SPEED = 0.1;
-	private static final double SUPER_SPEED = 1.0;
 	/** Rising faster than this (blocks per tick) raises the fist to the sky. Normal flying rises at about 0.4. */
 	private static final double RISE_SPEED = 0.55;
-	/** Sonic from this speed (80% of super flight's top speed), and ready for another sonic boom below the second. */
-	private static final double SONIC_SPEED = SuperFlight.MAX_SPEED * 0.8;
+	/** Sonic from this speed (past elytra mode's cruising speed), and ready for another sonic boom below the second. */
+	private static final double SONIC_SPEED = 1.8;
 	private static final double SONIC_REARM_SPEED = 1.0;
 	/** Ticks to ease fully into or out of a pose. */
 	private static final float EASE_TICKS = 6.0F;
@@ -87,9 +80,10 @@ public final class RingFlight {
 
 			Vec3 motion = new Vec3(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
 			double speed = motion.length();
-			// Rocketing mostly straight up keeps them upright, fist to the sky, however fast
+			// Rocketing mostly straight up keeps them upright, fist to the sky, however fast. Otherwise flying stays
+			// upright until they switch into elytra mode.
 			boolean rising = flying && motion.y > RISE_SPEED && motion.horizontalDistance() < motion.y * 0.5;
-			boolean diving = flying && !rising && (player.isSprinting() && motion.horizontalDistance() > SPRINT_SPEED || speed > SUPER_SPEED);
+			boolean diving = flying && !rising && player.isFallFlying();
 			boolean sonic = diving && speed > SONIC_SPEED;
 			pose.diveO = pose.dive;
 			pose.hoverO = pose.hover;
@@ -263,7 +257,7 @@ public final class RingFlight {
 				return;
 			}
 			double speed = new Vec3(this.player.getX() - this.player.xo, this.player.getY() - this.player.yo, this.player.getZ() - this.player.zo).length();
-			float strength = Mth.clamp((float) ((speed - 0.5) / (SuperFlight.MAX_SPEED - 0.5)), 0.0F, 1.0F);
+			float strength = Mth.clamp((float) ((speed - 0.5) / 2.5), 0.0F, 1.0F);
 			this.volume = strength * 0.9F;
 			this.pitch = 0.8F + strength * 0.5F;
 		}

@@ -62,6 +62,7 @@ public class RingsClient implements ClientModInitializer {
 		LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
 			if (entityType == EntityTypes.PLAYER && renderer instanceof AvatarRenderer<?> avatarRenderer) {
 				helper.register(new OwnHeadLayer(avatarRenderer, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false)));
+				helper.register(new WornRing.Layer(avatarRenderer, ((SlimArms) avatarRenderer).rings$slim()));
 			}
 		});
 

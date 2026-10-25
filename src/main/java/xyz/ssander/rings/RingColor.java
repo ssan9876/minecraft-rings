@@ -1,6 +1,10 @@
 package xyz.ssander.rings;
 
+import io.netty.buffer.ByteBuf;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.util.ByIdMap;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.StringRepresentable;
@@ -19,7 +23,12 @@ public enum RingColor implements StringRepresentable {
 	ORANGE("orange", "orange_ring", "orange_power_lantern", 0xFF9A1E, 0xFFA43C, MapColor.COLOR_ORANGE),
 	WHITE("white", "white_ring", "white_power_lantern", 0xF2F6FF, 0xF2F6FF, MapColor.SNOW),
 	// Black energy is near black in the world, but needs a lighter shade to read on the HUD
-	BLACK("black", "black_ring", "black_power_lantern", 0x24242C, 0x9C9CB4, MapColor.COLOR_BLACK);
+	BLACK("black", "black_ring", "black_power_lantern", 0x24242C, 0x9C9CB4, MapColor.COLOR_BLACK),
+	// Added after the first seven, so their numbers (saved in blocks and sent over the network) stay the same
+	YELLOW("yellow", "yellow_ring", "yellow_power_lantern", 0xFFD21E, 0xFFDC46, MapColor.GOLD);
+
+	public static final StreamCodec<ByteBuf, RingColor> STREAM_CODEC = ByteBufCodecs.idMapper(
+			ByIdMap.continuous(RingColor::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO), RingColor::ordinal);
 
 	private final String name;
 	private final String ringId;

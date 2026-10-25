@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
+import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.client.RingRenderState;
 
 @Mixin(AvatarRenderState.class)
@@ -22,6 +23,26 @@ public abstract class AvatarRenderStateMixin implements RingRenderState {
 	private boolean rings$firing;
 	@Unique
 	private @Nullable PlayerSkin rings$ownSkin;
+	@Unique
+	private @Nullable RingColor rings$wornRing;
+	@Unique
+	private boolean rings$ringActive;
+
+	@Override
+	public @Nullable RingColor rings$wornRing() {
+		return this.rings$wornRing;
+	}
+
+	@Override
+	public boolean rings$ringActive() {
+		return this.rings$ringActive;
+	}
+
+	@Override
+	public void rings$setWornRing(@Nullable RingColor color, boolean active) {
+		this.rings$wornRing = color;
+		this.rings$ringActive = active;
+	}
 
 	@Override
 	public float rings$dive() {

@@ -33,7 +33,7 @@ public final class RingPowers {
 	private static final int DRAIN_FLYING = 3;
 	/** Extra charge used each second in super flight (flying faster than {@link #SUPER_FLIGHT_SPEED} blocks a tick). */
 	private static final int DRAIN_SUPER_FLIGHT = 5;
-	private static final double SUPER_FLIGHT_SPEED = 1.0;
+	private static final double SUPER_FLIGHT_SPEED = 2.0;
 	/** Extra charge used each second while firing the beam. */
 	private static final int DRAIN_FIRING = 4;
 	/** Each interaction with a power lantern (every 4 ticks while right-click is held) adds this much. */
@@ -104,8 +104,13 @@ public final class RingPowers {
 		updateFlight(player, active != null && active.grantsFlight());
 		updateArmor(player, active != null);
 		updateCostume(player, active != null ? active.costume() : null);
+		RingColor worn = ring != null ? ring.color() : null;
+		if (worn != player.getAttached(RingAttachments.WORN_RING)) {
+			player.setAttached(RingAttachments.WORN_RING, worn);
+		}
 
-		boolean ringFlying = active != null && active.grantsFlight() && player.getAbilities().flying;
+		// Flying covers both hovering (vanilla's creative flight) and the ring's elytra mode
+		boolean ringFlying = active != null && active.grantsFlight() && (player.getAbilities().flying || player.isFallFlying());
 		if (ringFlying != player.getAttachedOrElse(RingAttachments.FLYING, false)) {
 			player.setAttached(RingAttachments.FLYING, ringFlying ? true : null);
 		}
@@ -164,8 +169,9 @@ public final class RingPowers {
 
 	/** Charge the ring uses this second. */
 	private static int drain(ServerPlayer player) {
-		int drain = player.getAbilities().flying ? DRAIN_FLYING : DRAIN_ACTIVE;
-		if (player.getAbilities().flying && player.getKnownMovement().length() > SUPER_FLIGHT_SPEED) {
+		boolean flying = player.getAbilities().flying || player.isFallFlying();
+		int drain = flying ? DRAIN_FLYING : DRAIN_ACTIVE;
+		if (flying && player.getKnownMovement().length() > SUPER_FLIGHT_SPEED) {
 			drain += DRAIN_SUPER_FLIGHT;
 		}
 		if (RingBeam.isFiring(player)) {

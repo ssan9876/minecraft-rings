@@ -4,23 +4,59 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.util.ARGB;
-import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Avatar;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.PlayerSkin;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingBeam;
 import xyz.ssander.rings.client.Costumes;
 import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingRenderState;
+import xyz.ssander.rings.client.SlimArms;
+import xyz.ssander.rings.client.WornRing;
 
 @Mixin(AvatarRenderer.class)
-public abstract class AvatarRendererMixin {
+public abstract class AvatarRendererMixin implements SlimArms {
+	@Unique
+	private boolean rings$slim;
+
+	@Inject(method = "<init>", at = @At("TAIL"))
+	private void rings$rememberArms(EntityRendererProvider.Context context, boolean slimSteve, CallbackInfo ci) {
+		this.rings$slim = slimSteve;
+	}
+
+	@Override
+	public boolean rings$slim() {
+		return this.rings$slim;
+	}
+
+	// Your own ring on your hand in first person
+	@Inject(method = "renderRightHand", at = @At("TAIL"))
+	private void rings$ringInFirstPerson(PoseStack poseStack, SubmitNodeCollector collector, int lightCoords, Identifier skinTexture, boolean hasSleeve,
+			CallbackInfo ci) {
+		Player player = Minecraft.getInstance().player;
+		RingColor color = player == null ? null : player.getAttached(RingAttachments.WORN_RING);
+		if (color == null) {
+			return;
+		}
+		boolean costume = player.getAttached(RingAttachments.COSTUME) != null;
+		poseStack.pushPose();
+		((AvatarRenderer<?>) (Object) this).getModel().rightArm.translateAndRotate(poseStack);
+		WornRing.submit(poseStack, collector, lightCoords, color, this.rings$slim && !costume, costume);
+		poseStack.popPose();
+	}
 	// Swaps in the costume, outlines the wearer in the ring's colour, and sets up the flying pose.
 	// First-person hands read this state too, so they show the suit's sleeves and gloves.
 	@Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
@@ -31,6 +67,7 @@ public abstract class AvatarRendererMixin {
 			ring.rings$setFlight(0.0F, 0.0F);
 			ring.rings$setFastFlight(0.0F, 0.0F);
 			ring.rings$setFiring(false);
+			ring.rings$setWornRing(null, false);
 			return;
 		}
 		ring.rings$setFiring(RingBeam.isFiring(player));
@@ -51,15 +88,10 @@ public abstract class AvatarRendererMixin {
 			state.outlineColor = ARGB.opaque(costume.color().energy());
 		}
 
-		float dive = RingFlight.dive(player, partialTicks);
-		ring.rings$setFlight(dive, RingFlight.hover(player, partialTicks));
+		// Cruising is real elytra flight, so vanilla tips the body along it; this adds the arms and legs
+		ring.rings$setFlight(RingFlight.dive(player, partialTicks), RingFlight.hover(player, partialTicks));
 		ring.rings$setFastFlight(RingFlight.sonic(player, partialTicks), RingFlight.rise(player, partialTicks));
-		if (dive > 0.05F && !state.isFallFlying) {
-			// Reuse the elytra pose: tips the body along the look direction and banks into turns.
-			// fallFlyingScale() is (t / 10)^2, so this eases it in with the dive.
-			state.isFallFlying = true;
-			state.fallFlyingTimeInTicks = 10.0F * Mth.sqrt(dive);
-		}
+		ring.rings$setWornRing(player.getAttached(RingAttachments.WORN_RING), costume != null);
 	}
 
 	// Hovering bobs gently up and down

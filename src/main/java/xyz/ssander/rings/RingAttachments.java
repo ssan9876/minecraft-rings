@@ -36,6 +36,10 @@ public final class RingAttachments {
 	public static final AttachmentType<Boolean> FIRING = AttachmentRegistry.create(Rings.id("firing"),
 			builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
 
+	/** The colour of the ring in the ring slot, on or off. Synced to every client so everyone sees it on the wearer's hand. */
+	public static final AttachmentType<RingColor> WORN_RING = AttachmentRegistry.create(Rings.id("worn_ring"),
+			builder -> builder.syncWith(RingColor.STREAM_CODEC, AttachmentSyncPredicate.all()));
+
 	/** Where on the Earth a player left for space, so they come back down there. */
 	public static final AttachmentType<BlockPos> EARTH_RETURN = AttachmentRegistry.create(Rings.id("earth_return"),
 			builder -> builder.persistent(BlockPos.CODEC).copyOnDeath());

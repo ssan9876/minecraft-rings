@@ -3,6 +3,8 @@ package xyz.ssander.rings.client;
 import net.minecraft.world.entity.player.PlayerSkin;
 import org.jspecify.annotations.Nullable;
 
+import xyz.ssander.rings.RingColor;
+
 /** Ring data added to the player render state (see AvatarRenderStateMixin). */
 public interface RingRenderState {
 	float rings$dive();
@@ -22,6 +24,13 @@ public interface RingRenderState {
 	boolean rings$firing();
 
 	void rings$setFiring(boolean firing);
+
+	/** The colour of the ring on the player's hand, or null for none, and whether it's switched on. */
+	@Nullable RingColor rings$wornRing();
+
+	boolean rings$ringActive();
+
+	void rings$setWornRing(@Nullable RingColor color, boolean active);
 
 	/** The player's own skin while they wear a costume (their head is drawn with it), otherwise null. */
 	@Nullable PlayerSkin rings$ownSkin();
