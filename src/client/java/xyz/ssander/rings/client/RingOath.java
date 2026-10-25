@@ -36,7 +36,7 @@ public final class RingOath implements HudElement {
 	/** The local player topped up their ring at a lantern of this colour (or is holding it out to one). */
 	static void charging(Player player, RingColor lantern) {
 		int now = player.tickCount;
-		if (now - last > RESTART_GAP || lantern != color) {
+		if (start == Integer.MIN_VALUE || now - last > RESTART_GAP || lantern != color) {
 			start = now;
 			full = false;
 		}

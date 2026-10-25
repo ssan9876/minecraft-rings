@@ -366,6 +366,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.getInput().holdKey(options -> options.keyUse);
 			context.waitTicks(16);
 			context.takeScreenshot("rings-9-charging");
+			context.waitTicks(70);
+			context.takeScreenshot("rings-9-charging-oath");
 			checkClient(context, mc -> RingAnimations.isPlaying(mc.player, RingAnimations.CHARGE), "charging holds the ring out to the lantern");
 			TestCamera.yawOffset = 90.0F;
 			camera(context, CameraType.THIRD_PERSON_BACK);
@@ -825,6 +827,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		server.runCommand("time set noon");
 		server.runCommand("clear @a");
 		server.runCommand("kill @e[type=!minecraft:player]");
+		// A clear test spot, whatever earlier tests left there
+		server.runCommand("execute in minecraft:overworld run fill -12 -60 -12 12 -50 12 minecraft:air");
 		server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
 		server.runCommand("tp @a 0.5 -60 0.5 0 0");
 		context.waitTicks(3);
@@ -836,6 +840,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		connection.waitForServerboundPackets();
 		context.waitTick();
 		check(server, RingProtection::isShielded, "the force field key puts the force field up");
+		server.runOnServer(s -> player(s).setHealth(player(s).getMaxHealth()));
+		context.waitTicks(20);
 		int before = server.computeOnServer(s -> RingItem.charge(RingAttachments.getRing(player(s))));
 		server.runOnServer(s -> player(s).hurtServer(player(s).level(), player(s).damageSources().generic(), 6.0F));
 		check(server, p -> p.getHealth() == p.getMaxHealth(), "the force field stops the hit");
@@ -960,6 +966,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		server.runCommand("time set noon");
 		server.runCommand("clear @a");
 		server.runCommand("kill @e[type=!minecraft:player]");
+		// A clear test spot, whatever earlier tests left there
+		server.runCommand("execute in minecraft:overworld run fill -12 -60 -12 12 -50 12 minecraft:air");
 
 		// Green: a burst of will throws back what's near; constructs cost less
 		wear(context, connection, server, RingColor.GREEN);
@@ -1107,6 +1115,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		check(server, p -> p.level().getEntitiesOfClass(Mob.class, p.getBoundingBox().inflate(16), m -> Thralls.of(m) != null).size() == 2,
 				"Black Lanterns stay while their master's about");
 		server.runCommand("kill @e[type=!minecraft:player]");
+		// A clear test spot, whatever earlier tests left there
+		server.runCommand("execute in minecraft:overworld run fill -12 -60 -12 12 -50 12 minecraft:air");
 		server.runCommand("clear @a");
 	}
 
@@ -1116,6 +1126,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		server.runCommand("time set noon");
 		server.runCommand("clear @a");
 		server.runCommand("kill @e[type=!minecraft:player]");
+		// A clear test spot, whatever earlier tests left there
+		server.runCommand("execute in minecraft:overworld run fill -12 -60 -12 12 -50 12 minecraft:air");
 		wear(context, connection, server, RingColor.GREEN);
 
 		// A wolf and a golem, which go for a zombie near by
@@ -1213,6 +1225,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		}
 		check(server, p -> p.level().getEntitiesOfClass(ConstructJet.class, p.getBoundingBox().inflate(64)).isEmpty(), "a jet left alone fades");
 		server.runCommand("kill @e[type=!minecraft:player]");
+		// A clear test spot, whatever earlier tests left there
+		server.runCommand("execute in minecraft:overworld run fill -12 -60 -12 12 -50 12 minecraft:air");
 		server.runCommand("tp @a 0.5 -60 0.5");
 		activate(context, connection);
 	}
@@ -1226,6 +1240,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		server.runCommand("time set noon");
 		server.runCommand("clear @a");
 		server.runCommand("kill @e[type=!minecraft:player]");
+		// A clear test spot, whatever earlier tests left there
+		server.runCommand("execute in minecraft:overworld run fill -12 -60 -12 12 -50 12 minecraft:air");
 		wear(context, connection, server, RingColor.GREEN);
 
 		// The first visit to Oa finds the citadel there
