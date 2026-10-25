@@ -48,6 +48,8 @@ public final class RingAnimations {
 	public static final Identifier CHARGE_END = Rings.id("charge_end");
 	/** The ring is full: crouch, then throw the fist to the sky as the power bursts out. */
 	public static final Identifier CHARGE_FULL = Rings.id("charge_full");
+	/** The ring fist thrust out as a construct takes shape. */
+	public static final Identifier CONSTRUCT = Rings.id("construct");
 	/** Down on one knee, fist to the ground, after coming down from flight. */
 	public static final Identifier LAND = Rings.id("land");
 	/** The charging pose ends this many ticks after the last top-up (they come every 4 ticks while right-click is held). */
@@ -83,6 +85,7 @@ public final class RingAnimations {
 					case ACTIVATE -> play(player, ACTIVATE);
 					case CHARGE -> charge(player, payload.color());
 					case CHARGE_FULL -> chargeFull(player, payload.color());
+					case CONSTRUCT -> play(player, CONSTRUCT);
 				}
 			}
 		});

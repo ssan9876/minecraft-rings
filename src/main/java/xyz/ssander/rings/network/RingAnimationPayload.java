@@ -26,7 +26,9 @@ public record RingAnimationPayload(int entityId, Kind kind, RingColor color) imp
 		/** Holds the ring out to a lantern. Sent with every top-up; the pose ends a moment after the last one. */
 		CHARGE,
 		/** The top-up that filled the ring: the power bursts out of the wearer. */
-		CHARGE_FULL
+		CHARGE_FULL,
+		/** A construct made: the ring fist thrust out as it takes shape. */
+		CONSTRUCT
 	}
 
 	@Override

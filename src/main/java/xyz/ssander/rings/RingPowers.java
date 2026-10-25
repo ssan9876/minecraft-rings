@@ -18,6 +18,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
@@ -36,7 +37,9 @@ public final class RingPowers {
 	/** Extra charge used each second while firing the beam. */
 	private static final int DRAIN_FIRING = 4;
 	/** Each interaction with a power lantern (every 4 ticks while right-click is held) adds this much. */
-	private static final int CHARGE_PER_USE = RingItem.MAX_CHARGE / 10;
+	private static final int CHARGE_PER_USE = RingItem.MAX_CHARGE / 30;
+	/** Particles in each pulse of the stream from the lantern to the ring. */
+	private static final int STREAM_PARTICLES = 24;
 	/** The ring's energy shields its wearer: about a full set of iron armor, on top of what they wear. */
 	private static final AttributeModifier RING_ARMOR = new AttributeModifier(Rings.id("ring_armor"), 8.0, AttributeModifier.Operation.ADD_VALUE);
 	private static final AttributeModifier RING_TOUGHNESS = new AttributeModifier(Rings.id("ring_toughness"), 2.0, AttributeModifier.Operation.ADD_VALUE);
@@ -135,13 +138,21 @@ public final class RingPowers {
 		int charge = RingItem.addCharge(stack, CHARGE_PER_USE);
 		boolean full = charge >= RingItem.MAX_CHARGE;
 
-		// A thin stream of energy from the lantern toward the wearer's hand, stopping short of their face
+		// A stream of energy pouring from the lantern into the ring fist, held out to it in the charging pose: a
+		// bright core with the lantern's energy swirling around it, thickest at the lantern
 		Vec3 from = Vec3.atCenterOf(pos);
-		Vec3 to = player.position().add(0.0, 0.9, 0.0);
-		for (int i = 0; i <= 6; i++) {
-			Vec3 point = from.lerp(to, i / 10.0);
-			level.sendParticles(lantern.color().dust(0.0F, 0.6F), point.x, point.y, point.z, 1, 0.03, 0.03, 0.03, 0.0);
+		float yaw = player.yBodyRot * Mth.DEG_TO_RAD;
+		Vec3 to = player.position().add(-Mth.sin(yaw) * 0.7, 1.05, Mth.cos(yaw) * 0.7);
+		RingColor color = lantern.color();
+		for (int i = 0; i < STREAM_PARTICLES; i++) {
+			double along = level.getRandom().nextDouble();
+			double spread = 0.12 * (1.0 - along);
+			Vec3 point = from.lerp(to, along);
+			boolean core = i % 3 == 0;
+			level.sendParticles(color.dust(core ? 0.75F : 0.0F, core ? 0.5F : 0.7F + level.getRandom().nextFloat() * 0.4F),
+					point.x, point.y, point.z, 1, spread, spread, spread, 0.0);
 		}
+		level.sendParticles(color.dust(0.5F, 1.0F), from.x, from.y, from.z, 4, 0.2, 0.25, 0.2, 0.0);
 
 		playAnimation(player, full ? RingAnimationPayload.Kind.CHARGE_FULL : RingAnimationPayload.Kind.CHARGE, lantern.color());
 		level.playSound(null, pos, full ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS,
@@ -168,7 +179,7 @@ public final class RingPowers {
 	}
 
 	/** Plays a ring animation on the player for them and everyone who can see them. */
-	private static void playAnimation(ServerPlayer player, RingAnimationPayload.Kind kind, RingColor color) {
+	static void playAnimation(ServerPlayer player, RingAnimationPayload.Kind kind, RingColor color) {
 		RingAnimationPayload payload = new RingAnimationPayload(player.getId(), kind, color);
 		ServerPlayNetworking.send(player, payload);
 		for (ServerPlayer watcher : PlayerLookup.tracking(player)) {

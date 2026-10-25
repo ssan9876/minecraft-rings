@@ -28,15 +28,20 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import xyz.ssander.rings.HardLightBlock;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingBeam;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingComponents;
+import xyz.ssander.rings.RingConstructs;
 import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Rings;
+import xyz.ssander.rings.client.ConstructWheelScreen;
 import xyz.ssander.rings.client.RingAnimations;
 import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingsClient;
@@ -295,7 +300,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			TestCamera.yawOffset = 90.0F;
 			camera(context, CameraType.THIRD_PERSON_BACK);
 			context.takeScreenshot("rings-9-charging-side");
-			for (int i = 0; i < 60 && !server.computeOnServer(s -> RingItem.charge(RingAttachments.getRing(player(s))) == RingItem.MAX_CHARGE); i++) {
+			for (int i = 0; i < 160 && !server.computeOnServer(s -> RingItem.charge(RingAttachments.getRing(player(s))) == RingItem.MAX_CHARGE); i++) {
 				context.waitTick();
 			}
 			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE, "the power lantern charges the ring");
@@ -356,6 +361,107 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			activate(context, connection);
 			check(server, p -> p.getAttributeValue(Attributes.ARMOR) == 0.0, "the ring armor goes when the ring switches off");
 			server.runCommand("kill @e[type=minecraft:pig]");
+
+			// Constructs. The wheel: hold the key, point at Wall (the top), let go
+			activate(context, connection);
+			server.runOnServer(s -> RingAttachments.getRing(player(s)).set(RingComponents.CHARGE, RingItem.MAX_CHARGE));
+			server.runCommand("summon minecraft:pig 0.5 -60 6.5 {NoAI:1b}");
+			server.runCommand("tp @a 0.5 -60 0.5 0 0");
+			context.waitTicks(2);
+			context.getInput().holdKey(options -> RingsClient.constructKey);
+			context.waitTicks(3);
+			checkClient(context, mc -> mc.gui.screen() instanceof ConstructWheelScreen, "the construct key opens the wheel");
+			double[] wallSlot = context.computeOnClient(mc -> {
+				double scale = (double) mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth();
+				return new double[] {mc.getWindow().getScreenWidth() / 2.0, mc.getWindow().getScreenHeight() / 2.0 - 62 * scale};
+			});
+			context.getInput().setCursorPos(wallSlot[0], wallSlot[1]);
+			context.waitTicks(2);
+			context.takeScreenshot("rings-15-construct-wheel");
+			context.getInput().releaseKey(options -> RingsClient.constructKey);
+			context.waitTicks(3);
+			connection.waitForServerboundPackets();
+			checkClient(context, mc -> mc.gui.screen() == null, "letting go of the key closes the wheel");
+			check(server, p -> isHardLight(p, new BlockPos(0, -60, 3), RingColor.GREEN) && isHardLight(p, new BlockPos(2, -57, 3), RingColor.GREEN),
+					"picking Wall makes a wall of hard light");
+			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) < RingItem.MAX_CHARGE, "constructs use power");
+
+			// Cage the pig beyond the wall, from above it
+			server.runCommand("setblock 0 -60 3 air");
+			server.runCommand("tp @a 0.5 -48 0.5");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.getAbilities().flying = true;
+				p.onUpdateAbilities();
+			});
+			context.waitTicks(3);
+			context.getInput().lookAt(new BlockPos(0, -60, 6));
+			context.waitTicks(12);
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.CAGE));
+			check(server, p -> isHardLight(p, new BlockPos(1, -60, 6), RingColor.GREEN) && isHardLight(p, new BlockPos(-1, -60, 6), RingColor.GREEN)
+					&& isHardLight(p, new BlockPos(0, -59, 6), RingColor.GREEN), "the cage closes around the pig");
+
+			// A bridge out from where the player hovers
+			context.waitTicks(12);
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.BRIDGE));
+			check(server, p -> isHardLight(p, new BlockPos(0, -49, 8), RingColor.GREEN) && isHardLight(p, new BlockPos(1, -49, 15), RingColor.GREEN),
+					"the bridge reaches out ahead");
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			TestCamera.yawOffset = 140.0F;
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.takeScreenshot("rings-15-constructs");
+			TestCamera.yawOffset = 0.0F;
+			camera(context, CameraType.FIRST_PERSON);
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+
+			// The giant fist, at a pig behind
+			server.runCommand("summon minecraft:pig 0.5 -60 -8.5 {NoAI:1b}");
+			server.runCommand("tp @a 0.5 -60 0.5 180 0");
+			context.waitTicks(3);
+			context.getInput().lookAt(new BlockPos(0, -60, -9));
+			context.waitTicks(12);
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			TestCamera.yawOffset = 70.0F;
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.FIST));
+			context.waitTicks(2);
+			context.takeScreenshot("rings-15-fist");
+			TestCamera.yawOffset = 0.0F;
+			camera(context, CameraType.FIRST_PERSON);
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.waitTicks(10);
+			check(server, p -> p.level().getEntitiesOfClass(Pig.class, new AABB(-20, -64, -20, 20, -40, 0), pig -> pig.getHealth() >= pig.getMaxHealth()).isEmpty(),
+					"the giant fist smashes the pig");
+
+			// Construct tools: in hand, and gone when dropped or when the ring switches off
+			server.runCommand("kill @e[type=minecraft:pig]");
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.SWORD));
+			check(server, p -> p.getMainHandItem().is(Rings.CONSTRUCT_SWORD), "the sword construct goes in hand");
+			context.waitTicks(12);
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.PICKAXE));
+			check(server, p -> p.getInventory().contains(stack -> stack.is(Rings.CONSTRUCT_PICKAXE)), "the pickaxe construct goes in the inventory");
+			context.waitTicks(3);
+			context.takeScreenshot("rings-15-sword");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.level().addFreshEntity(new ItemEntity(p.level(), p.getX(), p.getY() + 1.0, p.getZ() + 2.0, p.getMainHandItem().copyAndClear()));
+			});
+			context.waitTicks(3);
+			check(server, p -> !p.getInventory().contains(stack -> stack.is(Rings.CONSTRUCT_SWORD))
+					&& p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(8), e -> e.getItem().is(Rings.CONSTRUCT_SWORD)).isEmpty(),
+					"a dropped construct fades away");
+			activate(context, connection);
+			context.waitTicks(2);
+			check(server, p -> !p.getInventory().contains(stack -> stack.is(Rings.CONSTRUCT_PICKAXE)), "construct tools fade when the ring switches off");
+
+			// Hard light fades on its own: the cage after 15 seconds, the wall after 30
+			server.runCommand("tick sprint 700");
+			for (int i = 0; i < 100 && server.computeOnServer(s -> isHardLight(player(s), new BlockPos(2, -57, 3), RingColor.GREEN)); i++) {
+				context.waitTicks(10);
+			}
+			check(server, p -> !isHardLight(p, new BlockPos(2, -57, 3), RingColor.GREEN) && !isHardLight(p, new BlockPos(1, -60, 6), RingColor.GREEN),
+					"hard light fades away");
+			server.runCommand("tick sprint stop");
 
 			// Every colour: its rings, its lantern, and its suit with its outline and power meter
 			server.runCommand("clear @a");
@@ -467,6 +573,11 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		}
 		TestCamera.yawOffset = 0.0F;
 		context.waitTicks(40);
+	}
+
+	private static boolean isHardLight(ServerPlayer player, BlockPos pos, RingColor color) {
+		BlockState state = player.level().getBlockState(pos);
+		return state.is(Rings.HARD_LIGHT) && state.getValue(HardLightBlock.COLOR) == color;
 	}
 
 	private static ServerPlayer player(MinecraftServer server) {

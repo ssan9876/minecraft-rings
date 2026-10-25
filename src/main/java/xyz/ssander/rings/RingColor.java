@@ -3,13 +3,14 @@ package xyz.ssander.rings;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.material.MapColor;
 
 /**
  * The ring colours. Each has its own ring, suit and lantern, and a ring only charges at a lantern of its colour.
  * Resource files for each colour come from tools/gen_resources.py, which keeps the same ids.
  */
-public enum RingColor {
+public enum RingColor implements StringRepresentable {
 	// Green keeps its 1.0 ids so rings and lanterns already in worlds stay what they are
 	GREEN("green", "hero_ring", "power_lantern", 0x3CFF5A, 0x3CFF5A, MapColor.EMERALD),
 	BLUE("blue", "blue_ring", "blue_power_lantern", 0x3C9BFF, 0x5AAAFF, MapColor.LAPIS),
@@ -37,6 +38,11 @@ public enum RingColor {
 	}
 
 	public String id() {
+		return this.name;
+	}
+
+	@Override
+	public String getSerializedName() {
 		return this.name;
 	}
 

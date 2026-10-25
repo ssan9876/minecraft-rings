@@ -78,6 +78,24 @@ def main():
         lang[f"item.rings.{ring}"] = f"{name} Power Ring"
         lang[f"block.rings.{lantern}"] = f"{name} Power Lantern"
 
+    # Hard light, in every colour: see-through, so its texture is marked translucent
+    write(ASSETS / "blockstates/hard_light.json",
+          {"variants": {f"color={color}": {"model": f"rings:block/hard_light_{color}"} for color in COLORS}})
+    for color in COLORS:
+        write(ASSETS / f"models/block/hard_light_{color}.json", {
+            "parent": "minecraft:block/cube_all",
+            "textures": {"all": {"force_translucent": True, "sprite": f"rings:block/hard_light_{color}"}},
+        })
+
+    # Construct tools: white sprites tinted with the ring's colour, which is the item's dye
+    for tool in ("construct_sword", "construct_pickaxe"):
+        write(ASSETS / f"items/{tool}.json", {"model": {
+            "type": "minecraft:model",
+            "model": f"rings:item/{tool}",
+            "tints": [{"type": "minecraft:dye", "default": -1}],
+        }})
+        write(ASSETS / f"models/item/{tool}.json", {"parent": "minecraft:item/handheld", "textures": {"layer0": f"rings:item/{tool}"}})
+
     write(RESOURCES / "data/minecraft/tags/block/mineable/pickaxe.json",
           {"values": [f"rings:{lantern_id(color)}" for color in COLORS]})
     write(lang_path, lang)

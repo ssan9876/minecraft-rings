@@ -15,7 +15,15 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.util.Unit;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.ToolMaterial;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Rarity;
@@ -24,6 +32,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
 import xyz.ssander.rings.network.ActivateRingPayload;
+import xyz.ssander.rings.network.CreateConstructPayload;
 import xyz.ssander.rings.network.FireBeamPayload;
 import xyz.ssander.rings.network.RingAnimationPayload;
 
@@ -54,6 +63,28 @@ public class Rings implements ModInitializer {
 		}
 	}
 
+	/** What walls, bridges and cages are made of (no item: it only ever comes from a ring). */
+	public static final HardLightBlock HARD_LIGHT = registerBlock("hard_light", HardLightBlock::new,
+			BlockBehaviour.Properties.of()
+					.strength(50.0F, 1200.0F)
+					.sound(SoundType.AMETHYST)
+					.lightLevel(state -> 10)
+					.noOcclusion()
+					.noLootTable()
+					.pushReaction(PushReaction.IMMOVEABLE)
+					.isValidSpawn((state, level, pos, type) -> false)
+					.isRedstoneConductor((state, level, pos) -> false)
+					.isSuffocating((state, level, pos) -> false));
+
+	public static final EntityType<ConstructFist> CONSTRUCT_FIST = registerEntity("construct_fist",
+			EntityType.Builder.<ConstructFist>of(ConstructFist::new, MobCategory.MISC).sized(1.0F, 1.0F).clientTrackingRange(8).updateInterval(1).noSummon());
+
+	/** Construct tools, made by the construct wheel in the ring's colour (their dye) and gone when it switches off. */
+	public static final ConstructItem CONSTRUCT_SWORD = register("construct_sword", ConstructItem::new,
+			constructTool(new Item.Properties().sword(ToolMaterial.DIAMOND, 3.0F, -2.4F)));
+	public static final ConstructItem CONSTRUCT_PICKAXE = register("construct_pickaxe", ConstructItem::new,
+			constructTool(new Item.Properties().pickaxe(ToolMaterial.NETHERITE, 1.0F, -2.8F)));
+
 	public static RingItem ring(RingColor color) {
 		return RINGS.get(color);
 	}
@@ -69,6 +100,19 @@ public class Rings implements ModInitializer {
 	private static <T extends Block> T registerBlock(String name, Function<BlockBehaviour.Properties, T> factory, BlockBehaviour.Properties props) {
 		ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, id(name));
 		return Registry.register(BuiltInRegistries.BLOCK, key, factory.apply(props.setId(key)));
+	}
+
+	private static Item.Properties constructTool(Item.Properties properties) {
+		return properties
+				.component(DataComponents.UNBREAKABLE, Unit.INSTANCE)
+				.component(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT
+						.withHidden(DataComponents.DYED_COLOR, true)
+						.withHidden(DataComponents.UNBREAKABLE, true));
+	}
+
+	private static <T extends Entity> EntityType<T> registerEntity(String name, EntityType.Builder<T> builder) {
+		ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, id(name));
+		return Registry.register(BuiltInRegistries.ENTITY_TYPE, key, builder.build(key));
 	}
 
 	private static <T extends Item> T register(String name, Function<Item.Properties, T> factory, Item.Properties props) {
@@ -87,6 +131,8 @@ public class Rings implements ModInitializer {
 
 		PayloadTypeRegistry.serverboundPlay().register(ActivateRingPayload.TYPE, ActivateRingPayload.CODEC);
 		PayloadTypeRegistry.clientboundPlay().register(RingAnimationPayload.TYPE, RingAnimationPayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(CreateConstructPayload.TYPE, CreateConstructPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(CreateConstructPayload.TYPE, (payload, context) -> RingConstructs.make(context.player(), payload.construct()));
 		PayloadTypeRegistry.serverboundPlay().register(FireBeamPayload.TYPE, FireBeamPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(FireBeamPayload.TYPE, (payload, context) -> RingBeam.setFiring(context.player(), payload.firing()));
 		ServerPlayNetworking.registerGlobalReceiver(ActivateRingPayload.TYPE, (payload, context) -> RingPowers.toggle(context.player()));

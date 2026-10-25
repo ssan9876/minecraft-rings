@@ -294,6 +294,74 @@ def lantern_metal(p):
     return image
 
 
+def hard_light(p):
+    """Solid light: a bright rim, a see-through glowing middle, and a few streaks of shimmer."""
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            edge = min(x, y, 15 - x, 15 - y)
+            if edge == 0:
+                color = p.light[:3] + (235,)
+            elif edge == 1:
+                color = p.mid[:3] + (170,)
+            elif (x + y) % 7 == 0 and 3 <= x <= 12:
+                color = p.glow[:3] + (130,)
+            else:
+                color = p.mid[:3] + (95,)
+            image.putpixel((x, y), color)
+    return image
+
+
+# Construct tools, drawn in white and greys so the ring's colour (the item's dye) tints them
+CONSTRUCT_SWORD = [
+    "..............ww",
+    ".............wlw",
+    "............wlw.",
+    "...........wlw..",
+    "..........wlw...",
+    ".........wlw....",
+    "........wlw.....",
+    ".......wlw......",
+    "..g...wlw.......",
+    "..gg.wlw........",
+    "...gglw.........",
+    "....gg..........",
+    "...h.gg.........",
+    "..h...g.........",
+    ".h..............",
+    "p...............",
+]
+CONSTRUCT_PICKAXE = [
+    "....wwwwww......",
+    "..wwllllllww....",
+    ".wl.......lww...",
+    "w.........h.lw..",
+    "w........h...lw.",
+    ".........h....w.",
+    "........h.....w.",
+    ".......h.......w",
+    "......h........w",
+    ".....h..........",
+    "....h...........",
+    "...h............",
+    "..h.............",
+    ".h..............",
+    "p...............",
+    "................",
+]
+TOOL_SHADES = {"w": (255, 255, 255, 255), "l": (205, 205, 205, 255), "g": (230, 230, 230, 255),
+               "h": (160, 160, 160, 255), "p": (120, 120, 120, 255)}
+
+
+def construct_tool(pattern):
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y, row in enumerate(pattern):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                image.putpixel((x, y), TOOL_SHADES[ch])
+    return image
+
+
 def icon():
     return ring_item(COLORS["green"]).resize((128, 128), Image.NEAREST)
 
@@ -304,5 +372,8 @@ if __name__ == "__main__":
         save(lantern_skin(palette), f"textures/entity/costume/{name}_lantern.png")
         save(lantern_glass(palette), f"textures/block/{LANTERN_IDS[name]}_glass.png")
         save(lantern_metal(palette), f"textures/block/{LANTERN_IDS[name]}_metal.png")
+        save(hard_light(palette), f"textures/block/hard_light_{name}.png")
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
+    save(construct_tool(CONSTRUCT_SWORD), "textures/item/construct_sword.png")
+    save(construct_tool(CONSTRUCT_PICKAXE), "textures/item/construct_pickaxe.png")
     save(icon(), "icon.png")

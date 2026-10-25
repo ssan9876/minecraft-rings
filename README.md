@@ -22,11 +22,26 @@ Options → Controls → Rings.
 
 Switching it on, you thrust the ring to the sky. Everyone else sees all of this too.
 
+**Constructs:** hold **Construct Wheel** (default `V`) while the ring is on, point at a construct and let go (or
+click) to make it out of the ring's light, in its colour. Each costs a little power (the wheel shows how much).
+
+| Construct | What it makes |
+|---|---|
+| Wall | A 5×4 wall of hard light in front of you, for 30 seconds |
+| Bridge | A bridge 3 wide and 16 long from your feet, for a minute |
+| Cage | A box of hard light around the creature you look at, for 15 seconds |
+| Giant Fist | A fist that flies where you look and smashes whatever it hits, throwing everything near it back |
+| Sword | A diamond-strength sword in your hand |
+| Pickaxe | A netherite-speed pickaxe |
+
+Hard light only fills empty space, breaks no blocks and drops nothing. Construct tools last while the ring stays on
+(up to 5 minutes) and fade away if dropped.
+
 **Power:** the ring runs on its charge, shown by the meter to the right of the hotbar and the bar on the item. A
 full ring lasts 30 minutes switched on, 10 minutes of flying, about 4 minutes of super flight, or about 6 minutes
 of firing the beam. When it runs out the ring switches off, and it
 won't switch back on until you charge it: **hold right-click on a Power Lantern of the ring's colour** while
-wearing or holding the ring (about 2 seconds from empty). While it charges you take the lantern oath: braced,
+wearing or holding the ring (about 6 seconds from empty), as its energy pours into the ring. While it charges you take the lantern oath: braced,
 ring fist thrust at the lantern and the other hand gripping the wrist, pulsing with each surge as energy spirals up
 around you. When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
 sky. A lantern of another colour won't charge it.
