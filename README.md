@@ -4,7 +4,13 @@ A Fabric mod for Minecraft 26.3 that adds a ring slot to the player's inventory,
 Rings grant powers while switched on with the **Activate Ring** key (default `R`, rebindable under
 Options → Controls → Rings).
 
-**Hero Ring:** flight, and turns you into the hero costume (skin and cape) that everyone else sees too.
+**Hero Ring:** a green power ring. While it's on:
+- you can fly. At speed you tip into a superhero pose (fist out front, banking into turns) and leave a trail of
+  green energy; when you slow down you hover, bobbing gently;
+- you wear the lantern suit, a green and black suit with the lantern emblem and glowing eyes;
+- you're outlined in green. Like the Glowing effect, the outline shows through walls.
+
+Everyone else sees all of this too.
 
 Crafting (shaped):
 
@@ -67,4 +73,7 @@ Powers live in `RingPowers.java`, which runs every server tick for each player.
   stored in a Fabric data attachment on the player, so it saves with the player and survives relogging.
 - **Activation:** the key sends a packet; the server toggles the ring and grants or removes powers.
 - **Costume:** the server sets a costume attachment that syncs to every client. The player renderer swaps in the
-  costume's skin and cape while it's set.
+  costume's skin and cape while it's set, and gives the player a green outline.
+- **Flying pose:** the server also syncs whether the wearer is flying on the ring. Each client eases flying players
+  between a hover pose and a superhero pose by their speed (`RingFlight.java`), reusing the elytra body tilt, and
+  `PlayerModelMixin` poses the arms and legs.

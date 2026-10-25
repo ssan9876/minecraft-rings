@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -25,6 +26,10 @@ public final class RingAttachments {
 	/** The costume being worn. Synced to every client so everyone sees it. */
 	public static final AttachmentType<Identifier> COSTUME = AttachmentRegistry.create(Rings.id("costume"),
 			builder -> builder.syncWith(Identifier.STREAM_CODEC, AttachmentSyncPredicate.all()));
+
+	/** Set while the wearer is flying on the ring's power. Synced to every client for the flying pose and trail. */
+	public static final AttachmentType<Boolean> FLYING = AttachmentRegistry.create(Rings.id("flying"),
+			builder -> builder.syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.all()));
 
 	private RingAttachments() {
 	}

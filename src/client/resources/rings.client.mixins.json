@@ -5,7 +5,9 @@
 	"client": [
 		"AbstractContainerScreenMixin",
 		"AvatarRendererMixin",
+		"AvatarRenderStateMixin",
 		"CreativeModeInventoryScreenMixin",
+		"PlayerModelMixin",
 		"SlotAccessor"
 	],
 	"injectors": {

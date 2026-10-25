@@ -17,7 +17,7 @@ import xyz.ssander.rings.Rings;
  */
 public final class Costumes {
 	private static final Map<Identifier, PlayerSkin.Patch> COSTUMES = Map.of(
-			Rings.id("hero"), costume("hero", true, PlayerModelType.WIDE));
+			Rings.id("lantern"), costume("lantern", false, PlayerModelType.WIDE));
 
 	private Costumes() {
 	}

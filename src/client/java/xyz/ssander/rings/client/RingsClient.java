@@ -25,6 +25,8 @@ public class RingsClient implements ClientModInitializer {
 					ClientPlayNetworking.send(new ActivateRingPayload());
 				}
 			}
+
+			RingFlight.tick(client);
 		});
 	}
 }

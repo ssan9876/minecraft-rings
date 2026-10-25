@@ -2,7 +2,7 @@ package xyz.ssander.rings;
 
 import java.util.Objects;
 
-import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -19,6 +19,9 @@ import org.jspecify.annotations.Nullable;
 public final class RingPowers {
 	/** Slow falling after flight ends in mid-air, so survival players don't fall to their death. */
 	private static final int SAFE_LANDING_TICKS = 100;
+	/** The ring's green energy, burst out on activation. */
+	private static final DustParticleOptions RING_GLOW = new DustParticleOptions(0x3CFF5A, 1.5F);
+	private static final DustParticleOptions RING_GLOW_FADING = new DustParticleOptions(0x1E8C32, 1.0F);
 
 	private RingPowers() {
 	}
@@ -37,8 +40,8 @@ public final class RingPowers {
 		ServerLevel level = player.level();
 		level.playSound(null, player.getX(), player.getY(), player.getZ(),
 				active ? SoundEvents.BEACON_POWER_SELECT : SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0F, active ? 1.4F : 1.2F);
-		level.sendParticles(active ? ParticleTypes.TOTEM_OF_UNDYING : ParticleTypes.END_ROD,
-				player.getX(), player.getY() + 1.0, player.getZ(), 40, 0.4, 0.8, 0.4, 0.15);
+		level.sendParticles(active ? RING_GLOW : RING_GLOW_FADING,
+				player.getX(), player.getY() + 1.0, player.getZ(), active ? 60 : 25, 0.5, 0.9, 0.5, 0.0);
 		player.sendOverlayMessage(Component.translatable(active ? "message.rings.activated" : "message.rings.deactivated", ring.getHoverName()));
 	}
 
@@ -53,6 +56,11 @@ public final class RingPowers {
 		RingItem active = RingAttachments.isActive(player) ? ring : null;
 		updateFlight(player, active != null && active.grantsFlight());
 		updateCostume(player, active != null ? active.costume() : null);
+
+		boolean ringFlying = active != null && active.grantsFlight() && player.getAbilities().flying;
+		if (ringFlying != player.getAttachedOrElse(RingAttachments.FLYING, false)) {
+			player.setAttached(RingAttachments.FLYING, ringFlying ? true : null);
+		}
 	}
 
 	private static void updateFlight(ServerPlayer player, boolean wanted) {

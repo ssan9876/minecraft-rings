@@ -33,7 +33,7 @@ import xyz.ssander.rings.client.RingsClient;
 
 /** Plays through the ring: equip, activate, fly, costume, take off, death drop, creative inventory. */
 public class RingsClientGameTest implements FabricClientGameTest {
-	private static final Identifier HERO = Rings.id("hero");
+	private static final Identifier LANTERN = Rings.id("lantern");
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -61,12 +61,12 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			// Activate: flight and costume, synced to the client
 			activate(context, connection);
 			check(server, p -> RingAttachments.isActive(p) && p.getAbilities().mayfly, "active ring grants flight");
-			check(server, p -> HERO.equals(p.getAttached(RingAttachments.COSTUME)), "active ring sets the costume");
+			check(server, p -> LANTERN.equals(p.getAttached(RingAttachments.COSTUME)), "active ring sets the costume");
 			connection.waitForClientboundPackets();
-			checkClient(context, mc -> HERO.equals(mc.player.getAttached(RingAttachments.COSTUME)), "costume syncs to the client");
+			checkClient(context, mc -> LANTERN.equals(mc.player.getAttached(RingAttachments.COSTUME)), "costume syncs to the client");
 
 			// Fly up a few blocks and look at the costume from every side
-			server.runCommand("tp @a ~ ~4 ~");
+			server.runCommand("execute as @a at @s run tp @s ~ ~4 ~");
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
 				p.getAbilities().flying = true;
@@ -74,12 +74,39 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			});
 			connection.waitForClientboundPackets();
 			context.waitTicks(10);
+			check(server, p -> p.getAttachedOrElse(RingAttachments.FLYING, false), "flying on the ring is flagged");
+			connection.waitForClientboundPackets();
+			checkClient(context, mc -> mc.player.getAttachedOrElse(RingAttachments.FLYING, false), "the flying flag syncs to the client");
 			camera(context, CameraType.THIRD_PERSON_FRONT);
-			context.takeScreenshot("rings-3-costume-front");
+			context.takeScreenshot("rings-3-hover-front");
 			camera(context, CameraType.THIRD_PERSON_BACK);
-			context.takeScreenshot("rings-4-costume-back");
+			context.takeScreenshot("rings-4-hover-back");
 			camera(context, CameraType.FIRST_PERSON);
 			context.takeScreenshot("rings-5-first-person");
+
+			// Film from the side (see CameraMixin): hovering, then flying forward fast, then banking into a turn
+			TestCamera.yawOffset = 90.0F;
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.takeScreenshot("rings-6-hover-side");
+			context.getInput().holdKey(options -> options.keyUp);
+			context.getInput().holdKey(options -> options.keySprint);
+			context.waitTicks(12);
+			context.takeScreenshot("rings-7-dive-side");
+			TestCamera.yawOffset = 140.0F;
+			context.waitTick();
+			context.takeScreenshot("rings-7-dive-front-quarter");
+			TestCamera.yawOffset = 90.0F;
+			context.getInput().holdKey(options -> options.keyLeft);
+			context.waitTicks(8);
+			TestCamera.yawOffset = 0.0F;
+			context.takeScreenshot("rings-8-dive-banking");
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.getInput().releaseKey(options -> options.keyLeft);
+			context.getInput().releaseKey(options -> options.keySprint);
+			context.getInput().releaseKey(options -> options.keyUp);
+			context.waitTicks(20);
+			camera(context, CameraType.FIRST_PERSON);
 
 			// Deactivate in mid-air: flight goes, slow falling catches the player
 			activate(context, connection);
@@ -89,7 +116,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			connection.waitForClientboundPackets();
 			checkClient(context, mc -> mc.player.getAttached(RingAttachments.COSTUME) == null, "costume removal syncs to the client");
 			camera(context, CameraType.THIRD_PERSON_BACK);
-			context.takeScreenshot("rings-6-deactivated");
+			context.takeScreenshot("rings-9-deactivated");
 			camera(context, CameraType.FIRST_PERSON);
 
 			// Taking the ring off while active switches it off
@@ -135,7 +162,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				}
 				return false;
 			}, "creative inventory places the ring slot right of the armor");
-			context.takeScreenshot("rings-7-creative-inventory");
+			context.takeScreenshot("rings-10-creative-inventory");
 
 			context.runOnClient(mc -> mc.player.connection.send(new ServerboundSetCreativeModeSlotPacket(ringSlot, new ItemStack(Items.DIRT))));
 			connection.waitForServerboundPackets();

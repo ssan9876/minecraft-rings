@@ -22,9 +22,9 @@ import xyz.ssander.rings.network.ActivateRingPayload;
 public class Rings implements ModInitializer {
 	public static final String MOD_ID = "rings";
 
-	/** Grants flight and turns the wearer into the hero costume while active. */
+	/** Grants flight and turns the wearer into the lantern suit while active. */
 	public static final RingItem HERO_RING = register("hero_ring",
-			props -> new RingItem(props, true, id("hero")),
+			props -> new RingItem(props, true, id("lantern")),
 			new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
 
 	public static Identifier id(String path) {

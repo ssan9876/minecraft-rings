@@ -4,6 +4,7 @@
 	"version": "1.0.0",
 	"name": "Rings gametests",
 	"environment": "*",
+	"mixins": ["rings-gametest.mixins.json"],
 	"entrypoints": {
 		"fabric-client-gametest": ["xyz.ssander.rings.gametest.RingsClientGameTest"]
 	},
