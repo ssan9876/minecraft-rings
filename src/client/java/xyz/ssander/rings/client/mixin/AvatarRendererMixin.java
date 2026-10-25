@@ -29,6 +29,7 @@ public abstract class AvatarRendererMixin {
 		ring.rings$setOwnSkin(null);
 		if (!(entity instanceof Player player)) {
 			ring.rings$setFlight(0.0F, 0.0F);
+			ring.rings$setFastFlight(0.0F, 0.0F);
 			ring.rings$setFiring(false);
 			return;
 		}
@@ -52,6 +53,7 @@ public abstract class AvatarRendererMixin {
 
 		float dive = RingFlight.dive(player, partialTicks);
 		ring.rings$setFlight(dive, RingFlight.hover(player, partialTicks));
+		ring.rings$setFastFlight(RingFlight.sonic(player, partialTicks), RingFlight.rise(player, partialTicks));
 		if (dive > 0.05F && !state.isFallFlying) {
 			// Reuse the elytra pose: tips the body along the look direction and banks into turns.
 			// fallFlyingScale() is (t / 10)^2, so this eases it in with the dive.

@@ -28,6 +28,7 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.phys.Vec3;
 
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingBeam;
@@ -39,6 +40,7 @@ import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.client.RingAnimations;
 import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingsClient;
+import xyz.ssander.rings.client.SuperFlight;
 
 /** Plays through the ring: equip, activate, fly, land, costume, charge, every colour, take off, death drop, creative inventory. */
 public class RingsClientGameTest implements FabricClientGameTest {
@@ -156,6 +158,63 @@ public class RingsClientGameTest implements FabricClientGameTest {
 
 			camera(context, CameraType.FIRST_PERSON);
 			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) < RingItem.MAX_CHARGE, "the ring uses power while on");
+			server.runCommand("execute as @a at @s run tp @s ~ ~4 ~");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.getAbilities().flying = true;
+				p.onUpdateAbilities();
+			});
+			connection.waitForClientboundPackets();
+			context.waitTicks(5);
+
+			// Super flight: sneak and forward builds up to several times flying speed, into the sonic pose
+			context.runOnClient(mc -> mc.player.setXRot(-8.0F));
+			context.getInput().holdKey(options -> options.keyUp);
+			context.getInput().holdKey(options -> options.keyShift);
+			context.waitTicks(30);
+			checkClient(context, mc -> SuperFlight.isActive(), "sneak and forward while ring flying is super flight");
+			checkClient(context, mc -> new Vec3(mc.player.getX() - mc.player.xo, mc.player.getY() - mc.player.yo, mc.player.getZ() - mc.player.zo).length() > 1.6,
+					"super flight builds up to sonic speed");
+			checkClient(context, mc -> RingFlight.sonic(mc.player, 1.0F) > 0.5F, "sonic speed takes the sonic pose");
+			context.takeScreenshot("rings-7-super-first-person");
+			TestCamera.yawOffset = 90.0F;
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.takeScreenshot("rings-7-super-side");
+			TestCamera.yawOffset = 150.0F;
+			context.waitTick();
+			context.takeScreenshot("rings-7-super-front-quarter");
+			check(server, p -> p.getKnownMovement().length() > 1.0, "the server sees super flight");
+
+			// Straight up: fist to the sky
+			TestCamera.yawOffset = 90.0F;
+			context.runOnClient(mc -> mc.player.setXRot(-89.0F));
+			context.waitTicks(10);
+			checkClient(context, mc -> RingFlight.rise(mc.player, 1.0F) > 0.5F, "rising fast raises the fist to the sky");
+			context.takeScreenshot("rings-7-super-rise-side");
+
+			// Dive into the ground: head first, then a shockwave on landing
+			context.runOnClient(mc -> mc.player.setXRot(75.0F));
+			context.waitTicks(4);
+			context.takeScreenshot("rings-7-super-dive-side");
+			for (int i = 0; i < 200 && !context.computeOnClient(mc -> mc.player.onGround()); i++) {
+				context.waitTick();
+			}
+			context.getInput().releaseKey(options -> options.keyShift);
+			context.getInput().releaseKey(options -> options.keyUp);
+			connection.waitForServerboundPackets();
+			context.waitTicks(4);
+			checkClient(context, mc -> !SuperFlight.isActive(), "letting go ends super flight");
+			checkClient(context, mc -> RingAnimations.isPlaying(mc.player, RingAnimations.LAND), "a super flight landing plays the superhero landing");
+			TestCamera.yawOffset = 150.0F;
+			context.runOnClient(mc -> mc.player.setXRot(10.0F));
+			context.waitTick();
+			context.takeScreenshot("rings-7-super-impact");
+			TestCamera.yawOffset = 0.0F;
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			camera(context, CameraType.FIRST_PERSON);
+			context.runOnClient(mc -> mc.player.setXRot(0.0F));
+			context.waitTicks(30);
 			server.runCommand("execute as @a at @s run tp @s ~ ~4 ~");
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);

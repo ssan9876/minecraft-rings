@@ -3,11 +3,14 @@
 	"package": "xyz.ssander.rings.client.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"client": [
+		"AbstractClientPlayerMixin",
 		"AbstractContainerScreenMixin",
 		"AvatarRendererMixin",
 		"AvatarRenderStateMixin",
+		"CameraMixin",
 		"CreativeModeInventoryScreenMixin",
 		"PlayerModelMixin",
+		"PlayerTravelMixin",
 		"SlotAccessor"
 	],
 	"injectors": {

@@ -8,6 +8,11 @@ Options → Controls → Rings.
 - you can fly. Flying fast you tip into a superhero pose (fist out front, banking into turns) and leave a trail
   of the ring's energy. Flying straight up or down, or hovering, you stay upright. Coming down to land, you drop
   into a superhero landing: one knee down, fist to the ground;
+- **super flight:** hold sneak and forward while flying to blast off where you look, building up to 40 blocks a
+  second. Near top speed you go sonic: a sonic boom as you break through, a streamlined pose, a white-hot trail,
+  rushing wind, a wider view and a shaking camera. Rocketing straight up you raise your fist to the sky, diving
+  down you go head first, and hitting the ground fast sends a shockwave out around your landing. Let go and your
+  momentum carries you back into normal flight. Sneak on its own still flies down;
 - you wear the ring's suit, in its colour with the lantern emblem, under your own head;
 - you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls;
 - the ring's energy shields you: +8 armor and +2 armor toughness, about a full set of iron armor, on top of
@@ -18,7 +23,8 @@ Options → Controls → Rings.
 Switching it on, you thrust the ring to the sky. Everyone else sees all of this too.
 
 **Power:** the ring runs on its charge, shown by the meter to the right of the hotbar and the bar on the item. A
-full ring lasts 30 minutes switched on, 10 minutes of flying, or about 6 minutes of firing the beam. When it runs out the ring switches off, and it
+full ring lasts 30 minutes switched on, 10 minutes of flying, about 4 minutes of super flight, or about 6 minutes
+of firing the beam. When it runs out the ring switches off, and it
 won't switch back on until you charge it: **hold right-click on a Power Lantern of the ring's colour** while
 wearing or holding the ring (about 2 seconds from empty). While it charges you take the lantern oath: braced,
 ring fist thrust at the lantern and the other hand gripping the wrist, pulsing with each surge as energy spirals up
@@ -117,6 +123,10 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
 - **Beam:** the key sends a packet when it goes down and up, and the server sets a firing attachment that syncs to
   every client. `RingBeam` traces the line of sight (on the server for hits, on each client to draw it) and
   `RingBeams` draws it as camera-facing strips in the world, with sparks and a hum.
+- **Super flight:** movement is the client's to decide, so `SuperFlight` moves the local player in place of
+  vanilla's flying movement (`PlayerTravelMixin`); everyone else sees it through the usual movement updates, and
+  `RingFlight` picks each player's pose and effects from how fast and which way they move. The server only charges
+  the extra power, from the movement the client reports.
 - **Animations:** `RingAnimations` registers a Player Animation Library layer on every player. The server sends
   each nearby client a packet when a ring switches on or charges; landing is spotted by each client from the
   synced flying flag. The layer only moves the bones an animation keys, on top of the vanilla and flying poses.

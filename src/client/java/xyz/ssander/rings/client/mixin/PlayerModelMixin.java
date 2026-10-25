@@ -47,7 +47,9 @@ public abstract class PlayerModelMixin implements HeadOnlyModel {
 		RingRenderState ring = (RingRenderState) state;
 		float dive = ring.rings$dive();
 		float hover = ring.rings$hover();
-		if (dive <= 0.0F && hover <= 0.0F) {
+		float sonic = ring.rings$sonic();
+		float rise = ring.rings$rise();
+		if (dive <= 0.0F && hover <= 0.0F && rise <= 0.0F) {
 			return;
 		}
 
@@ -68,6 +70,23 @@ public abstract class PlayerModelMixin implements HeadOnlyModel {
 			rings$blend(model.leftArm, dive, 0.15F, 0.0F, -0.1F);
 			rings$blend(model.rightLeg, dive, 0.08F + sway * 0.02F, 0.0F, 0.03F);
 			rings$blend(model.leftLeg, dive, -0.02F - sway * 0.02F, 0.0F, -0.03F);
+		}
+
+		// Sonic: streamlined, the trailing arm swept back along the body and the legs together, shuddering in the rush
+		if (sonic > 0.0F) {
+			float shudder = Mth.sin(state.ageInTicks * 2.3F) * 0.025F;
+			rings$blend(model.rightArm, sonic, (float) -Math.PI + shudder, 0.0F, 0.05F);
+			rings$blend(model.leftArm, sonic, 0.45F - shudder, 0.0F, -0.04F);
+			rings$blend(model.rightLeg, sonic, 0.02F + shudder, 0.0F, 0.01F);
+			rings$blend(model.leftLeg, sonic, 0.02F - shudder, 0.0F, -0.01F);
+		}
+
+		// Rising fast: fist to the sky, the other arm at the side, legs together trailing below
+		if (rise > 0.0F) {
+			rings$blend(model.rightArm, rise, (float) -Math.PI, 0.0F, 0.08F);
+			rings$blend(model.leftArm, rise, 0.08F, 0.0F, -0.1F);
+			rings$blend(model.rightLeg, rise, 0.06F, 0.0F, 0.02F);
+			rings$blend(model.leftLeg, rise, 0.0F, 0.0F, -0.02F);
 		}
 	}
 

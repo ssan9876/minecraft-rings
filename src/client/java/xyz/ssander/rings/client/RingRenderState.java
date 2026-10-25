@@ -11,6 +11,13 @@ public interface RingRenderState {
 
 	void rings$setFlight(float dive, float hover);
 
+	/** How far into the sonic and rising flight poses the player is (see RingFlight). */
+	float rings$sonic();
+
+	float rings$rise();
+
+	void rings$setFastFlight(float sonic, float rise);
+
 	/** Whether the player is firing their ring's beam, holding the ring arm out along it. */
 	boolean rings$firing();
 

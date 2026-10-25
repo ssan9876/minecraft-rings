@@ -30,6 +30,9 @@ public final class RingPowers {
 	/** Charge used each second while the ring is on, and while flying on it. */
 	private static final int DRAIN_ACTIVE = 1;
 	private static final int DRAIN_FLYING = 3;
+	/** Extra charge used each second in super flight (flying faster than {@link #SUPER_FLIGHT_SPEED} blocks a tick). */
+	private static final int DRAIN_SUPER_FLIGHT = 5;
+	private static final double SUPER_FLIGHT_SPEED = 1.0;
 	/** Extra charge used each second while firing the beam. */
 	private static final int DRAIN_FIRING = 4;
 	/** Each interaction with a power lantern (every 4 ticks while right-click is held) adds this much. */
@@ -80,7 +83,7 @@ public final class RingPowers {
 				// Taking the ring off switches it off
 				player.removeAttached(RingAttachments.ACTIVE);
 			} else if (player.tickCount % 20 == 0 && RingItem.addCharge(stack,
-					-((player.getAbilities().flying ? DRAIN_FLYING : DRAIN_ACTIVE) + (RingBeam.isFiring(player) ? DRAIN_FIRING : 0))) == 0) {
+					-drain(player)) == 0) {
 				player.removeAttached(RingAttachments.ACTIVE);
 				player.sendOverlayMessage(Component.translatable("message.rings.out_of_power", stack.getHoverName()));
 				player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0F, 0.6F);
@@ -146,6 +149,18 @@ public final class RingPowers {
 		player.sendOverlayMessage(full
 				? Component.translatable("message.rings.charged", stack.getHoverName())
 				: Component.translatable("message.rings.charging", charge * 100 / RingItem.MAX_CHARGE + "%"));
+	}
+
+	/** Charge the ring uses this second. */
+	private static int drain(ServerPlayer player) {
+		int drain = player.getAbilities().flying ? DRAIN_FLYING : DRAIN_ACTIVE;
+		if (player.getAbilities().flying && player.getKnownMovement().length() > SUPER_FLIGHT_SPEED) {
+			drain += DRAIN_SUPER_FLIGHT;
+		}
+		if (RingBeam.isFiring(player)) {
+			drain += DRAIN_FIRING;
+		}
+		return drain;
 	}
 
 	private static boolean matches(ItemStack stack, PowerLanternBlock lantern) {

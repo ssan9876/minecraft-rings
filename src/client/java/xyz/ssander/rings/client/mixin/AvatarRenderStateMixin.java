@@ -15,6 +15,10 @@ public abstract class AvatarRenderStateMixin implements RingRenderState {
 	@Unique
 	private float rings$hover;
 	@Unique
+	private float rings$sonic;
+	@Unique
+	private float rings$rise;
+	@Unique
 	private boolean rings$firing;
 	@Unique
 	private @Nullable PlayerSkin rings$ownSkin;
@@ -33,6 +37,22 @@ public abstract class AvatarRenderStateMixin implements RingRenderState {
 	public void rings$setFlight(float dive, float hover) {
 		this.rings$dive = dive;
 		this.rings$hover = hover;
+	}
+
+	@Override
+	public float rings$sonic() {
+		return this.rings$sonic;
+	}
+
+	@Override
+	public float rings$rise() {
+		return this.rings$rise;
+	}
+
+	@Override
+	public void rings$setFastFlight(float sonic, float rise) {
+		this.rings$sonic = sonic;
+		this.rings$rise = rise;
 	}
 
 	@Override
