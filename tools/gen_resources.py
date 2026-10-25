@@ -97,6 +97,24 @@ def main():
         }})
         write(ASSETS / f"models/item/{tool}.json", {"parent": "minecraft:item/handheld", "textures": {"layer0": f"rings:item/{tool}"}})
 
+    # The Central Power Battery's core: its own block (it never drops, so it has no loot table)
+    write(ASSETS / "blockstates/power_battery.json", {"variants": {"": {"model": "rings:block/power_battery"}}})
+    write(ASSETS / "models/block/power_battery.json", {"parent": "minecraft:block/cube_all", "textures": {"all": "rings:block/power_battery"}})
+    write(ASSETS / "items/power_battery.json", {"model": {"type": "minecraft:model", "model": "rings:block/power_battery"}})
+
+    # What the creatures of space drop
+    def drops(name, *pools):
+        write(DATA / f"loot_table/entities/{name}.json", {"type": "minecraft:entity", "pools": list(pools),
+                                                         "random_sequence": f"rings:entities/{name}"})
+
+    def pool(item, low, high):
+        return {"rolls": 1, "entries": [{"type": "minecraft:item", "name": item, "functions": [
+            {"function": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": low, "max": high}}]}]}
+
+    drops("manhunter", pool("minecraft:iron_ingot", 1, 3), pool("minecraft:redstone", 0, 3))
+    drops("parallax", pool("rings:yellow_power_lantern", 1, 1), pool("minecraft:diamond", 3, 6), pool("minecraft:gold_block", 2, 4))
+    drops("nekron", pool("rings:white_ring", 1, 1), pool("rings:white_power_lantern", 1, 1), pool("minecraft:diamond", 3, 6))
+
     write(RESOURCES / "data/minecraft/tags/block/mineable/pickaxe.json",
           {"values": [f"rings:{lantern_id(color)}" for color in COLORS]})
     write(lang_path, lang)

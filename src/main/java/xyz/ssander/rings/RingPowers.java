@@ -166,6 +166,9 @@ public final class RingPowers {
 		level.sendParticles(color.dust(0.5F, 1.0F), from.x, from.y, from.z, 4, 0.2, 0.25, 0.2, 0.0);
 
 		playAnimation(player, full ? RingAnimationPayload.Kind.CHARGE_FULL : RingAnimationPayload.Kind.CHARGE, lantern.color());
+		if (full && lantern.color() == RingColor.BLACK) {
+			Bosses.maybeWakeNekron(level, pos, player);
+		}
 		level.playSound(null, pos, full ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS,
 				1.0F, 0.6F + 1.2F * charge / RingItem.MAX_CHARGE);
 		player.sendOverlayMessage(full

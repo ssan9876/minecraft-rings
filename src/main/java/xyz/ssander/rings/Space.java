@@ -209,6 +209,7 @@ public final class Space {
 			return;
 		}
 		Vec3 position = trip.position();
+		arriving(level);
 		boolean flying = player.getAbilities().flying;
 		List<ForceBubble> bubbles = ForceBubble.carriedBy(player);
 		player.teleport(new TeleportTransition(level, position, player.getDeltaMovement(), player.getYRot(), player.getXRot(), TeleportTransition.DO_NOTHING));
@@ -224,12 +225,20 @@ public final class Space {
 		level.playSound(null, position.x, position.y, position.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 0.6F);
 	}
 
+	/** Readies a place for visitors: the first to reach Oa finds the Guardians' citadel built there. */
+	private static void arriving(ServerLevel level) {
+		if (level.dimension() == Planet.OA.dimension()) {
+			OaCitadel.ensureBuilt(level);
+		}
+	}
+
 	/** Takes a vehicle and everyone aboard on the trip. */
 	static void go(Entity vehicle, Trip trip) {
 		if (!(vehicle.level() instanceof ServerLevel from) || from.getServer().getLevel(trip.to()) == null) {
 			return;
 		}
 		ServerLevel level = from.getServer().getLevel(trip.to());
+		arriving(level);
 		for (Entity passenger : vehicle.getPassengers()) {
 			if (passenger instanceof ServerPlayer player) {
 				if (from.dimension() == Level.OVERWORLD) {

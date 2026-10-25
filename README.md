@@ -1,18 +1,28 @@
 # Rings
 
 A Fabric mod for Minecraft 26.3 that adds a ring slot to the player's inventory, above the offhand slot.
-Rings grant powers while switched on with the **Activate Ring** key (default `R`). Both keys are rebindable under
+Rings grant powers while switched on with the **Activate Ring** key (default `R`). Every key is rebindable under
 Options → Controls → Rings.
 
-**Power rings** come in seven colours: green, blue, red, pink, orange, white and black. While one is on:
-- you can fly, leaving a trail of the ring's energy. You stay upright whichever way you fly, until you sprint:
-  then you tip into a superhero pose (fist out front, banking into turns). Coming down to land, you drop
+| Key | Default | What it does (with the ring on) |
+|---|---|---|
+| Activate Ring | `R` | Switches the ring on and off |
+| Fire Ring Beam | `G` (hold) | Fires the ring's beam |
+| Construct Wheel | `V` (hold) | Opens the construct wheel |
+| Ring Power | `C` | The ring colour's own power (sneak too, on a pink ring, to go to a friend) |
+| Force Field | `B` | Force field on or off; looking at a creature, carries it in a bubble instead |
+| Ring Scan | `Z` | Scans what's round about |
+
+**Power rings** come in eight colours: green, yellow, blue, red, pink, orange, white and black. The ring shows on
+your right hand whenever it's worn, glowing when it's on. While one is on:
+- you can fly, leaving a trail of the ring's energy. You stay upright whichever way you fly. Sprint forward and you
+  switch into **elytra mode**: real elytra flight, with its pose and its low view, flying where you look at about
+  30 blocks a second, fist out ahead. Let go of forward to drop back into hovering. Coming down to land, you drop
   into a superhero landing: one knee down, fist to the ground;
-- **super flight:** hold sneak and forward while flying to blast off where you look, building up to 40 blocks a
-  second. Near top speed you go sonic: a sonic boom as you break through, a streamlined pose, a white-hot trail,
-  rushing wind, a wider view and a shaking camera. Rocketing straight up you raise your fist to the sky, diving
-  down you go head first, and hitting the ground fast sends a shockwave out around your landing. Let go and your
-  momentum carries you back into normal flight. Sneak on its own still flies down;
+- **super flight:** hold sneak and forward while flying to blast off where you look, building up to 80 blocks a
+  second. Past cruising speed you go sonic: a sonic boom as you break through, a streamlined pose, a white-hot trail,
+  rushing wind, a wider view and a shaking camera. Hitting the ground fast sends a shockwave out around your
+  landing. Let go and your momentum carries you back into hovering. Sneak on its own still flies down;
 - you wear the ring's suit, in its colour with the lantern emblem, under your own head;
 - you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls;
 - you glow, lighting up the world around you (brighter while firing the beam), with LambDynamicLights installed;
@@ -22,6 +32,35 @@ Options → Controls → Rings.
   up to 40 blocks. It hits for 2 hearts every half second with knockback, and uses extra power while it fires.
 
 Switching it on, you thrust the ring to the sky. Everyone else sees all of this too.
+
+**Each colour's own power** (the Ring Power key) and gift (always on with the ring):
+
+| Colour | Power | Gift |
+|---|---|---|
+| Green (will) | A burst of will that strikes and throws back everything round you | Constructs cost a quarter less |
+| Yellow (fear) | A wave of terror: creatures flee, weakened and slowed | Hostile creatures that come close panic |
+| Red (rage) | Spits burning plasma where you look | Strength, but the ring's armor is halved |
+| Blue (hope) | Heals you and every player near you | Green rings near you don't run down |
+| Orange (greed) | Calls up copies of creatures you've claimed to fight for you | Hostile creatures you defeat are claimed by the ring (see its tooltip) |
+| Pink (love) | Traps the creature you look at in crystal and charms it | Sneak and press the power key to go straight to a friend, anywhere |
+| White (life) | Brings back a player who died near you in the last minute, or heals you fully | You slowly heal |
+| Black (death) | Drains the life of everything round you into you | What you kill rises as a Black Lantern to fight for you for 2 minutes |
+
+Creatures a ring raises (orange copies, Black Lanterns, construct creatures) fight whatever hurts you or what you
+attack, follow you about, and fade away when their time's up or they die, leaving nothing.
+
+**The ring looks after you:**
+- **Force field** (`B`): a sphere of the ring's energy round you that takes hits in your place, paid for out of the
+  ring's charge. Look at a creature or player when you press it and you blow a bubble round them instead, carrying
+  them along beside you wherever you fly, into space too, safe and breathing. They sneak to climb out; press it
+  again to let them go.
+- **Ring scan** (`Z`): for 15 seconds, creatures within 48 blocks are outlined through walls (hostile red, players
+  white, the rest green), ores within 16 blocks glow through the rock in their own colours, and looking at a
+  creature reads out its health, armor and ring.
+- **A last save:** a hit that would kill you is stopped instead, if the ring has a quarter of its charge to spend.
+- **Rings come back:** a dropped ring lying 10 seconds flies back to whoever dropped it, one fallen into the void
+  comes straight back, and rings don't burn. When its wearer dies, a ring flies off to choose a new one: the nearest
+  player within 64 blocks with no ring. With nobody to choose, it stays on its wearer's finger through death.
 
 **Space:** fly up past Y 450 on a ring and you're in space, over the curve of the Earth, with three planets hanging
 in the stars. Fly into one to land on it:
@@ -35,6 +74,21 @@ in the stars. Fly into one to land on it:
 Fly back up past Y 400 to return to space, and down into the Earth to come home where you left. In space and on
 airless planets only an active ring keeps you breathing: if it goes out, your air runs out like underwater.
 Low gravity means higher jumps, slower falls and softer landings. Beds and respawn anchors don't work off the Earth.
+
+**Oa** has the Guardians' citadel at its middle, right where you land: a great plaza ringed by towers, with the
+**Central Power Battery** at its heart. Right-click its glowing core and any ring, of any colour, is charged full at
+once. The **Guardians of the Universe** walk the plaza: right-click one to hear what they know (a visitor with no
+ring is given one, once).
+
+**Enemies among the stars:**
+- **Manhunters**, androids that fly and shoot bolts of energy, hunt players in space and on the Moon and Mars.
+- **Parallax**, fear itself, is sealed in the Central Power Battery. A yellow ring's touch sets it free: a vast
+  flying serpent that spits fear, swoops, slows everyone near and saps their rings. A yellow ring can't hurt it.
+  It drops a yellow lantern, diamonds and gold.
+- **Nekron**, lord of the dead, sleeps on the Moon. Charge a black ring full at a black lantern there and he
+  wakes: a towering skeleton with a scythe who raises the dead, hurls bolts of death and steps through the shadows
+  to whoever runs. A black ring can't hurt him, and a white ring hurts him three times over. He drops a white ring,
+  a white lantern and diamonds.
 
 **Constructs:** hold **Construct Wheel** (default `V`) while the ring is on, point at a construct and let go (or
 click) to make it out of the ring's light, in its colour. Each costs a little power (the wheel shows how much).
@@ -51,10 +105,9 @@ click) to make it out of the ring's light, in its colour. Each costs a little po
 | Giant Hammer | A hammer brought down where you look, its shockwave throwing everything near it up |
 | Sword | A diamond-strength sword in your hand |
 | Axe, Pickaxe, Shovel | Netherite-speed tools |
-
-Stairs climb 12 steps ahead, the dome is a shell of hard light over you, Grab yanks the creature you look at to
-you on a chain of light, and the Giant Hammer comes down where you look with a shockwave that throws everything
-up. The axe and shovel are netherite-fast, like the pickaxe.
+| Wolf | A wolf of light that fights for you, for a minute |
+| Golem | A golem of light, slow and mighty, that fights for you for 45 seconds |
+| Jet | A jet of light with you at the controls: it flies where you look while you hold forward (faster sprinting), seats three friends (right-click to climb in), and flies to space like the ring does |
 
 Hard light only fills empty space, breaks no blocks and drops nothing. Construct tools last while the ring stays on
 (up to 5 minutes) and fade away if dropped.
@@ -65,7 +118,8 @@ of firing the beam. When it runs out the ring switches off, and it
 won't switch back on until you charge it: **hold right-click on a Power Lantern of the ring's colour** while
 wearing or holding the ring (about 6 seconds from empty), as its energy pours into the ring. While it charges you take the lantern oath: braced,
 ring fist thrust at the lantern and the other hand gripping the wrist, pulsing with each surge as energy spirals up
-around you. When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
+around you, as the colour's oath appears line by line across your screen (each colour has its own, in the
+language file as `oath.rings.<colour>.1` to `.4`). When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
 sky. A lantern of another colour won't charge it.
 
 Crafting (shaped). Every colour uses the same pattern with its own material:
@@ -89,11 +143,12 @@ Power Lantern:   Iron Ingot  Side     Iron Ingot
 | Orange | Block of Copper | Copper Ingot |
 | White | Block of Quartz | Nether Quartz |
 | Black | Obsidian | Obsidian |
+| Yellow | Block of Gold | Glowstone Dust |
 
 How it behaves:
 - Shift-click a ring to equip it, like armor. Taking it off switches it off.
 - Switching it off in mid-air gives 5 seconds of slow falling so you don't fall to your death.
-- The ring drops on death like the rest of your inventory (kept with `keep_inventory`). Dying switches it off.
+- Dying switches the ring off (and it may go to choose a new wearer, above).
 - Creative and spectator players keep their own flight when the ring turns off.
 
 It's needed on both the server and every player's client. Players should also install two client-only libraries,
@@ -123,6 +178,11 @@ Needs JDK 25.
 | `python tools/gen_resources.py` | Writes every colour's models, recipes, loot tables and names |
 | `python tools/gen_worlds.py` | Writes space and the planets (dimensions, terrain, skies) and their maps |
 | `RINGS_SPACE=1 ./gradlew runClientGameTest` | Only flies to space and each planet and back, filming each |
+| `RINGS_FLIGHT=1 ./gradlew runClientGameTest` | Only films the ring on the hand, elytra mode and super flight |
+| `RINGS_POWERS=1 ./gradlew runClientGameTest` | Only the force field, bubble, scan, the last save and rings coming back |
+| `RINGS_COLORS=1 ./gradlew runClientGameTest` | Only each colour's power and gift |
+| `RINGS_CREATURES=1 ./gradlew runClientGameTest` | Only the construct wolf, golem and jet |
+| `RINGS_OA=1 ./gradlew runClientGameTest` | Only Oa, the Guardians, Manhunters, Parallax and Nekron |
 | `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
 
 ## Releasing
@@ -162,15 +222,21 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
 - **Power:** the charge is a data component on the ring stack (`rings:charge`), drained once a second by
   `RingPowers` and topped up by `PowerLanternBlock`. `RingHud` draws the meter.
 - **Flying pose:** the server also syncs whether the wearer is flying on the ring. Each client eases flying players
-  between a hover pose and a superhero pose by their horizontal speed (`RingFlight.java`), reusing the elytra body tilt, and
-  `PlayerModelMixin` poses the arms and legs.
+  between their poses (`RingFlight.java`), and `PlayerModelMixin` poses the arms and legs. Elytra mode is vanilla's
+  real gliding, which `RingGlide` and `PlayerMixin` allow without an elytra while a ring is on.
 - **Beam:** the key sends a packet when it goes down and up, and the server sets a firing attachment that syncs to
   every client. `RingBeam` traces the line of sight (on the server for hits, on each client to draw it) and
   `RingBeams` draws it as camera-facing strips in the world, with sparks and a hum.
-- **Super flight:** movement is the client's to decide, so `SuperFlight` moves the local player in place of
-  vanilla's flying movement (`PlayerTravelMixin`); everyone else sees it through the usual movement updates, and
+- **Elytra mode and super flight:** movement is the client's to decide, so `SuperFlight` switches the local player
+  into gliding and moves them in place of vanilla's movement (`PlayerTravelMixin`); everyone else sees it through the usual movement updates, and
   `RingFlight` picks each player's pose and effects from how fast and which way they move. The server only charges
   the extra power, from the movement the client reports.
 - **Animations:** `RingAnimations` registers a Player Animation Library layer on every player. The server sends
   each nearby client a packet when a ring switches on or charges; landing is spotted by each client from the
   synced flying flag. The layer only moves the bones an animation keys, on top of the vanilla and flying poses.
+- **Colour powers:** `ColorPowers` (the power key and gifts), `Thralls` (creatures raised to fight for a wearer: real
+  vanilla creatures whose target goals are swapped for the ring's), `MobMoods` (fear and charm) and `EnergyBolt`.
+- **Force field, scan, saves and returns:** `RingAbilities`, `ForceBubble`, `RingProtection`, `RingReturn`, and on
+  the client `ForceFields`, `EnergySphere` and `RingScan` (ores are drawn with a see-through render pipeline).
+- **Oa and its foes:** `OaCitadel` builds the citadel on the first visit (once, marked on the level), `Bosses`
+  spawns Manhunters and wakes Parallax and Nekron; `SpaceFlyer` is the flying base for Manhunters and Parallax.

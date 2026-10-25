@@ -409,6 +409,148 @@ def ring_band():
     return image
 
 
+def power_battery():
+    """The Central Power Battery's core: living green light, brightest at the lantern emblem in the middle."""
+    p = COLORS["green"]
+    rng = random.Random(11)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            ch = LANTERN_GLASS[y][x]
+            color = {"g": p.light, "d": p.mid, "l": p.glow, "w": (255, 255, 255, 255)}[ch]
+            if ch == "g" and rng.random() < 0.2:
+                color = p.glow
+            image.putpixel((x, y), color)
+    return image
+
+
+def creature_skin(head, body, arm, leg):
+    """A 64x64 skin in the zombie layout: the left arm and leg are drawn mirrored from the right ones."""
+    image = Image.new("RGBA", (64, 64), CLEAR)
+    paint_box(image, 0, 0, 8, 8, 8, head)
+    paint_box(image, 16, 16, 8, 12, 4, body)
+    paint_box(image, 40, 16, 4, 12, 4, arm)
+    paint_box(image, 0, 16, 4, 12, 4, leg)
+    return image
+
+
+def guardian_skin():
+    """A Guardian of the Universe: blue skin, a fringe of white hair, a red robe with the lantern on its chest."""
+    rng = random.Random(21)
+    skin, skin_dark = (84, 140, 224, 255), (60, 110, 190, 255)
+    hair = (236, 236, 240, 255)
+    robe = lambda: textured((176, 28, 36, 255), (140, 20, 28, 255), (200, 50, 56, 255), rng)
+    black = (24, 20, 22, 255)
+
+    def head(face, x, y, w, h):
+        if face == "top":
+            return skin
+        if face == "bottom":
+            return skin_dark
+        if face in ("left", "right", "back"):
+            return hair if 2 <= y <= 5 else skin
+        if y == 2 and x in (1, 2, 5, 6):
+            return hair
+        if y == 3 and x in (1, 2, 5, 6):
+            return (20, 20, 40, 255) if x in (2, 5) else (240, 240, 250, 255)
+        if y == 5 and x in (3, 4):
+            return skin_dark
+        if y == 6 and 2 <= x <= 5:
+            return (40, 60, 120, 255)
+        return skin
+
+    def body(face, x, y, w, h):
+        if y in (7, 8):
+            return black
+        if face == "front" and y in (1, 2, 3, 4) and 2 <= x <= 5 and (y in (1, 4) or x in (2, 5)):
+            return (240, 240, 240, 255)
+        return robe()
+
+    def arm(face, x, y, w, h):
+        return skin if y >= 9 else robe()
+
+    def leg(face, x, y, w, h):
+        return black if y >= 10 else robe()
+
+    return creature_skin(head, body, arm, leg)
+
+
+def manhunter_skin():
+    """A Manhunter: a blue android in red, its face a silver mask with a black visor and red eyes."""
+    rng = random.Random(31)
+    blue = lambda: textured((36, 54, 150, 255), (26, 38, 110, 255), (60, 80, 180, 255), rng)
+    red = lambda: textured((190, 30, 30, 255), (150, 20, 20, 255), (220, 60, 50, 255), rng)
+    silver = (205, 208, 216, 255)
+    black = (18, 18, 22, 255)
+
+    def head(face, x, y, w, h):
+        if face == "top" or face == "back":
+            return blue()
+        if face in ("left", "right"):
+            return blue() if y < 3 else silver
+        if face == "bottom":
+            return silver
+        if y < 2:
+            return blue()
+        if y in (3, 4):
+            return (255, 40, 30, 255) if y == 3 and x in (2, 5) else black
+        if y == 6 and 2 <= x <= 5:
+            return (120, 124, 132, 255)
+        return silver
+
+    def body(face, x, y, w, h):
+        if y in (8,):
+            return black
+        if face in ("front", "back") and 1 <= x <= 6 and y < 8:
+            return red()
+        return blue()
+
+    def arm(face, x, y, w, h):
+        return red() if y >= 8 else blue()
+
+    def leg(face, x, y, w, h):
+        return red() if y >= 8 else blue()
+
+    return creature_skin(head, body, arm, leg)
+
+
+def nekron_skin():
+    """Nekron: a bone-white skull with black sockets, in a black robe trimmed with deathly violet."""
+    rng = random.Random(41)
+    bone, bone_dark = (226, 222, 204, 255), (176, 170, 150, 255)
+    robe = lambda: textured((26, 20, 30, 255), (16, 12, 20, 255), (40, 32, 46, 255), rng)
+    violet = (112, 44, 150, 255)
+    black = (6, 4, 8, 255)
+
+    def head(face, x, y, w, h):
+        if face != "front":
+            return bone if face != "bottom" else bone_dark
+        if y in (2, 3, 4) and x in (1, 2, 5, 6):
+            return black
+        if y == 5 and x in (3, 4):
+            return black
+        if y == 7 and x % 2 == 1:
+            return bone_dark
+        return bone
+
+    def body(face, x, y, w, h):
+        if x in (0, w - 1) or y == 0:
+            return violet
+        if face == "front" and 2 <= x <= 5 and 3 <= y <= 6 and (y in (3, 6) or x in (2, 5)):
+            return violet
+        return robe()
+
+    def arm(face, x, y, w, h):
+        if y >= 9:
+            return bone
+        return violet if y == 8 else robe()
+
+    def leg(face, x, y, w, h):
+        return violet if y == 11 else robe()
+
+    return creature_skin(head, body, arm, leg)
+
+
 def icon():
     return ring_item(COLORS["green"]).resize((128, 128), Image.NEAREST)
 
@@ -422,6 +564,10 @@ if __name__ == "__main__":
         save(hard_light(palette), f"textures/block/hard_light_{name}.png")
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
     save(ring_band(), "textures/entity/ring_band.png")
+    save(power_battery(), "textures/block/power_battery.png")
+    save(guardian_skin(), "textures/entity/oa_guardian.png")
+    save(manhunter_skin(), "textures/entity/manhunter.png")
+    save(nekron_skin(), "textures/entity/nekron.png")
     save(construct_tool(CONSTRUCT_SWORD), "textures/item/construct_sword.png")
     save(construct_tool(CONSTRUCT_PICKAXE), "textures/item/construct_pickaxe.png")
     save(construct_tool(CONSTRUCT_AXE), "textures/item/construct_axe.png")

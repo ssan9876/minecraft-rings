@@ -18,6 +18,7 @@ import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.pig.Pig;
@@ -39,6 +40,12 @@ import net.minecraft.world.phys.Vec3;
 import xyz.ssander.rings.ColorPowers;
 import xyz.ssander.rings.ConstructBeast;
 import xyz.ssander.rings.ConstructJet;
+import xyz.ssander.rings.EnergyBolt;
+import xyz.ssander.rings.Manhunter;
+import xyz.ssander.rings.Nekron;
+import xyz.ssander.rings.OaCitadel;
+import xyz.ssander.rings.OaGuardian;
+import xyz.ssander.rings.Parallax;
 import xyz.ssander.rings.ForceBubble;
 import xyz.ssander.rings.MobMoods;
 import xyz.ssander.rings.Thralls;
@@ -68,8 +75,17 @@ public class RingsClientGameTest implements FabricClientGameTest {
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		// Silent: the tests run on a real desktop
+		context.runOnClient(mc -> mc.options.getSoundSourceOptionInstance(net.minecraft.sounds.SoundSource.MASTER).set(0.0));
 		if (System.getenv("RINGS_POSES") != null) {
 			filmPoses(context);
+			return;
+		}
+		if (System.getenv("RINGS_OA") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				oaAndFoes(context, world.getConnection(), world.getServer());
+			}
 			return;
 		}
 		if (System.getenv("RINGS_CREATURES") != null) {
@@ -610,6 +626,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 
 			// Construct creatures and the jet
 			constructCreatures(context, connection, server);
+
+			// Oa, the Guardians, and the enemies among the stars
+			oaAndFoes(context, connection, server);
 
 			// With nobody else about for the ring to choose, it stays with its wearer through death
 			server.runCommand("clear @a");
@@ -1198,6 +1217,213 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		activate(context, connection);
 	}
 
+	/**
+	 * Oa's citadel and the Central Power Battery, the Guardians, Parallax set free, Manhunters in space, and Nekron
+	 * woken on the Moon. Run on its own with RINGS_OA=1.
+	 */
+	private static void oaAndFoes(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runCommand("gamemode survival @a");
+		server.runCommand("time set noon");
+		server.runCommand("clear @a");
+		server.runCommand("kill @e[type=!minecraft:player]");
+		wear(context, connection, server, RingColor.GREEN);
+
+		// The first visit to Oa finds the citadel there
+		server.runCommand("tp @a 0.5 455 0.5");
+		fly(context, connection, server);
+		context.waitTicks(5);
+		Vec3 oa = Space.Planet.OA.centre();
+		server.runCommand("execute in rings:space run tp @a " + oa.x + " " + oa.y + " " + oa.z);
+		context.waitTicks(10);
+		check(server, p -> p.level().dimension() == Space.Planet.OA.dimension(), "flying into Oa lands on it");
+		int ground = server.computeOnServer(s -> OaCitadel.groundY(player(s).level()));
+		check(server, p -> p.level().getBlockState(new BlockPos(0, ground + 6, 0)).is(Rings.POWER_BATTERY), "landing on Oa finds the Central Power Battery");
+		check(server, p -> p.level().getEntitiesOfClass(OaGuardian.class, new AABB(-40, ground - 10, -40, 40, ground + 40, 40)).size() == 3,
+				"the Guardians walk the citadel");
+		server.runOnServer(s -> player(s).teleportTo(0.5, ground + 24, -52.5));
+		fly(context, connection, server);
+		server.runOnServer(s -> player(s).lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(0.5, ground + 10, 0.5)));
+		connection.waitForChunksRender();
+		context.waitTicks(20);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		context.takeScreenshot("oa-1-citadel");
+		server.runOnServer(s -> player(s).teleportTo(0.5, ground + 1, -12.5));
+		server.runOnServer(s -> player(s).lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, new Vec3(0.5, ground + 8, 0.5)));
+		context.waitTicks(10);
+		context.takeScreenshot("oa-2-battery");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+
+		// A Guardian gives a ring to a visitor who has none
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			p.removeAttached(RingAttachments.ACTIVE);
+			RingAttachments.setRing(p, ItemStack.EMPTY);
+			OaGuardian guardian = p.level().getEntitiesOfClass(OaGuardian.class, p.getBoundingBox().inflate(48)).getFirst();
+			guardian.interact(p, InteractionHand.MAIN_HAND, guardian.position());
+		});
+		check(server, p -> p.getInventory().contains(stack -> stack.is(GREEN_RING)), "a Guardian gives a ring to a visitor without one");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			OaGuardian guardian = p.level().getEntitiesOfClass(OaGuardian.class, p.getBoundingBox().inflate(48)).getFirst();
+			guardian.setNoAi(true);
+			guardian.teleportTo(0.5, ground + 1, -9.5);
+			guardian.setYRot(180.0F);
+			guardian.setYHeadRot(180.0F);
+			guardian.yBodyRot = 180.0F;
+			p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, guardian.getEyePosition().subtract(0.0, 0.4, 0.0));
+		});
+		context.waitTicks(10);
+		context.takeScreenshot("oa-2-guardian");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+
+		// The battery fills any ring at once
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			p.getInventory().clearContent();
+			ItemStack ring = new ItemStack(Rings.ring(RingColor.RED));
+			ring.set(RingComponents.CHARGE, 100);
+			RingAttachments.setRing(p, ring);
+			useBattery(p, ground);
+		});
+		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE, "the Central Power Battery charges a ring of any colour full");
+
+		// A yellow ring's touch sets Parallax free
+		wear(context, connection, server, RingColor.YELLOW);
+		server.runOnServer(s -> {
+			player(s).teleportTo(0.5, ground + 1, -6.5);
+			useBattery(player(s), ground);
+		});
+		context.waitTicks(5);
+		check(server, p -> p.level().getEntitiesOfClass(Parallax.class, p.getBoundingBox().inflate(64)).size() == 1, "a yellow ring sets Parallax free");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Parallax parallax = p.level().getEntitiesOfClass(Parallax.class, p.getBoundingBox().inflate(64)).getFirst();
+			parallax.hurtServer(p.level(), p.damageSources().playerAttack(p), 20.0F);
+		});
+		check(server, p -> p.level().getEntitiesOfClass(Parallax.class, p.getBoundingBox().inflate(64)).getFirst().getHealth() == 300.0F,
+				"a yellow ring can't hurt Parallax");
+		context.waitTicks(40);
+		connection.waitForClientboundPackets();
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Parallax parallax = p.level().getEntitiesOfClass(Parallax.class, p.getBoundingBox().inflate(64)).getFirst();
+			parallax.setNoAi(true);
+			parallax.teleportTo(-10.5, ground + 30, 0.5);
+			p.teleportTo(10.5, ground + 22, -14.5);
+			p.getAbilities().flying = true;
+			p.onUpdateAbilities();
+			p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, parallax.position().add(0.0, 1.5, 0.0));
+		});
+		context.waitTicks(60);
+		context.takeScreenshot("oa-3-parallax");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		check(server, p -> p.hasEffect(MobEffects.SLOWNESS) == false, "Parallax's fear spares yellow rings");
+		server.runCommand("kill @e[type=rings:parallax]");
+		context.waitTicks(30);
+		check(server, p -> !p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(64), e -> e.getItem().is(Rings.lantern(RingColor.YELLOW).asItem())).isEmpty(),
+				"Parallax drops a yellow lantern");
+		server.runCommand("kill @e[type=minecraft:item]");
+
+		// Manhunters hunt ring-bearers in space
+		wear(context, connection, server, RingColor.GREEN);
+		server.runCommand("execute in rings:space run tp @a 0.5 150 0.5");
+		context.waitTicks(5);
+		fly(context, connection, server);
+		server.runCommand("execute in rings:space run summon rings:manhunter 0.5 152 12.5");
+		context.waitTicks(80);
+		check(server, p -> p.level().getEntitiesOfClass(Manhunter.class, p.getBoundingBox().inflate(32)).stream().anyMatch(m -> m.getTarget() == p),
+				"a Manhunter hunts the ring-bearer");
+		check(server, p -> !p.level().getEntitiesOfClass(EnergyBolt.class, p.getBoundingBox().inflate(32)).isEmpty() || p.getHealth() < p.getMaxHealth(),
+				"Manhunters shoot");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Manhunter manhunter = p.level().getEntitiesOfClass(Manhunter.class, p.getBoundingBox().inflate(32)).getFirst();
+			manhunter.setNoAi(true);
+			manhunter.teleportTo(p.getX(), p.getY(), p.getZ() + 4.0);
+			p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, manhunter.getEyePosition().subtract(0.0, 0.6, 0.0));
+		});
+		context.waitTicks(5);
+		context.takeScreenshot("oa-4-manhunter");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runCommand("execute in rings:space run kill @e[type=rings:manhunter]");
+		for (int i = 0; i < 1500 && server.computeOnServer(s -> player(s).level().getEntitiesOfClass(Manhunter.class, player(s).getBoundingBox().inflate(64)).isEmpty()); i++) {
+			context.waitTick();
+		}
+		check(server, p -> !p.level().getEntitiesOfClass(Manhunter.class, p.getBoundingBox().inflate(64)).isEmpty(), "Manhunters turn up in space");
+		server.runCommand("execute in rings:space run kill @e[type=rings:manhunter]");
+
+		// Charging a black ring full at a black lantern on the Moon wakes Nekron
+		wear(context, connection, server, RingColor.BLACK);
+		Vec3 moon = Space.Planet.MOON.centre();
+		server.runCommand("execute in rings:space run tp @a " + moon.x + " " + moon.y + " " + moon.z);
+		context.waitTicks(10);
+		check(server, p -> p.level().dimension() == Space.Planet.MOON.dimension(), "back to the Moon");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			int y = p.level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, 0, 0);
+			// A flat spot to stand on, with the lantern in front
+			for (BlockPos pos : BlockPos.betweenClosed(-3, y - 1, -3, 3, y + 4, 5)) {
+				p.level().setBlock(pos, pos.getY() == y - 1 ? net.minecraft.world.level.block.Blocks.STONE.defaultBlockState()
+						: net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+			}
+			p.teleportTo(0.5, y, 0.5);
+			p.getAbilities().flying = false;
+			p.onUpdateAbilities();
+			p.level().setBlock(new BlockPos(0, y, 2), Rings.lantern(RingColor.BLACK).defaultBlockState(), 3);
+			RingAttachments.getRing(p).set(RingComponents.CHARGE, RingItem.MAX_CHARGE - 30);
+		});
+		connection.waitForChunksRender();
+		context.waitTicks(20);
+		int moonY = server.computeOnServer(s -> player(s).getBlockY());
+		// Manhunters roam the Moon too, and one passing in front would take the click
+		for (int attempt = 0; attempt < 3 && server.computeOnServer(s -> player(s).level().getEntitiesOfClass(Nekron.class, player(s).getBoundingBox().inflate(64)).isEmpty()); attempt++) {
+			server.runCommand("execute in rings:moon run kill @e[type=rings:manhunter]");
+			server.runOnServer(s -> RingAttachments.getRing(player(s)).set(RingComponents.CHARGE, RingItem.MAX_CHARGE - 30));
+			context.getInput().lookAt(new BlockPos(0, moonY, 2));
+			context.getInput().holdKey(options -> options.keyUse);
+			context.waitTicks(20);
+			context.getInput().releaseKey(options -> options.keyUse);
+			context.waitTicks(10);
+		}
+		check(server, p -> p.level().getEntitiesOfClass(Nekron.class, p.getBoundingBox().inflate(64)).size() == 1, "a black ring charged full on the Moon wakes Nekron");
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Nekron nekron = p.level().getEntitiesOfClass(Nekron.class, p.getBoundingBox().inflate(64)).getFirst();
+			nekron.hurtServer(p.level(), p.damageSources().playerAttack(p), 20.0F);
+		});
+		check(server, p -> p.level().getEntitiesOfClass(Nekron.class, p.getBoundingBox().inflate(64)).getFirst().getHealth() == 300.0F,
+				"a black ring can't hurt Nekron");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Nekron nekron = p.level().getEntitiesOfClass(Nekron.class, p.getBoundingBox().inflate(64)).getFirst();
+			nekron.setNoAi(true);
+			nekron.teleportTo(p.getX(), p.getY(), p.getZ() + 8.0);
+			p.lookAt(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES, nekron.position().add(0.0, 2.5, 0.0));
+		});
+		context.waitTicks(20);
+		context.takeScreenshot("oa-5-nekron");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runCommand("execute in rings:moon run kill @e[type=rings:nekron]");
+		context.waitTicks(30);
+		check(server, p -> !p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(64), e -> e.getItem().is(Rings.ring(RingColor.WHITE))).isEmpty(),
+				"Nekron drops a white ring");
+		server.runCommand("execute in rings:moon run kill @e[type=!minecraft:player]");
+		server.runCommand("execute in minecraft:overworld run tp @a 0.5 -60 0.5");
+		context.waitTicks(5);
+		activate(context, connection);
+	}
+
+	/** Lays the player's hand on the Central Power Battery's core. */
+	private static void useBattery(ServerPlayer player, int ground) {
+		BlockPos core = new BlockPos(0, ground + 6, 0);
+		player.level().getBlockState(core).useWithoutItem(player.level(), player,
+				new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(core), net.minecraft.core.Direction.NORTH, core, false));
+	}
+
 	/** Wears a ring of the colour, fully charged and switched on, standing at the test spot. */
 	private static void wear(ClientGameTestContext context, TestServerConnection connection, TestServerContext server, RingColor color) {
 		server.runOnServer(s -> {
@@ -1205,7 +1431,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			p.removeAttached(RingAttachments.ACTIVE);
 			p.setHealth(p.getMaxHealth());
 			RingAttachments.setRing(p, new ItemStack(Rings.ring(color)));
-			p.teleportTo(0.5, -60.0, 0.5);
+			if (p.level().dimension() == net.minecraft.world.level.Level.OVERWORLD) {
+				p.teleportTo(0.5, -60.0, 0.5);
+			}
 			p.setYRot(0.0F);
 			p.setXRot(0.0F);
 		});

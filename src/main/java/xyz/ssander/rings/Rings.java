@@ -24,6 +24,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.component.TooltipDisplay;
+import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -91,6 +92,29 @@ public class Rings implements ModInitializer {
 	public static final EntityType<EnergyBolt> ENERGY_BOLT = registerEntity("energy_bolt",
 			EntityType.Builder.<EnergyBolt>of(EnergyBolt::new, MobCategory.MISC).sized(0.4F, 0.4F).clientTrackingRange(8).updateInterval(1).noSummon());
 
+	/** The Central Power Battery's core, on Oa: charges any ring full, and can't be broken. */
+	public static final PowerBatteryBlock POWER_BATTERY = registerBlock("power_battery", PowerBatteryBlock::new,
+			BlockBehaviour.Properties.of()
+					.mapColor(MapColor.EMERALD)
+					.strength(-1.0F, 3600000.0F)
+					.sound(SoundType.GLASS)
+					.lightLevel(state -> 15)
+					.noLootTable()
+					.pushReaction(PushReaction.IMMOVEABLE)
+					.isValidSpawn((state, level, pos, type) -> false));
+	public static final Item POWER_BATTERY_ITEM = register("power_battery", props -> new BlockItem(POWER_BATTERY, props),
+			new Item.Properties().useBlockDescriptionPrefix().rarity(Rarity.EPIC));
+
+	/** The creatures of space and Oa. */
+	public static final EntityType<Manhunter> MANHUNTER = registerEntity("manhunter",
+			EntityType.Builder.of(Manhunter::new, MobCategory.MONSTER).sized(0.6F, 1.95F).clientTrackingRange(10));
+	public static final EntityType<Parallax> PARALLAX = registerEntity("parallax",
+			EntityType.Builder.of(Parallax::new, MobCategory.MONSTER).sized(3.0F, 3.0F).clientTrackingRange(16).fireImmune());
+	public static final EntityType<Nekron> NEKRON = registerEntity("nekron",
+			EntityType.Builder.of(Nekron::new, MobCategory.MONSTER).sized(1.2F, 3.9F).eyeHeight(3.4F).clientTrackingRange(12).fireImmune());
+	public static final EntityType<OaGuardian> OA_GUARDIAN = registerEntity("oa_guardian",
+			EntityType.Builder.of(OaGuardian::new, MobCategory.MISC).sized(0.55F, 1.55F).clientTrackingRange(10));
+
 	/** Construct creatures and the construct jet. */
 	public static final EntityType<ConstructBeast> CONSTRUCT_WOLF = registerEntity("construct_wolf",
 			EntityType.Builder.<ConstructBeast>of(ConstructBeast::new, MobCategory.MISC).sized(0.6F, 0.85F).clientTrackingRange(10).noSummon());
@@ -152,11 +176,16 @@ public class Rings implements ModInitializer {
 		Thralls.init();
 		FabricDefaultAttributeRegistry.register(CONSTRUCT_WOLF, ConstructBeast.wolfAttributes());
 		FabricDefaultAttributeRegistry.register(CONSTRUCT_GOLEM, ConstructBeast.golemAttributes());
+		FabricDefaultAttributeRegistry.register(MANHUNTER, Manhunter.createAttributes());
+		FabricDefaultAttributeRegistry.register(PARALLAX, Parallax.createAttributes());
+		FabricDefaultAttributeRegistry.register(NEKRON, Nekron.createAttributes());
+		FabricDefaultAttributeRegistry.register(OA_GUARDIAN, OaGuardian.createAttributes());
 		ColorPowers.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {
 			RINGS.values().forEach(output::accept);
 			LANTERN_ITEMS.values().forEach(output::accept);
+			output.accept(POWER_BATTERY_ITEM);
 		});
 
 		PayloadTypeRegistry.serverboundPlay().register(ActivateRingPayload.TYPE, ActivateRingPayload.CODEC);
@@ -177,6 +206,7 @@ public class Rings implements ModInitializer {
 				Space.tick(player);
 			}
 			Thralls.tick(server);
+			Bosses.tick(server);
 			MobMoods.tick();
 		});
 	}

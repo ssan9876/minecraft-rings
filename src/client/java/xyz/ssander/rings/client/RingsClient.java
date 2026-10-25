@@ -99,6 +99,10 @@ public class RingsClient implements ClientModInitializer {
 		EntityRendererRegistry.register(Rings.CONSTRUCT_WOLF, ConstructBeastRenderer::new);
 		EntityRendererRegistry.register(Rings.CONSTRUCT_GOLEM, ConstructBeastRenderer::new);
 		EntityRendererRegistry.register(Rings.CONSTRUCT_JET, ConstructJetRenderer::new);
+		EntityRendererRegistry.register(Rings.MANHUNTER, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/manhunter.png"), 1.0F));
+		EntityRendererRegistry.register(Rings.NEKRON, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/nekron.png"), 2.0F));
+		EntityRendererRegistry.register(Rings.OA_GUARDIAN, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/oa_guardian.png"), 0.8F));
+		EntityRendererRegistry.register(Rings.PARALLAX, ParallaxRenderer::new);
 
 		HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Rings.id("power_meter"), new RingHud());
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Rings.id("scan"), new RingScan());

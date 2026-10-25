@@ -62,7 +62,6 @@ public class EnergyBolt extends Projectile {
 
 	public EnergyBolt(EntityType<? extends EnergyBolt> type, Level level) {
 		super(type, level);
-		this.setNoGravity(true);
 	}
 
 	/** A bolt fired from the shooter's eyes toward the point. */
@@ -88,6 +87,12 @@ public class EnergyBolt extends Projectile {
 	public Kind kind() {
 		int ordinal = this.entityData.get(KIND);
 		return ordinal >= 0 && ordinal < Kind.values().length ? Kind.values()[ordinal] : Kind.PLASMA;
+	}
+
+	@Override
+	public boolean isNoGravity() {
+		// Always, even when made by a command (which sets gravity from its data)
+		return true;
 	}
 
 	@Override

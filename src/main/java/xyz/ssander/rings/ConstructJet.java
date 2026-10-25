@@ -59,7 +59,6 @@ public class ConstructJet extends Entity {
 
 	public ConstructJet(EntityType<? extends ConstructJet> type, Level level) {
 		super(type, level);
-		this.setNoGravity(true);
 	}
 
 	/** A jet made by the wearer, with them already in the pilot's seat. */
@@ -83,6 +82,12 @@ public class ConstructJet extends Entity {
 	public @Nullable Player owner() {
 		UUID owner = this.ownerId();
 		return owner == null ? null : this.level().getPlayerByUUID(owner);
+	}
+
+	@Override
+	public boolean isNoGravity() {
+		// Always, even when made by a command (which sets gravity from its data)
+		return true;
 	}
 
 	@Override
