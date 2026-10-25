@@ -22,8 +22,11 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
+import xyz.ssander.rings.PowerLanternBlock;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.network.RingAnimationPayload;
@@ -52,8 +55,12 @@ public final class RingAnimations {
 	public static final Identifier CONSTRUCT = Rings.id("construct");
 	/** Down on one knee, fist to the ground, after coming down from flight. */
 	public static final Identifier LAND = Rings.id("land");
-	/** The charging pose ends this many ticks after the last top-up (they come every 4 ticks while right-click is held). */
-	private static final int CHARGE_HOLD_TICKS = 8;
+	/**
+	 * The charging pose ends this many ticks after the last top-up. Top-ups come every 4 ticks while right-click is
+	 * held, but over a real connection they can bunch up with longer gaps between, which mustn't restart the pose.
+	 */
+	private static final int CHARGE_HOLD_TICKS = 20;
+	private static final int LOCAL_HOLD_TICKS = 5;
 	/** Ticks to blend from one ring animation into the next. */
 	private static final int BLEND_TICKS = 3;
 	/** The full-charge shockwave grows for this many ticks; the burst off the raised fist follows. */
@@ -96,6 +103,12 @@ public final class RingAnimations {
 	}
 
 	private static void charge(Player player, RingColor color) {
+		// A top-up that arrives after the local player let go mustn't strike the pose again
+		Minecraft minecraft = Minecraft.getInstance();
+		if (player == minecraft.player && !minecraft.options.keyUse.isDown()) {
+			return;
+		}
+
 		// Strike the pose once, then keep it while the top-ups keep coming
 		Charging charging = CHARGING.get(player);
 		if (charging == null) {
@@ -130,7 +143,15 @@ public final class RingAnimations {
 			if (player.isRemoved() || player.level() != level) {
 				return true;
 			}
-			if (player.tickCount - charging.lastTopUp() > CHARGE_HOLD_TICKS) {
+			// The local player's own pose holds for as long as they hold right-click on a lantern, packets or not
+			if (player == minecraft.player && minecraft.options.keyUse.isDown()
+					&& minecraft.hitResult instanceof BlockHitResult hit && hit.getType() == HitResult.Type.BLOCK
+					&& level.getBlockState(hit.getBlockPos()).getBlock() instanceof PowerLanternBlock) {
+				entry.setValue(new Charging(player.tickCount, charging.start(), charging.color()));
+			}
+			// Letting go ends the local player's pose straight away; other players' wait out the gaps
+			int hold = player == minecraft.player ? LOCAL_HOLD_TICKS : CHARGE_HOLD_TICKS;
+			if (player.tickCount - entry.getValue().lastTopUp() > hold) {
 				play(player, CHARGE_END);
 				return true;
 			}

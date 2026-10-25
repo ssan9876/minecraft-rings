@@ -56,6 +56,7 @@ public class RingsClient implements ClientModInitializer {
 		LevelRenderEvents.COLLECT_SUBMITS.register(RingBeams::render);
 
 		RingAnimations.init();
+		UpdateNotice.init();
 
 		LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
 			if (entityType == EntityTypes.PLAYER && renderer instanceof AvatarRenderer<?> avatarRenderer) {

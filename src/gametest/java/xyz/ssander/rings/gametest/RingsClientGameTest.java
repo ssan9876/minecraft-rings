@@ -560,6 +560,14 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			film(context, RingAnimations.CHARGE_FULL, 9);
 			film(context, RingAnimations.LAND, 4);
 			TestCamera.yawOffset = 0.0F;
+			// At night a suited-up player lights up their surroundings (LambDynamicLights)
+			server.runCommand("time set midnight");
+			camera(context, CameraType.THIRD_PERSON_FRONT);
+			context.waitTicks(40);
+			context.takeScreenshot("pose-night-suited");
+			activate(context, connection);
+			context.waitTicks(40);
+			context.takeScreenshot("pose-night-unsuited");
 		}
 	}
 

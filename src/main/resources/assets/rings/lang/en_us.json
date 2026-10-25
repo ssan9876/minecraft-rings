@@ -49,5 +49,7 @@
   "message.rings.cage_no_target": "Look at a creature to cage it",
   "message.rings.cage_too_big": "%s is too big to cage",
   "death.attack.rings.construct": "%1$s was smashed by a ring construct",
-  "death.attack.rings.construct.player": "%1$s was smashed by %2$s's ring construct"
+  "death.attack.rings.construct.player": "%1$s was smashed by %2$s's ring construct",
+  "toast.rings.update": "Rings %s is out",
+  "toast.rings.update_how": "Close Minecraft and run join again to get it"
 }

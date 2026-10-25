@@ -9,7 +9,8 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": ["xyz.ssander.rings.Rings"],
-		"client": ["xyz.ssander.rings.client.RingsClient"]
+		"client": ["xyz.ssander.rings.client.RingsClient"],
+		"lambdynlights:initializer": ["xyz.ssander.rings.client.RingDynamicLights"]
 	},
 	"mixins": [
 		"rings.mixins.json",
@@ -26,6 +27,7 @@
 	},
 	"recommends": {
 		"player_animation_library": ">=1.2.8",
-		"bendable_cuboids": ">=2.1.0"
+		"bendable_cuboids": ">=2.1.0",
+		"lambdynlights": ">=4.13.0"
 	}
 }

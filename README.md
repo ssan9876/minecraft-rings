@@ -15,6 +15,7 @@ Options → Controls → Rings.
   momentum carries you back into normal flight. Sneak on its own still flies down;
 - you wear the ring's suit, in its colour with the lantern emblem, under your own head;
 - you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls;
+- you glow, lighting up the world around you (brighter while firing the beam), with LambDynamicLights installed;
 - the ring's energy shields you: +8 armor and +2 armor toughness, about a full set of iron armor, on top of
   whatever you wear;
 - hold **Fire Ring Beam** (default `G`) to fire a beam of the ring's energy from your fist to wherever you look,
@@ -80,6 +81,11 @@ which the join scripts install from `mods.txt`:
   and landing animations. Without it the ring works the same, without those animations.
 - [Bendable Cuboids](https://modrinth.com/mod/bendable-cuboids) bends knees and elbows in them. Without it they
   play with straight limbs.
+- [LambDynamicLights](https://modrinth.com/mod/lambdynamiclights) makes suited-up players light up their
+  surroundings. Without it they don't.
+
+When a newer Rings is out than the one running, the title, multiplayer and disconnected screens show a notice to
+close the game and run join again, which installs it.
 
 ## Develop
 

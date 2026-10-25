@@ -9,6 +9,11 @@ repositories {
 		name = "RedlanceMinecraft"
 		url = "https://repo.redlance.org/public"
 	}
+	// LambDynamicLights
+	maven {
+		name = "Gegy"
+		url = "https://maven.gegy.dev/releases"
+	}
 }
 
 loom {
@@ -45,6 +50,10 @@ dependencies {
 	implementation "com.zigythebird.playeranim:PlayerAnimationLibFabric:${project.pal_version}"
 	// Bends limbs at the knee and elbow in those animations. Client-only and optional, so the server doesn't need it.
 	localRuntime "com.zigythebird.bendable_cuboids:BendableCuboidsMerged:${project.bendable_cuboids_version}"
+
+	// Suited-up players light up their surroundings. Client-only and optional, like the animation libraries.
+	compileOnly "dev.lambdaurora.lambdynamiclights:lambdynamiclights-api:${project.lambdynamiclights_version}"
+	localRuntime "dev.lambdaurora.lambdynamiclights:lambdynamiclights-runtime:${project.lambdynamiclights_version}"
 }
 
 processResources {
