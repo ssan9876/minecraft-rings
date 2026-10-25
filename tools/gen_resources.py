@@ -88,7 +88,7 @@ def main():
         })
 
     # Construct tools: white sprites tinted with the ring's colour, which is the item's dye
-    for tool in ("construct_sword", "construct_pickaxe"):
+    for tool in ("construct_sword", "construct_axe", "construct_pickaxe", "construct_shovel"):
         write(ASSETS / f"items/{tool}.json", {"model": {
             "type": "minecraft:model",
             "model": f"rings:item/{tool}",

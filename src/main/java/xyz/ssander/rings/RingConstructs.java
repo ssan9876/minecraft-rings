@@ -19,6 +19,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import xyz.ssander.rings.network.RingAnimationPayload;
 
@@ -33,14 +34,26 @@ public final class RingConstructs {
 		WALL(30, "wall"),
 		/** A bridge of hard light from the wearer's feet, 3 wide and 16 long. */
 		BRIDGE(30, "bridge"),
+		/** A staircase of hard light climbing ahead of the wearer, 3 wide and 12 steps up. */
+		STAIRS(30, "stairs"),
+		/** A dome of hard light over the wearer, 4 blocks out. */
+		DOME(40, "dome"),
 		/** A box of hard light around whatever the wearer looks at. */
 		CAGE(45, "cage"),
+		/** A chain of light that yanks whatever the wearer looks at toward them. */
+		GRAB(25, "grab"),
 		/** A giant fist thrown where the wearer looks. */
 		FIST(20, "fist"),
+		/** A giant hammer brought down where the wearer looks, with a shockwave all round. */
+		HAMMER(30, "hammer"),
 		/** A sword, as strong as diamond. */
 		SWORD(45, "sword"),
+		/** An axe, as fast as netherite. */
+		AXE(45, "axe"),
 		/** A pickaxe, as fast as netherite. */
-		PICKAXE(45, "pickaxe");
+		PICKAXE(45, "pickaxe"),
+		/** A shovel, as fast as netherite. */
+		SHOVEL(45, "shovel");
 
 		private final int cost;
 		private final String name;
@@ -62,6 +75,11 @@ public final class RingConstructs {
 	private static final int WALL_LIFETIME = 30 * 20;
 	private static final int BRIDGE_LIFETIME = 60 * 20;
 	private static final int CAGE_LIFETIME = 15 * 20;
+	private static final int STAIRS_LIFETIME = 45 * 20;
+	private static final int DOME_LIFETIME = 20 * 20;
+	private static final double DOME_RADIUS = 4.0;
+	/** How far the grab and the hammer reach, in blocks. */
+	private static final double REACH = 32.0;
 	/** Construct tools last at most this long, and only while the ring stays on. */
 	private static final int TOOL_LIFETIME = 5 * 60 * 20;
 	/** How far away the cage can reach, and the biggest thing it fits around, in blocks. */
@@ -96,10 +114,16 @@ public final class RingConstructs {
 		boolean made = switch (construct) {
 			case WALL -> wall(level, player, color);
 			case BRIDGE -> bridge(level, player, color);
+			case STAIRS -> stairs(level, player, color);
+			case DOME -> dome(level, player, color);
 			case CAGE -> cage(level, player, color);
+			case GRAB -> grab(level, player, color);
 			case FIST -> level.addFreshEntity(ConstructFist.throwFrom(player, color));
+			case HAMMER -> level.addFreshEntity(ConstructFist.hammerOver(player, hammerTarget(player), color));
 			case SWORD -> tool(player, Rings.CONSTRUCT_SWORD, color, now);
+			case AXE -> tool(player, Rings.CONSTRUCT_AXE, color, now);
 			case PICKAXE -> tool(player, Rings.CONSTRUCT_PICKAXE, color, now);
+			case SHOVEL -> tool(player, Rings.CONSTRUCT_SHOVEL, color, now);
 		};
 		if (!made) {
 			return;
@@ -140,6 +164,71 @@ public final class RingConstructs {
 			}
 		}
 		return placed > 0 || failed(player);
+	}
+
+	private static boolean stairs(ServerLevel level, ServerPlayer player, RingColor color) {
+		Direction facing = player.getDirection();
+		Direction side = facing.getClockWise();
+		BlockPos start = player.blockPosition().relative(facing);
+		int placed = 0;
+		for (int step = 0; step < 12; step++) {
+			for (int across = -1; across <= 1; across++) {
+				if (HardLightBlock.place(level, start.relative(facing, step).above(step).relative(side, across), color, STAIRS_LIFETIME)) {
+					placed++;
+				}
+			}
+		}
+		return placed > 0 || failed(player);
+	}
+
+	private static boolean dome(ServerLevel level, ServerPlayer player, RingColor color) {
+		// A one-block shell, from the ground up, centred on the wearer's feet
+		BlockPos centre = player.blockPosition();
+		int reach = Mth.ceil(DOME_RADIUS);
+		int placed = 0;
+		for (int x = -reach; x <= reach; x++) {
+			for (int y = 0; y <= reach; y++) {
+				for (int z = -reach; z <= reach; z++) {
+					double distance = Math.sqrt(x * x + y * y + z * z);
+					if (distance > DOME_RADIUS - 0.5 && distance <= DOME_RADIUS + 0.5
+							&& HardLightBlock.place(level, centre.offset(x, y, z), color, DOME_LIFETIME)) {
+						placed++;
+					}
+				}
+			}
+		}
+		return placed > 0 || failed(player);
+	}
+
+	private static boolean grab(ServerLevel level, ServerPlayer player, RingColor color) {
+		RingBeam.Hit hit = RingBeam.trace(player, 1.0F);
+		if (!(hit.entity() instanceof LivingEntity target) || player.distanceTo(target) > REACH) {
+			player.sendOverlayMessage(Component.translatable("message.rings.grab_no_target"));
+			return false;
+		}
+
+		// A chain of light from the ring fist to the target, then a yank that lands it just in front of the wearer
+		Vec3 from = player.getEyePosition().subtract(0.0, 0.4, 0.0);
+		Vec3 to = target.position().add(0.0, target.getBbHeight() / 2.0, 0.0);
+		for (int i = 0; i <= 24; i++) {
+			Vec3 link = from.lerp(to, i / 24.0);
+			level.sendParticles(color.dust(i % 2 == 0 ? 0.6F : 0.0F, 0.9F), link.x, link.y, link.z, 1, 0.02, 0.02, 0.02, 0.0);
+		}
+		Vec3 pull = player.position().subtract(target.position());
+		double distance = pull.length();
+		target.setDeltaMovement(pull.normalize().scale(Math.min(2.4, 0.5 + distance * 0.16)).add(0.0, 0.35 + distance * 0.015, 0.0));
+		target.needsSync = true;
+		level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.CHAIN_BREAK, SoundSource.PLAYERS, 1.0F, 0.7F);
+		return true;
+	}
+
+	/** Where the hammer comes down: the block or creature looked at, or the ground at the end of its reach. */
+	private static Vec3 hammerTarget(ServerPlayer player) {
+		RingBeam.Hit hit = RingBeam.trace(player, 1.0F);
+		Vec3 end = player.getEyePosition().distanceTo(hit.end()) > REACH
+				? player.getEyePosition().add(player.getViewVector(1.0F).scale(REACH))
+				: hit.end();
+		return hit.entity() != null ? hit.entity().position() : end;
 	}
 
 	private static boolean cage(ServerLevel level, ServerPlayer player, RingColor color) {

@@ -24,12 +24,18 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * A giant fist of the ring's light, thrown where the wearer looks. It smashes into the first thing it meets: the
- * target takes a heavy hit and everything around is thrown back. It breaks no blocks.
+ * A giant fist of the ring's light, thrown where the wearer looks, or a giant hammer brought straight down from
+ * above. Either smashes into the first thing it meets: the target takes a heavy hit and everything around is thrown
+ * back (the hammer's shockwave reaching further and throwing things up). It breaks no blocks.
  */
 public class ConstructFist extends Projectile {
 	public static final ResourceKey<DamageType> DAMAGE_TYPE = ResourceKey.create(Registries.DAMAGE_TYPE, Rings.id("construct"));
 	private static final EntityDataAccessor<Integer> COLOR = SynchedEntityData.defineId(ConstructFist.class, EntityDataSerializers.INT);
+	private static final EntityDataAccessor<Boolean> HAMMER = SynchedEntityData.defineId(ConstructFist.class, EntityDataSerializers.BOOLEAN);
+	/** The hammer appears this far above where it comes down, and falls this fast (blocks per tick). */
+	private static final double HAMMER_HEIGHT = 7.0;
+	private static final double HAMMER_SPEED = 1.1;
+	private static final double HAMMER_RADIUS = 5.5;
 	/** Blocks per tick, and ticks before it fades out unspent (about 50 blocks). */
 	private static final double SPEED = 1.4;
 	private static final int LIFETIME = 36;
@@ -55,6 +61,22 @@ public class ConstructFist extends Projectile {
 		return fist;
 	}
 
+	/** A hammer over the given point, coming straight down onto it. */
+	public static ConstructFist hammerOver(LivingEntity owner, Vec3 target, RingColor color) {
+		ConstructFist hammer = new ConstructFist(Rings.CONSTRUCT_FIST, owner.level());
+		hammer.setOwner(owner);
+		hammer.entityData.set(COLOR, color.ordinal());
+		hammer.entityData.set(HAMMER, true);
+		hammer.setPos(target.add(0.0, HAMMER_HEIGHT, 0.0));
+		hammer.setDeltaMovement(0.0, -HAMMER_SPEED, 0.0);
+		hammer.setYRot(owner.getYRot());
+		return hammer;
+	}
+
+	public boolean isHammer() {
+		return this.entityData.get(HAMMER);
+	}
+
 	public RingColor color() {
 		int ordinal = this.entityData.get(COLOR);
 		return ordinal >= 0 && ordinal < RingColor.values().length ? RingColor.values()[ordinal] : RingColor.GREEN;
@@ -63,6 +85,7 @@ public class ConstructFist extends Projectile {
 	@Override
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		builder.define(COLOR, 0);
+		builder.define(HAMMER, false);
 	}
 
 	@Override
@@ -89,7 +112,8 @@ public class ConstructFist extends Projectile {
 		if (target instanceof LivingEntity living) {
 			living.hurtServer(level, source, DAMAGE);
 		}
-		for (LivingEntity near : level.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(SPLASH_RADIUS))) {
+		boolean hammer = this.isHammer();
+		for (LivingEntity near : level.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(hammer ? HAMMER_RADIUS : SPLASH_RADIUS))) {
 			if (near == owner || !near.isAlive()) {
 				continue;
 			}
@@ -98,7 +122,7 @@ public class ConstructFist extends Projectile {
 			}
 			Vec3 away = near.position().subtract(at).multiply(1.0, 0.0, 1.0);
 			away = away.lengthSqr() < 1.0E-4 ? this.getDeltaMovement().multiply(1.0, 0.0, 1.0) : away;
-			near.push(away.normalize().scale(1.4).add(0.0, 0.45, 0.0));
+			near.push(hammer ? away.normalize().scale(0.8).add(0.0, 0.9, 0.0) : away.normalize().scale(1.4).add(0.0, 0.45, 0.0));
 			near.needsSync = true;
 		}
 
@@ -106,6 +130,14 @@ public class ConstructFist extends Projectile {
 		level.sendParticles(color.dust(0.0F, 2.0F), at.x, at.y, at.z, 60, 1.2, 0.8, 1.2, 0.0);
 		level.sendParticles(color.dust(0.8F, 1.2F), at.x, at.y, at.z, 30, 0.6, 0.6, 0.6, 0.0);
 		level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y, at.z, 1, 0.0, 0.0, 0.0, 0.0);
+		if (hammer) {
+			// The shockwave: a ring of the ground thrown up around where it lands
+			for (int i = 0; i < 40; i++) {
+				double angle = Math.PI * 2 * i / 40;
+				level.sendParticles(color.dust(0.3F, 1.6F), at.x + Math.cos(angle) * HAMMER_RADIUS * 0.7, at.y + 0.2, at.z + Math.sin(angle) * HAMMER_RADIUS * 0.7,
+						2, 0.3, 0.1, 0.3, 0.0);
+			}
+		}
 		level.playSound(null, at.x, at.y, at.z, SoundEvents.MACE_SMASH_GROUND_HEAVY, SoundSource.PLAYERS, 1.2F, 0.9F);
 		this.discard();
 	}
@@ -124,11 +156,13 @@ public class ConstructFist extends Projectile {
 	protected void addAdditionalSaveData(ValueOutput output) {
 		super.addAdditionalSaveData(output);
 		output.putInt("color", this.entityData.get(COLOR));
+		output.putBoolean("hammer", this.isHammer());
 	}
 
 	@Override
 	protected void readAdditionalSaveData(ValueInput input) {
 		super.readAdditionalSaveData(input);
 		this.entityData.set(COLOR, input.getIntOr("color", 0));
+		this.entityData.set(HAMMER, input.getBooleanOr("hammer", false));
 	}
 }

@@ -51,5 +51,14 @@
   "death.attack.rings.construct": "%1$s was smashed by a ring construct",
   "death.attack.rings.construct.player": "%1$s was smashed by %2$s's ring construct",
   "toast.rings.update": "Rings %s is out",
-  "toast.rings.update_how": "Close Minecraft and run join again to get it"
+  "toast.rings.update_how": "Close Minecraft and run join again to get it",
+  "item.rings.construct_axe": "Construct Axe",
+  "item.rings.construct_shovel": "Construct Shovel",
+  "construct.rings.stairs": "Stairs",
+  "construct.rings.dome": "Dome",
+  "construct.rings.grab": "Grab",
+  "construct.rings.hammer": "Giant Hammer",
+  "construct.rings.axe": "Axe",
+  "construct.rings.shovel": "Shovel",
+  "message.rings.grab_no_target": "Look at a creature to grab it"
 }

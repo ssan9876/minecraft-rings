@@ -82,8 +82,12 @@ public class Rings implements ModInitializer {
 	/** Construct tools, made by the construct wheel in the ring's colour (their dye) and gone when it switches off. */
 	public static final ConstructItem CONSTRUCT_SWORD = register("construct_sword", ConstructItem::new,
 			constructTool(new Item.Properties().sword(ToolMaterial.DIAMOND, 3.0F, -2.4F)));
+	public static final ConstructItem CONSTRUCT_AXE = register("construct_axe", ConstructItem::new,
+			constructTool(new Item.Properties().axe(ToolMaterial.NETHERITE, 5.0F, -3.0F)));
 	public static final ConstructItem CONSTRUCT_PICKAXE = register("construct_pickaxe", ConstructItem::new,
 			constructTool(new Item.Properties().pickaxe(ToolMaterial.NETHERITE, 1.0F, -2.8F)));
+	public static final ConstructItem CONSTRUCT_SHOVEL = register("construct_shovel", ConstructItem::new,
+			constructTool(new Item.Properties().shovel(ToolMaterial.NETHERITE, 1.5F, -3.0F)));
 
 	public static RingItem ring(RingColor color) {
 		return RINGS.get(color);

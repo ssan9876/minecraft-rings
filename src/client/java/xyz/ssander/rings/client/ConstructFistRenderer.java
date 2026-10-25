@@ -16,10 +16,14 @@ import org.joml.Matrix4f;
 import xyz.ssander.rings.ConstructFist;
 import xyz.ssander.rings.RingColor;
 
-/** Draws the giant fist: glowing boxes of the ring's light (knuckles, back of the hand, thumb and wrist) in its colour. */
+/**
+ * Draws the giant fist (knuckles, back of the hand, thumb and wrist) or the giant hammer (head and haft): glowing
+ * boxes of the ring's light in its colour.
+ */
 public class ConstructFistRenderer extends EntityRenderer<ConstructFist, ConstructFistRenderer.State> {
 	public static class State extends EntityRenderState {
 		RingColor color = RingColor.GREEN;
+		boolean hammer;
 		float yRot;
 		float xRot;
 	}
@@ -39,6 +43,17 @@ public class ConstructFistRenderer extends EntityRenderer<ConstructFist, Constru
 			{-0.32F, -0.30F, -1.15F, 0.32F, 0.30F, -0.42F},
 	};
 
+	/** The hammer's boxes, head down, as it comes down onto its target. */
+	private static final float[][] HAMMER_BOXES = {
+			// Head
+			{-1.0F, 0.0F, -0.6F, 1.0F, 1.1F, 0.6F},
+			// Bands round the head
+			{-1.06F, 0.12F, -0.66F, -0.8F, 0.98F, 0.66F},
+			{0.8F, 0.12F, -0.66F, 1.06F, 0.98F, 0.66F},
+			// Haft
+			{-0.14F, 1.1F, -0.14F, 0.14F, 3.0F, 0.14F},
+	};
+
 	public ConstructFistRenderer(EntityRendererProvider.Context context) {
 		super(context);
 	}
@@ -52,6 +67,7 @@ public class ConstructFistRenderer extends EntityRenderer<ConstructFist, Constru
 	public void extractRenderState(ConstructFist fist, State state, float partialTick) {
 		super.extractRenderState(fist, state, partialTick);
 		state.color = fist.color();
+		state.hammer = fist.isHammer();
 		state.yRot = fist.getYRot(partialTick);
 		state.xRot = fist.getXRot(partialTick);
 	}
@@ -59,10 +75,16 @@ public class ConstructFistRenderer extends EntityRenderer<ConstructFist, Constru
 	@Override
 	public void submit(State state, PoseStack poseStack, SubmitNodeCollector collector, CameraRenderState camera) {
 		poseStack.pushPose();
-		poseStack.translate(0.0F, 0.5F, 0.0F);
-		poseStack.rotateDegrees(Axis.YP, -state.yRot);
-		poseStack.rotateDegrees(Axis.XP, state.xRot);
-		poseStack.scale(1.3F, 1.3F, 1.3F);
+		if (state.hammer) {
+			// Upright, turned to face the way its maker looked
+			poseStack.rotateDegrees(Axis.YP, -state.yRot);
+		} else {
+			poseStack.translate(0.0F, 0.5F, 0.0F);
+			poseStack.rotateDegrees(Axis.YP, -state.yRot);
+			poseStack.rotateDegrees(Axis.XP, state.xRot);
+			poseStack.scale(1.3F, 1.3F, 1.3F);
+		}
+		float[][] boxes = state.hammer ? HAMMER_BOXES : BOXES;
 
 		boolean dark = state.color == RingColor.BLACK;
 		int energy = state.color.energy();
@@ -70,7 +92,7 @@ public class ConstructFistRenderer extends EntityRenderer<ConstructFist, Constru
 		float pulse = 0.85F + 0.15F * Mth.sin(state.ageInTicks * 0.8F);
 		collector.submitCustomGeometry(poseStack, dark ? RenderTypes.debugQuads() : RenderTypes.lightning(), (pose, consumer) -> {
 			Matrix4f matrix = pose.pose();
-			for (float[] box : BOXES) {
+			for (float[] box : boxes) {
 				box(matrix, consumer, box, 0.0F, core, dark ? 0.85F : 0.32F * pulse);
 				box(matrix, consumer, box, 0.07F, energy, dark ? 0.4F : 0.14F * pulse);
 			}

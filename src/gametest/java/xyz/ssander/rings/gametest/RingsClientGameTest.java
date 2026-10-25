@@ -373,7 +373,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			checkClient(context, mc -> mc.gui.screen() instanceof ConstructWheelScreen, "the construct key opens the wheel");
 			double[] wallSlot = context.computeOnClient(mc -> {
 				double scale = (double) mc.getWindow().getScreenWidth() / mc.getWindow().getGuiScaledWidth();
-				return new double[] {mc.getWindow().getScreenWidth() / 2.0, mc.getWindow().getScreenHeight() / 2.0 - 62 * scale};
+				return new double[] {mc.getWindow().getScreenWidth() / 2.0, mc.getWindow().getScreenHeight() / 2.0 - (78 + 12) * scale};
 			});
 			context.getInput().setCursorPos(wallSlot[0], wallSlot[1]);
 			context.waitTicks(2);
@@ -413,6 +413,52 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			TestCamera.yawOffset = 0.0F;
 			camera(context, CameraType.FIRST_PERSON);
 			context.runOnClient(mc -> mc.gui.hud.toggle());
+
+			// Stairs climbing ahead, a dome over the player, a grab and a hammer at pigs below
+			context.waitTicks(12);
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.STAIRS));
+			check(server, p -> isHardLight(p, new BlockPos(0, -42, 7), RingColor.GREEN) && isHardLight(p, new BlockPos(1, -40, 9), RingColor.GREEN),
+					"the stairs climb ahead");
+			context.waitTicks(12);
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.DOME));
+			check(server, p -> isHardLight(p, new BlockPos(4, -48, 0), RingColor.GREEN) && isHardLight(p, new BlockPos(0, -44, 0), RingColor.GREEN),
+					"the dome closes over the player");
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			TestCamera.yawOffset = 140.0F;
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.takeScreenshot("rings-15-stairs-dome");
+			TestCamera.yawOffset = 0.0F;
+			camera(context, CameraType.FIRST_PERSON);
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+
+			server.runCommand("tp @a 0.5 -40 30.5");
+			context.waitTicks(12);
+			server.runCommand("summon minecraft:pig 9.5 -60 9.5");
+			context.waitTicks(2);
+			context.getInput().lookAt(new BlockPos(9, -60, 9));
+			context.waitTicks(2);
+			double before = server.computeOnServer(s -> player(s).level().getEntitiesOfClass(Pig.class, new AABB(4, -64, 4, 14, -40, 14)).getFirst().distanceTo(player(s)));
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.GRAB));
+			context.waitTicks(8);
+			check(server, p -> p.level().getEntitiesOfClass(Pig.class, new AABB(-20, -64, -20, 40, -30, 40), pig -> pig.distanceTo(p) < before - 3.0).size() == 1,
+					"the grab yanks the pig toward the player");
+			context.waitTicks(4);
+			server.runCommand("summon minecraft:pig -7.5 -60 12.5");
+			context.waitTicks(2);
+			context.getInput().lookAt(new BlockPos(-8, -60, 12));
+			context.waitTicks(2);
+			server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.HAMMER));
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			TestCamera.yawOffset = 60.0F;
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.takeScreenshot("rings-15-hammer");
+			TestCamera.yawOffset = 0.0F;
+			camera(context, CameraType.FIRST_PERSON);
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.waitTicks(10);
+			check(server, p -> p.level().getEntitiesOfClass(Pig.class, new AABB(-14, -64, 6, -2, -40, 18), pig -> pig.getHealth() >= pig.getMaxHealth()).isEmpty(),
+					"the hammer smashes the pig");
+			server.runCommand("kill @e[type=minecraft:pig]");
 
 			// The giant fist, at a pig behind
 			server.runCommand("summon minecraft:pig 0.5 -60 -8.5 {NoAI:1b}");

@@ -349,6 +349,42 @@ CONSTRUCT_PICKAXE = [
     "p...............",
     "................",
 ]
+CONSTRUCT_AXE = [
+    "......wwww......",
+    ".....wllllw.....",
+    "....wll..lw.....",
+    "....wl..hlw.....",
+    ".....w.h.w......",
+    "......h.........",
+    ".....h..........",
+    "....h...........",
+    "...h............",
+    "..h.............",
+    ".h..............",
+    "p...............",
+    "................",
+    "................",
+    "................",
+    "................",
+]
+CONSTRUCT_SHOVEL = [
+    "...........www..",
+    "..........wllw..",
+    ".........wlllw..",
+    ".........wllw...",
+    "........hwww....",
+    ".......h........",
+    "......h.........",
+    ".....h..........",
+    "....h...........",
+    "...h............",
+    "..h.............",
+    ".h..............",
+    "p...............",
+    "................",
+    "................",
+    "................",
+]
 TOOL_SHADES = {"w": (255, 255, 255, 255), "l": (205, 205, 205, 255), "g": (230, 230, 230, 255),
                "h": (160, 160, 160, 255), "p": (120, 120, 120, 255)}
 
@@ -376,4 +412,6 @@ if __name__ == "__main__":
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
     save(construct_tool(CONSTRUCT_SWORD), "textures/item/construct_sword.png")
     save(construct_tool(CONSTRUCT_PICKAXE), "textures/item/construct_pickaxe.png")
+    save(construct_tool(CONSTRUCT_AXE), "textures/item/construct_axe.png")
+    save(construct_tool(CONSTRUCT_SHOVEL), "textures/item/construct_shovel.png")
     save(icon(), "icon.png")

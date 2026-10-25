@@ -25,10 +25,12 @@ import xyz.ssander.rings.network.CreateConstructPayload;
  * of the screen. Point the mouse at one and let go of the key (or click) to make it.
  */
 public class ConstructWheelScreen extends Screen {
-	private static final int RADIUS = 62;
+	private static final int RADIUS = 78;
 	private static final int SLOT = 26;
 	/** The mouse has to be this far from the middle to pick anything, so letting go in the middle cancels. */
 	private static final int DEAD_ZONE = 18;
+	/** The wheel sits a little above the middle of the screen, clear of the hotbar. */
+	private static final int RAISE = 12;
 
 	private final RingColor color;
 	private final ItemStack[] icons;
@@ -43,10 +45,16 @@ public class ConstructWheelScreen extends Screen {
 			this.icons[construct.ordinal()] = switch (construct) {
 				case WALL -> new ItemStack(Items.SHIELD);
 				case BRIDGE -> new ItemStack(Items.SCAFFOLDING);
+				case STAIRS -> new ItemStack(Items.QUARTZ_STAIRS);
+				case DOME -> new ItemStack(Items.GLASS);
 				case CAGE -> new ItemStack(Items.IRON_BARS);
+				case GRAB -> new ItemStack(Items.LEAD);
 				case FIST -> new ItemStack(Items.MACE);
+				case HAMMER -> new ItemStack(Items.ANVIL);
 				case SWORD -> tinted(new ItemStack(Rings.CONSTRUCT_SWORD));
+				case AXE -> tinted(new ItemStack(Rings.CONSTRUCT_AXE));
 				case PICKAXE -> tinted(new ItemStack(Rings.CONSTRUCT_PICKAXE));
+				case SHOVEL -> tinted(new ItemStack(Rings.CONSTRUCT_SHOVEL));
 			};
 		}
 	}
@@ -73,7 +81,7 @@ public class ConstructWheelScreen extends Screen {
 		this.selected = this.pick(mouseX, mouseY);
 
 		int centreX = this.width / 2;
-		int centreY = this.height / 2;
+		int centreY = this.height / 2 - RAISE;
 		int energy = ARGB.opaque(this.color.ui());
 		int bright = ARGB.srgbLerp(0.5F, energy, 0xFFFFFFFF);
 		Construct[] constructs = Construct.values();
@@ -88,9 +96,6 @@ public class ConstructWheelScreen extends Screen {
 			graphics.fill(x - half - 1, y - half - 1, x + half + 1, y + half + 1, chosen ? bright : ARGB.scaleRGB(energy, 0.5F));
 			graphics.fill(x - half, y - half, x + half, y + half, chosen ? ARGB.color(220, ARGB.scaleRGB(energy, 0.35F)) : 0xC0101010);
 			graphics.item(this.icons[index], x - 8, y - 8);
-
-			Component name = Component.translatable(construct.translationKey());
-			graphics.text(this.font, name, x - this.font.width(name) / 2, y + half + 4, chosen ? bright : 0xFFE0E0E0, true);
 		}
 
 		// The middle: what letting go makes, and what it costs
@@ -106,7 +111,7 @@ public class ConstructWheelScreen extends Screen {
 	/** Which construct the mouse points at, or -1 near the middle. */
 	private int pick(double mouseX, double mouseY) {
 		double dx = mouseX - this.width / 2.0;
-		double dy = mouseY - this.height / 2.0;
+		double dy = mouseY - (this.height / 2.0 - RAISE);
 		if (dx * dx + dy * dy < DEAD_ZONE * DEAD_ZONE) {
 			return -1;
 		}
