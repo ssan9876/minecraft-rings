@@ -1,0 +1,13 @@
+{
+	"schemaVersion": 1,
+	"id": "rings-gametest",
+	"version": "1.0.0",
+	"name": "Rings gametests",
+	"environment": "*",
+	"entrypoints": {
+		"fabric-client-gametest": ["xyz.ssander.rings.gametest.RingsClientGameTest"]
+	},
+	"depends": {
+		"rings": "*"
+	}
+}

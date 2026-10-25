@@ -1,0 +1,8 @@
+{
+	"item.rings.hero_ring": "Hero Ring",
+	"key.category.rings.rings": "Rings",
+	"key.rings.activate": "Activate Ring",
+	"message.rings.activated": "%s activated",
+	"message.rings.deactivated": "%s deactivated",
+	"message.rings.no_ring": "Put a ring in your ring slot first"
+}

@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "rings",
+	"version": "${version}",
+	"name": "Rings",
+	"description": "Adds a ring slot to the inventory. Rings grant powers, like flight and a costume, when you activate them.",
+	"authors": ["ssan9876"],
+	"icon": "assets/rings/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": ["xyz.ssander.rings.Rings"],
+		"client": ["xyz.ssander.rings.client.RingsClient"]
+	},
+	"mixins": [
+		"rings.mixins.json",
+		{
+			"config": "rings.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

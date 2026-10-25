@@ -1,0 +1,17 @@
+{
+	"required": true,
+	"package": "xyz.ssander.rings.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"AbstractContainerScreenMixin",
+		"AvatarRendererMixin",
+		"CreativeModeInventoryScreenMixin",
+		"SlotAccessor"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "D": "minecraft:diamond",
+    "F": "minecraft:phantom_membrane",
+    "G": "minecraft:gold_ingot"
+  },
+  "pattern": [
+    "FDF",
+    "G G",
+    " G "
+  ],
+  "result": {
+    "id": "rings:hero_ring"
+  }
+}

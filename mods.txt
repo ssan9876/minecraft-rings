@@ -1,0 +1,7 @@
+# What players need to join the server. The join scripts from minecraft-cloudflare-tunnel read this list
+# (MODS= in their server.conf) and install Fabric plus these mods for each player.
+# Keep it in step with the server: same Minecraft and Fabric versions, same mods.
+minecraft 26.3
+fabric-loader 0.20.1
+mod https://cdn.modrinth.com/data/P7dR8mSH/versions/EQKgpeKu/fabric-api-0.165.0%2B26.3.jar
+mod https://github.com/ssan9876/minecraft-rings/releases/download/v1.0.0/rings-1.0.0.jar
