@@ -12,6 +12,7 @@ import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.resources.Identifier;
@@ -27,8 +28,11 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.RingComponents;
+import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Rings;
+import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingsClient;
 
 /** Plays through the ring: equip, activate, fly, costume, take off, death drop, creative inventory. */
@@ -89,6 +93,11 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.runOnClient(mc -> mc.gui.hud.toggle());
 			camera(context, CameraType.THIRD_PERSON_BACK);
 			context.takeScreenshot("rings-6-hover-side");
+			context.getInput().holdKey(options -> options.keyJump);
+			context.waitTicks(10);
+			checkClient(context, mc -> RingFlight.dive(mc.player, 1.0F) == 0.0F, "flying straight up stays upright");
+			context.takeScreenshot("rings-6-rising-side");
+			context.getInput().releaseKey(options -> options.keyJump);
 			context.getInput().holdKey(options -> options.keyUp);
 			context.getInput().holdKey(options -> options.keySprint);
 			context.waitTicks(12);
@@ -107,6 +116,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.getInput().releaseKey(options -> options.keyUp);
 			context.waitTicks(20);
 			camera(context, CameraType.FIRST_PERSON);
+			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) < RingItem.MAX_CHARGE, "the ring uses power while on");
 
 			// Deactivate in mid-air: flight goes, slow falling catches the player
 			activate(context, connection);
@@ -116,7 +126,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			connection.waitForClientboundPackets();
 			checkClient(context, mc -> mc.player.getAttached(RingAttachments.COSTUME) == null, "costume removal syncs to the client");
 			camera(context, CameraType.THIRD_PERSON_BACK);
-			context.takeScreenshot("rings-9-deactivated");
+			context.takeScreenshot("rings-8-deactivated");
 			camera(context, CameraType.FIRST_PERSON);
 
 			// Taking the ring off while active switches it off
@@ -131,6 +141,36 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			check(server, p -> RingAttachments.getRing(p).isEmpty(), "shift-click takes the ring out");
 			check(server, p -> !RingAttachments.isActive(p) && !p.getAbilities().mayfly, "removing the ring switches it off");
 			context.setScreen(() -> null);
+
+			// Running out of power switches the ring off, and it won't switch on again until charged
+			server.runCommand("clear @a");
+			server.runCommand("tp @a 0 -60 0 0 30");
+			server.runOnServer(s -> {
+				ItemStack almostEmpty = new ItemStack(Rings.HERO_RING);
+				almostEmpty.set(RingComponents.CHARGE, 2);
+				RingAttachments.setRing(player(s), almostEmpty);
+			});
+			context.waitTicks(5);
+			activate(context, connection);
+			check(server, RingAttachments::isActive, "a ring with power switches on");
+			context.waitTicks(45);
+			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == 0 && !RingAttachments.isActive(p), "an empty ring switches off");
+			activate(context, connection);
+			check(server, p -> !RingAttachments.isActive(p), "an empty ring won't switch on");
+
+			// Holding right-click on a power lantern charges it back up
+			server.runCommand("setblock 0 -60 2 rings:power_lantern");
+			context.waitTick();
+			context.getInput().lookAt(new BlockPos(0, -60, 2));
+			context.getInput().holdKey(options -> options.keyUse);
+			context.waitTicks(16);
+			context.takeScreenshot("rings-9-charging");
+			context.waitTicks(30);
+			context.getInput().releaseKey(options -> options.keyUse);
+			connection.waitForServerboundPackets();
+			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE, "the power lantern charges the ring");
+			context.waitTicks(40);
+			context.takeScreenshot("rings-9-charged");
 
 			// Dying drops the ring like the rest of the inventory
 			server.runCommand("clear @a");

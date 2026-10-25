@@ -26,10 +26,11 @@ public abstract class AvatarRendererMixin {
 	private static final int OUTLINE_GREEN = ARGB.opaque(0x3CFF5A);
 
 	// Swaps in the costume, outlines the wearer in green, and sets up the flying pose.
-	// First-person hands read this state too.
+	// First-person hands read this state too, so they show the suit's sleeves and gloves.
 	@Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
 	private void rings$applyRing(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
 		RingRenderState ring = (RingRenderState) state;
+		ring.rings$setOwnSkin(null);
 		if (!(entity instanceof Player player)) {
 			ring.rings$setFlight(0.0F, 0.0F);
 			return;
@@ -38,9 +39,10 @@ public abstract class AvatarRendererMixin {
 		Identifier costume = player.getAttached(RingAttachments.COSTUME);
 		PlayerSkin.Patch patch = costume != null ? Costumes.get(costume) : null;
 		if (patch != null) {
+			// The suit replaces everything below the neck. The head keeps the player's own skin (OwnHeadLayer).
+			ring.rings$setOwnSkin(state.skin);
 			state.skin = state.skin.with(patch);
-			// The costume is the whole outfit, so show all of it whatever the player's skin settings are
-			state.showHat = true;
+			// Show the whole suit whatever the player's skin settings are
 			state.showJacket = true;
 			state.showLeftSleeve = true;
 			state.showRightSleeve = true;

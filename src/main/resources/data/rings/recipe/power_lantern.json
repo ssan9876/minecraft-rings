@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": "minecraft:emerald",
+    "I": "minecraft:iron_ingot",
+    "L": "minecraft:lantern"
+  },
+  "pattern": [
+    "IEI",
+    "ELE",
+    "IEI"
+  ],
+  "result": {
+    "id": "rings:power_lantern"
+  }
+}

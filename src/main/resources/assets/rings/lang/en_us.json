@@ -4,5 +4,12 @@
 	"key.rings.activate": "Activate Ring",
 	"message.rings.activated": "%s activated",
 	"message.rings.deactivated": "%s deactivated",
-	"message.rings.no_ring": "Put a ring in your ring slot first"
+	"message.rings.no_ring": "Put a ring in your ring slot first",
+	"block.rings.power_lantern": "Power Lantern",
+	"message.rings.no_power": "%s is out of power. Charge it at a Power Lantern",
+	"message.rings.out_of_power": "%s ran out of power",
+	"message.rings.charging": "Charging: %s",
+	"message.rings.charged": "%s fully charged",
+	"message.rings.already_charged": "%s is already fully charged",
+	"message.rings.charge_no_ring": "Wear or hold a ring to charge it"
 }

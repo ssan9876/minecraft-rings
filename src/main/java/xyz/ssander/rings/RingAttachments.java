@@ -15,9 +15,9 @@ public final class RingAttachments {
 	public static final AttachmentType<ItemStack> RING = AttachmentRegistry.create(Rings.id("ring"),
 			builder -> builder.persistent(ItemStack.OPTIONAL_CODEC).copyOnDeath());
 
-	/** Whether the wearer has switched the ring on. Dying switches it off. */
+	/** Whether the wearer has switched the ring on. Dying switches it off. Synced to the wearer for the power meter. */
 	public static final AttachmentType<Boolean> ACTIVE = AttachmentRegistry.create(Rings.id("active"),
-			builder -> builder.persistent(Codec.BOOL));
+			builder -> builder.persistent(Codec.BOOL).syncWith(ByteBufCodecs.BOOL, AttachmentSyncPredicate.targetOnly()));
 
 	/** Set while flight comes from the ring, so it's only taken away from players we gave it to. */
 	public static final AttachmentType<Boolean> FLIGHT_GRANTED = AttachmentRegistry.create(Rings.id("flight_granted"),

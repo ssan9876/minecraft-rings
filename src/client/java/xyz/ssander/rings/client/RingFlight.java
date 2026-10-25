@@ -18,7 +18,10 @@ import xyz.ssander.rings.RingAttachments;
  * fist out) by how fast they're going, and leaves a trail of green energy. Runs every client tick.
  */
 public final class RingFlight {
-	/** Faster than this (blocks per tick), a flying player tips forward into the superhero pose. */
+	/**
+	 * Faster than this horizontally (blocks per tick), a flying player tips forward into the superhero pose.
+	 * Flying straight up or down keeps them upright.
+	 */
 	private static final double DIVE_SPEED = 0.3;
 	/** Ticks to ease fully into or out of a pose. */
 	private static final float EASE_TICKS = 6.0F;
@@ -52,7 +55,7 @@ public final class RingFlight {
 			}
 
 			Vec3 motion = new Vec3(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
-			boolean diving = flying && motion.length() > DIVE_SPEED;
+			boolean diving = flying && motion.horizontalDistance() > DIVE_SPEED;
 			pose.diveO = pose.dive;
 			pose.hoverO = pose.hover;
 			pose.dive = approach(pose.dive, diving ? 1.0F : 0.0F);

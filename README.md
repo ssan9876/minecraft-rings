@@ -5,19 +5,28 @@ Rings grant powers while switched on with the **Activate Ring** key (default `R`
 Options → Controls → Rings).
 
 **Hero Ring:** a green power ring. While it's on:
-- you can fly. At speed you tip into a superhero pose (fist out front, banking into turns) and leave a trail of
-  green energy; when you slow down you hover, bobbing gently;
-- you wear the lantern suit, a green and black suit with the lantern emblem and glowing eyes;
+- you can fly. Flying fast you tip into a superhero pose (fist out front, banking into turns) and leave a trail
+  of green energy. Flying straight up or down, or hovering, you stay upright;
+- you wear the lantern suit, a green and black suit with the lantern emblem, under your own head;
 - you're outlined in green. Like the Glowing effect, the outline shows through walls.
 
 Everyone else sees all of this too.
 
+**Power:** the ring runs on its charge, shown by the meter to the right of the hotbar and the bar on the item. A
+full ring lasts 30 minutes switched on, or 10 minutes of flying. When it runs out the ring switches off, and it
+won't switch back on until you charge it: **hold right-click on a Power Lantern** while wearing or holding the
+ring (about 2 seconds from empty).
+
 Crafting (shaped):
 
 ```
-Phantom Membrane  Diamond  Phantom Membrane
-Gold Ingot        ·        Gold Ingot
-·                 Gold Ingot  ·
+Hero Ring:       Phantom Membrane  Diamond   Phantom Membrane
+                 Gold Ingot        ·         Gold Ingot
+                 ·                 Gold Ingot  ·
+
+Power Lantern:   Iron Ingot  Emerald  Iron Ingot
+                 Emerald     Lantern  Emerald
+                 Iron Ingot  Emerald  Iron Ingot
 ```
 
 How it behaves:
@@ -73,7 +82,10 @@ Powers live in `RingPowers.java`, which runs every server tick for each player.
   stored in a Fabric data attachment on the player, so it saves with the player and survives relogging.
 - **Activation:** the key sends a packet; the server toggles the ring and grants or removes powers.
 - **Costume:** the server sets a costume attachment that syncs to every client. The player renderer swaps in the
-  costume's skin and cape while it's set, and gives the player a green outline.
+  costume's skin and cape while it's set, and gives the player a green outline. The costume model hides its head;
+  `OwnHeadLayer` draws it with the player's own skin using a second, head-only player model.
+- **Power:** the charge is a data component on the ring stack (`rings:charge`), drained once a second by
+  `RingPowers` and topped up by `PowerLanternBlock`. `RingHud` draws the meter.
 - **Flying pose:** the server also syncs whether the wearer is flying on the ring. Each client eases flying players
-  between a hover pose and a superhero pose by their speed (`RingFlight.java`), reusing the elytra body tilt, and
+  between a hover pose and a superhero pose by their horizontal speed (`RingFlight.java`), reusing the elytra body tilt, and
   `PlayerModelMixin` poses the arms and legs.

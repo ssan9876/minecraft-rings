@@ -198,6 +198,56 @@ def lantern_skin():
     return image
 
 
+# Power lantern glass, 16x16. The lantern's glass faces show x 4-11, y 5-13 of it (the model's UVs).
+LANTERN_GLASS = [
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "ggggddddddddgggg",
+    "ggggdwwwwwwdgggg",
+    "ggggdlwwwwldgggg",
+    "ggggdwllllwdgggg",
+    "ggggdwllllwdgggg",
+    "ggggdlwwwwldgggg",
+    "ggggdwwwwwwdgggg",
+    "ggggdlllllldgggg",
+    "ggggdlllllldgggg",
+    "ggggddddddddgggg",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+]
+GLASS_COLORS = {"g": GREEN, "d": DARK, "l": LIGHT, "w": GLOW}
+METAL = (30, 60, 40, 255)
+METAL_DARK = (16, 34, 22, 255)
+METAL_LIGHT = (70, 120, 84, 255)
+
+
+def lantern_glass():
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y, row in enumerate(LANTERN_GLASS):
+        for x, ch in enumerate(row):
+            image.putpixel((x, y), GLASS_COLORS[ch])
+    return image
+
+
+def lantern_metal():
+    """Dark green metal with a lighter top edge and rivets."""
+    rng = random.Random(3)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            color = textured(METAL, METAL_DARK, METAL_LIGHT, rng)
+            if x in (0, 15) or y in (0, 15):
+                color = METAL_DARK
+            elif y == 1:
+                color = METAL_LIGHT
+            if (x, y) in ((2, 2), (13, 2), (2, 13), (13, 13)):
+                color = (150, 200, 160, 255)
+            image.putpixel((x, y), color)
+    return image
+
+
 def icon():
     return ring_item().resize((128, 128), Image.NEAREST)
 
@@ -206,4 +256,6 @@ if __name__ == "__main__":
     save(ring_item(), "textures/item/hero_ring.png")
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
     save(lantern_skin(), "textures/entity/costume/lantern.png")
+    save(lantern_glass(), "textures/block/power_lantern_glass.png")
+    save(lantern_metal(), "textures/block/power_lantern_metal.png")
     save(icon(), "icon.png")

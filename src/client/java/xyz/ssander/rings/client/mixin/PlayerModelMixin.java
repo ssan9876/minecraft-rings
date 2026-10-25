@@ -11,10 +11,36 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import xyz.ssander.rings.client.HeadOnlyModel;
 import xyz.ssander.rings.client.RingRenderState;
 
 @Mixin(PlayerModel.class)
-public abstract class PlayerModelMixin {
+public abstract class PlayerModelMixin implements HeadOnlyModel {
+	@Unique
+	private boolean rings$headOnly;
+
+	@Override
+	public void rings$setHeadOnly(boolean headOnly) {
+		this.rings$headOnly = headOnly;
+	}
+
+	// While a costume is on, the costume model leaves out the head and OwnHeadLayer's head-only model draws it
+	// with the player's own skin. The model is shared by every player, so visibility is set every time.
+	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
+	private void rings$costumeHead(AvatarRenderState state, CallbackInfo ci) {
+		HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
+		if (this.rings$headOnly) {
+			model.head.visible = true;
+			model.body.visible = false;
+			model.rightArm.visible = false;
+			model.leftArm.visible = false;
+			model.rightLeg.visible = false;
+			model.leftLeg.visible = false;
+		} else {
+			model.head.visible = ((RingRenderState) state).rings$ownSkin() == null;
+		}
+	}
+
 	// Runs after vanilla has posed the limbs, and blends toward the ring's flying poses
 	@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("TAIL"))
 	private void rings$flightPose(AvatarRenderState state, CallbackInfo ci) {
