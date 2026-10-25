@@ -28,19 +28,27 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingComponents;
 import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Rings;
+import xyz.ssander.rings.client.RingAnimations;
 import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingsClient;
 
-/** Plays through the ring: equip, activate, fly, costume, take off, death drop, creative inventory. */
+/** Plays through the ring: equip, activate, fly, land, costume, charge, every colour, take off, death drop, creative inventory. */
 public class RingsClientGameTest implements FabricClientGameTest {
-	private static final Identifier LANTERN = Rings.id("lantern");
+	private static final Identifier LANTERN = RingColor.GREEN.costume();
+	private static final RingItem GREEN_RING = Rings.ring(RingColor.GREEN);
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
+		if (System.getenv("RINGS_POSES") != null) {
+			filmPoses(context);
+			return;
+		}
+
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			TestServerConnection connection = world.getConnection();
 			TestServerContext server = world.getServer();
@@ -57,7 +65,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.takeScreenshot("rings-1-inventory");
 			quickMove(context, 36);
 			connection.waitForServerboundPackets();
-			check(server, p -> RingAttachments.getRing(p).is(Rings.HERO_RING), "shift-click puts the ring in the ring slot");
+			check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "shift-click puts the ring in the ring slot");
 			context.waitTicks(2);
 			context.takeScreenshot("rings-2-equipped");
 			context.setScreen(() -> null);
@@ -68,6 +76,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			check(server, p -> LANTERN.equals(p.getAttached(RingAttachments.COSTUME)), "active ring sets the costume");
 			connection.waitForClientboundPackets();
 			checkClient(context, mc -> LANTERN.equals(mc.player.getAttached(RingAttachments.COSTUME)), "costume syncs to the client");
+			checkClient(context, mc -> RingAnimations.isPlaying(mc.player, RingAnimations.ACTIVATE), "activating plays the activation animation");
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			camera(context, CameraType.THIRD_PERSON_FRONT);
+			context.takeScreenshot("rings-2-activate-front");
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			camera(context, CameraType.FIRST_PERSON);
+			context.waitTicks(20);
 
 			// Fly up a few blocks and look at the costume from every side
 			server.runCommand("execute as @a at @s run tp @s ~ ~4 ~");
@@ -115,8 +130,37 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.getInput().releaseKey(options -> options.keySprint);
 			context.getInput().releaseKey(options -> options.keyUp);
 			context.waitTicks(20);
+
+			// Come down to land, filmed from the side
+			context.getInput().holdKey(options -> options.keyShift);
+			for (int i = 0; i < 200 && !context.computeOnClient(mc -> mc.player.onGround()); i++) {
+				context.waitTick();
+			}
+			context.getInput().releaseKey(options -> options.keyShift);
+			connection.waitForServerboundPackets();
+			context.waitTicks(3);
+			checkClient(context, mc -> RingAnimations.isPlaying(mc.player, RingAnimations.LAND), "landing from flight plays the superhero landing");
+			TestCamera.yawOffset = 90.0F;
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.takeScreenshot("rings-8-landing-side");
+			TestCamera.yawOffset = 150.0F;
+			context.waitTick();
+			context.takeScreenshot("rings-8-landing-front-quarter");
+			TestCamera.yawOffset = 0.0F;
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			context.waitTicks(30);
+			checkClient(context, mc -> !RingAnimations.isPlaying(mc.player, RingAnimations.LAND), "the landing animation ends");
+
 			camera(context, CameraType.FIRST_PERSON);
 			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) < RingItem.MAX_CHARGE, "the ring uses power while on");
+			server.runCommand("execute as @a at @s run tp @s ~ ~4 ~");
+			server.runOnServer(s -> {
+				ServerPlayer p = player(s);
+				p.getAbilities().flying = true;
+				p.onUpdateAbilities();
+			});
+			connection.waitForClientboundPackets();
+			context.waitTicks(5);
 
 			// Deactivate in mid-air: flight goes, slow falling catches the player
 			activate(context, connection);
@@ -146,7 +190,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			server.runCommand("clear @a");
 			server.runCommand("tp @a 0 -60 0 0 30");
 			server.runOnServer(s -> {
-				ItemStack almostEmpty = new ItemStack(Rings.HERO_RING);
+				ItemStack almostEmpty = new ItemStack(GREEN_RING);
 				almostEmpty.set(RingComponents.CHARGE, 2);
 				RingAttachments.setRing(player(s), almostEmpty);
 			});
@@ -158,34 +202,80 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			activate(context, connection);
 			check(server, p -> !RingAttachments.isActive(p), "an empty ring won't switch on");
 
-			// Holding right-click on a power lantern charges it back up
-			server.runCommand("setblock 0 -60 2 rings:power_lantern");
+			// A lantern of another colour won't charge it
+			server.runCommand("setblock 0 -60 2 rings:blue_power_lantern");
 			context.waitTick();
 			context.getInput().lookAt(new BlockPos(0, -60, 2));
 			context.getInput().holdKey(options -> options.keyUse);
+			context.waitTicks(10);
+			context.getInput().releaseKey(options -> options.keyUse);
+			connection.waitForServerboundPackets();
+			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == 0, "a lantern of another colour doesn't charge the ring");
+			context.takeScreenshot("rings-9-wrong-lantern");
+
+			// Holding right-click on a power lantern of its colour charges it back up
+			server.runCommand("setblock 0 -60 2 rings:power_lantern");
+			context.waitTick();
+			context.getInput().holdKey(options -> options.keyUse);
 			context.waitTicks(16);
 			context.takeScreenshot("rings-9-charging");
-			context.waitTicks(30);
+			checkClient(context, mc -> RingAnimations.isPlaying(mc.player, RingAnimations.CHARGE), "charging holds the ring out to the lantern");
+			TestCamera.yawOffset = 90.0F;
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.takeScreenshot("rings-9-charging-side");
+			context.waitTicks(25);
 			context.getInput().releaseKey(options -> options.keyUse);
 			connection.waitForServerboundPackets();
 			check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE, "the power lantern charges the ring");
-			context.waitTicks(40);
+			context.waitTicks(15);
+			checkClient(context, mc -> !RingAnimations.isPlaying(mc.player, RingAnimations.CHARGE), "the charging pose ends after charging");
+			TestCamera.yawOffset = 0.0F;
+			camera(context, CameraType.FIRST_PERSON);
+			context.waitTicks(25);
 			context.takeScreenshot("rings-9-charged");
+
+			// Every colour: its rings, its lantern, and its suit with its outline and power meter
+			server.runCommand("clear @a");
+			server.runCommand("setblock 0 -60 2 air");
+			for (RingColor color : RingColor.values()) {
+				server.runCommand("give @a rings:" + color.ringId());
+				server.runCommand("setblock " + (color.ordinal() - 3) + " -60 3 rings:" + color.lanternId());
+			}
+			server.runCommand("tp @a 0 -60 0 0 25");
+			context.setScreen(() -> new InventoryScreen(Minecraft.getInstance().player));
+			context.waitTicks(3);
+			context.takeScreenshot("rings-11-colours-inventory");
+			context.setScreen(() -> null);
+			context.waitTicks(3);
+			context.takeScreenshot("rings-11-colours-lanterns");
+			server.runCommand("tp @a 0 -60 0 180 0");
+			for (RingColor color : RingColor.values()) {
+				server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(Rings.ring(color))));
+				activate(context, connection);
+				check(server, p -> color.costume().equals(p.getAttached(RingAttachments.COSTUME)), color.id() + " ring wears the " + color.id() + " suit");
+				connection.waitForClientboundPackets();
+				camera(context, CameraType.THIRD_PERSON_FRONT);
+				context.waitTicks(30);
+				context.takeScreenshot("rings-12-suit-" + color.id());
+				activate(context, connection);
+				camera(context, CameraType.FIRST_PERSON);
+			}
+			server.runCommand("clear @a");
 
 			// Dying drops the ring like the rest of the inventory
 			server.runCommand("clear @a");
-			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(Rings.HERO_RING)));
+			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
 			server.runCommand("kill @a");
 			context.waitTicks(2);
 			check(server, p -> RingAttachments.getRing(p).isEmpty(), "the ring leaves the ring slot on death");
 			check(server, p -> !p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(16),
-					e -> e.getItem().is(Rings.HERO_RING)).isEmpty(), "the ring drops on death");
+					e -> e.getItem().is(GREEN_RING)).isEmpty(), "the ring drops on death");
 			context.clickScreenButton("deathScreen.respawn");
 			context.waitTicks(5);
 
 			// Creative inventory: the ring slot sits right of the armor, and the server accepts it
 			server.runCommand("gamemode creative @a");
-			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(Rings.HERO_RING)));
+			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
 			connection.waitForClientboundPackets();
 			context.setScreen(() -> {
 				Minecraft mc = Minecraft.getInstance();
@@ -206,12 +296,46 @@ public class RingsClientGameTest implements FabricClientGameTest {
 
 			context.runOnClient(mc -> mc.player.connection.send(new ServerboundSetCreativeModeSlotPacket(ringSlot, new ItemStack(Items.DIRT))));
 			connection.waitForServerboundPackets();
-			check(server, p -> RingAttachments.getRing(p).is(Rings.HERO_RING), "creative can't put a non-ring in the ring slot");
+			check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "creative can't put a non-ring in the ring slot");
 			context.runOnClient(mc -> mc.player.connection.send(new ServerboundSetCreativeModeSlotPacket(ringSlot, ItemStack.EMPTY)));
 			connection.waitForServerboundPackets();
 			check(server, p -> RingAttachments.getRing(p).isEmpty(), "creative can clear the ring slot");
 			context.setScreen(() -> null);
 		}
+	}
+
+	/** Quick look at each ring animation, mid-pose, from the side, front and back. Run with RINGS_POSES=1. */
+	private static void filmPoses(ClientGameTestContext context) {
+		try (TestSingleplayerContext world = context.worldBuilder().create()) {
+			TestServerConnection connection = world.getConnection();
+			TestServerContext server = world.getServer();
+			connection.waitForChunksRender();
+			server.runCommand("time set noon");
+			server.runCommand("weather clear");
+			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
+			server.runCommand("tp @a 0 -60 0 0 0");
+			activate(context, connection);
+			context.runOnClient(mc -> mc.gui.hud.toggle());
+			camera(context, CameraType.THIRD_PERSON_BACK);
+			context.waitTicks(30);
+
+			film(context, RingAnimations.ACTIVATE, 10);
+			film(context, RingAnimations.CHARGE, 8);
+			film(context, RingAnimations.LAND, 4);
+			TestCamera.yawOffset = 0.0F;
+		}
+	}
+
+	private static void film(ClientGameTestContext context, Identifier animation, int ticks) {
+		context.runOnClient(mc -> RingAnimations.play(mc.player, animation));
+		context.waitTicks(ticks);
+		for (float yaw : new float[] {90.0F, 180.0F, 270.0F, 0.0F}) {
+			TestCamera.yawOffset = yaw;
+			context.waitTick();
+			context.takeScreenshot("pose-" + animation.getPath() + "-" + (int) yaw);
+		}
+		TestCamera.yawOffset = 0.0F;
+		context.waitTicks(40);
 	}
 
 	private static ServerPlayer player(MinecraftServer server) {

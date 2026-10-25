@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "C": "minecraft:copper_block",
+    "F": "minecraft:phantom_membrane",
+    "G": "minecraft:gold_ingot"
+  },
+  "pattern": [
+    "FCF",
+    "G G",
+    " G "
+  ],
+  "result": {
+    "id": "rings:orange_ring"
+  }
+}

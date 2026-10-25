@@ -4,30 +4,42 @@ A Fabric mod for Minecraft 26.3 that adds a ring slot to the player's inventory,
 Rings grant powers while switched on with the **Activate Ring** key (default `R`, rebindable under
 Options → Controls → Rings).
 
-**Hero Ring:** a green power ring. While it's on:
+**Power rings** come in seven colours: green, blue, red, pink, orange, white and black. While one is on:
 - you can fly. Flying fast you tip into a superhero pose (fist out front, banking into turns) and leave a trail
-  of green energy. Flying straight up or down, or hovering, you stay upright;
-- you wear the lantern suit, a green and black suit with the lantern emblem, under your own head;
-- you're outlined in green. Like the Glowing effect, the outline shows through walls.
+  of the ring's energy. Flying straight up or down, or hovering, you stay upright. Coming down to land, you drop
+  into a superhero landing: one knee down, fist to the ground;
+- you wear the ring's suit, in its colour with the lantern emblem, under your own head;
+- you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls.
 
-Everyone else sees all of this too.
+Switching it on, you thrust the ring to the sky. Everyone else sees all of this too.
 
 **Power:** the ring runs on its charge, shown by the meter to the right of the hotbar and the bar on the item. A
 full ring lasts 30 minutes switched on, or 10 minutes of flying. When it runs out the ring switches off, and it
-won't switch back on until you charge it: **hold right-click on a Power Lantern** while wearing or holding the
-ring (about 2 seconds from empty).
+won't switch back on until you charge it: **hold right-click on a Power Lantern of the ring's colour** while
+wearing or holding the ring (about 2 seconds from empty). You hold the ring out to the lantern while it charges.
+A lantern of another colour won't charge it.
 
-Crafting (shaped):
+Crafting (shaped). Every colour uses the same pattern with its own material:
 
 ```
-Hero Ring:       Phantom Membrane  Diamond   Phantom Membrane
-                 Gold Ingot        ·         Gold Ingot
+Power Ring:      Phantom Membrane  Core        Phantom Membrane
+                 Gold Ingot        ·           Gold Ingot
                  ·                 Gold Ingot  ·
 
-Power Lantern:   Iron Ingot  Emerald  Iron Ingot
-                 Emerald     Lantern  Emerald
-                 Iron Ingot  Emerald  Iron Ingot
+Power Lantern:   Iron Ingot  Side     Iron Ingot
+                 Side        Lantern  Side
+                 Iron Ingot  Side     Iron Ingot
 ```
+
+| Colour | Ring core | Lantern sides |
+|---|---|---|
+| Green | Diamond | Emerald |
+| Blue | Block of Lapis Lazuli | Lapis Lazuli |
+| Red | Block of Redstone | Redstone Dust |
+| Pink | Block of Amethyst | Amethyst Shard |
+| Orange | Block of Copper | Copper Ingot |
+| White | Block of Quartz | Nether Quartz |
+| Black | Obsidian | Obsidian |
 
 How it behaves:
 - Shift-click a ring to equip it, like armor. Taking it off switches it off.
@@ -35,7 +47,12 @@ How it behaves:
 - The ring drops on death like the rest of your inventory (kept with `keep_inventory`). Dying switches it off.
 - Creative and spectator players keep their own flight when the ring turns off.
 
-It's needed on both the server and every player's client.
+It's needed on both the server and every player's client. Players should also install two client-only libraries,
+which the join scripts install from `mods.txt`:
+- [Player Animation Library](https://modrinth.com/mod/player-animation-library) plays the activation, charging
+  and landing animations. Without it the ring works the same, without those animations.
+- [Bendable Cuboids](https://modrinth.com/mod/bendable-cuboids) bends knees and elbows in them. Without it they
+  play with straight limbs.
 
 ## Develop
 
@@ -48,7 +65,9 @@ Needs JDK 25.
 | `./gradlew runClientGameTest` | Opens a real client and plays through the ring (`src/gametest`). Screenshots land in `build/run/clientGameTest/screenshots` |
 | `./release.sh` | Publishes the version in `gradle.properties` as a GitHub release and points `mods.txt` at it |
 | `./deploy.sh` | Builds and installs the mod on the server, then restarts it |
-| `python tools/gen_textures.py` | Redraws the ring, slot icon and costume textures |
+| `python tools/gen_textures.py` | Redraws every colour's ring, suit and lantern textures, and the slot icon |
+| `python tools/gen_resources.py` | Writes every colour's models, recipes, loot tables and names |
+| `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
 
 ## Releasing
 
@@ -67,14 +86,14 @@ with a message about mismatched mods. If you add or update another mod on the se
 Minecraft 26.x isn't obfuscated, so the code uses Mojang's own names, and `./gradlew genSources` gives readable
 sources to look things up in.
 
-## Adding a ring
+## Adding a colour
 
-1. Register it in `Rings.java`, for example `new RingItem(props, false, id("knight"))` for a costume without flight.
-2. Add its costume to `Costumes.java`, and its skin at `assets/rings/textures/entity/costume/knight.png`
-   (a standard 64×64 player skin) plus an optional `knight_cape.png`.
-3. Add the item model (`items/` and `models/item/`), texture, name in `lang/en_us.json`, and a recipe.
+1. Add it to `RingColor.java` (its ids, energy colour and map colour).
+2. Add it to `COLORS` in `tools/gen_textures.py` (its palette) and `tools/gen_resources.py` (its name and
+   crafting materials), then run both.
 
-Powers live in `RingPowers.java`, which runs every server tick for each player.
+Powers live in `RingPowers.java`, which runs every server tick for each player. The animations are keyframes in
+`assets/rings/player_animations/rings.json` (Blockbench's Bedrock format, which Blockbench can open and edit).
 
 ## How it works
 
@@ -82,10 +101,13 @@ Powers live in `RingPowers.java`, which runs every server tick for each player.
   stored in a Fabric data attachment on the player, so it saves with the player and survives relogging.
 - **Activation:** the key sends a packet; the server toggles the ring and grants or removes powers.
 - **Costume:** the server sets a costume attachment that syncs to every client. The player renderer swaps in the
-  costume's skin and cape while it's set, and gives the player a green outline. The costume model hides its head;
+  costume's skin and cape while it's set, and outlines the player in the ring's colour. The costume model hides its head;
   `OwnHeadLayer` draws it with the player's own skin using a second, head-only player model.
 - **Power:** the charge is a data component on the ring stack (`rings:charge`), drained once a second by
   `RingPowers` and topped up by `PowerLanternBlock`. `RingHud` draws the meter.
 - **Flying pose:** the server also syncs whether the wearer is flying on the ring. Each client eases flying players
   between a hover pose and a superhero pose by their horizontal speed (`RingFlight.java`), reusing the elytra body tilt, and
   `PlayerModelMixin` poses the arms and legs.
+- **Animations:** `RingAnimations` registers a Player Animation Library layer on every player. The server sends
+  each nearby client a packet when a ring switches on or charges; landing is spotted by each client from the
+  synced flying flag. The layer only moves the bones an animation keys, on top of the vanilla and flying poses.

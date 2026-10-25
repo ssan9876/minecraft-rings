@@ -1,5 +1,7 @@
 {
   "variants": {
-    "": { "model": "rings:block/power_lantern" }
+    "": {
+      "model": "rings:block/power_lantern"
+    }
   }
 }

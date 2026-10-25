@@ -1,52 +1,7 @@
 {
-  "parent": "minecraft:block/block",
-  "ambientocclusion": false,
+  "parent": "rings:block/template_power_lantern",
   "textures": {
-    "particle": "rings:block/power_lantern_metal",
     "metal": "rings:block/power_lantern_metal",
     "glass": "rings:block/power_lantern_glass"
-  },
-  "elements": [
-    {
-      "from": [3, 0, 3], "to": [13, 2, 13],
-      "faces": {
-        "down": { "texture": "#metal", "cullface": "down" },
-        "up": { "texture": "#metal" },
-        "north": { "texture": "#metal" },
-        "south": { "texture": "#metal" },
-        "west": { "texture": "#metal" },
-        "east": { "texture": "#metal" }
-      }
-    },
-    {
-      "from": [4, 2, 4], "to": [12, 11, 12],
-      "faces": {
-        "north": { "uv": [4, 5, 12, 14], "texture": "#glass" },
-        "south": { "uv": [4, 5, 12, 14], "texture": "#glass" },
-        "west": { "uv": [4, 5, 12, 14], "texture": "#glass" },
-        "east": { "uv": [4, 5, 12, 14], "texture": "#glass" }
-      }
-    },
-    {
-      "from": [3, 11, 3], "to": [13, 13, 13],
-      "faces": {
-        "down": { "texture": "#metal" },
-        "up": { "texture": "#metal" },
-        "north": { "texture": "#metal" },
-        "south": { "texture": "#metal" },
-        "west": { "texture": "#metal" },
-        "east": { "texture": "#metal" }
-      }
-    },
-    {
-      "from": [6, 13, 6], "to": [10, 15, 10],
-      "faces": {
-        "up": { "texture": "#metal" },
-        "north": { "texture": "#metal" },
-        "south": { "texture": "#metal" },
-        "west": { "texture": "#metal" },
-        "east": { "texture": "#metal" }
-      }
-    }
-  ]
+  }
 }

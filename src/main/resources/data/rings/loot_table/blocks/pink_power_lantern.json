@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "condition": {
+        "type": "minecraft:survives_explosion"
+      },
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "rings:pink_power_lantern"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "rings:blocks/pink_power_lantern"
+}

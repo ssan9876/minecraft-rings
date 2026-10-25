@@ -1,5 +1,6 @@
 package xyz.ssander.rings.client;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -9,24 +10,33 @@ import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 import org.jspecify.annotations.Nullable;
 
+import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.Rings;
 
 /**
  * How each costume looks. A costume's skin is at {@code textures/entity/costume/<name>.png} and its cape,
- * if it has one, at {@code <name>_cape.png}.
+ * if it has one, at {@code <name>_cape.png}. Each ring colour has its own suit, outlined in its energy.
  */
 public final class Costumes {
-	private static final Map<Identifier, PlayerSkin.Patch> COSTUMES = Map.of(
-			Rings.id("lantern"), costume("lantern", false, PlayerModelType.WIDE));
+	public record Costume(PlayerSkin.Patch skin, RingColor color) {
+	}
+
+	private static final Map<Identifier, Costume> COSTUMES = new HashMap<>();
+
+	static {
+		for (RingColor color : RingColor.values()) {
+			COSTUMES.put(color.costume(), new Costume(skin(color.costume().getPath(), false, PlayerModelType.WIDE), color));
+		}
+	}
 
 	private Costumes() {
 	}
 
-	public static PlayerSkin.@Nullable Patch get(Identifier costume) {
-		return COSTUMES.get(costume);
+	public static @Nullable Costume get(@Nullable Identifier costume) {
+		return costume == null ? null : COSTUMES.get(costume);
 	}
 
-	private static PlayerSkin.Patch costume(String name, boolean cape, PlayerModelType model) {
+	private static PlayerSkin.Patch skin(String name, boolean cape, PlayerModelType model) {
 		return PlayerSkin.Patch.create(
 				Optional.of(texture(name)),
 				cape ? Optional.of(texture(name + "_cape")) : Optional.empty(),

@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "E": "minecraft:copper_ingot",
+    "I": "minecraft:iron_ingot",
+    "L": "minecraft:lantern"
+  },
+  "pattern": [
+    "IEI",
+    "ELE",
+    "IEI"
+  ],
+  "result": {
+    "id": "rings:orange_power_lantern"
+  }
+}

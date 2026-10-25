@@ -4,6 +4,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.util.ARGB;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -14,11 +15,8 @@ import xyz.ssander.rings.RingItem;
 /** The power meter: the worn ring, a charge bar and the percentage, to the right of the hotbar. */
 public class RingHud implements HudElement {
 	private static final int FRAME = 0xFF000000;
-	private static final int EMPTY = 0xFF203024;
-	private static final int ON = 0xFF3CFF5A;
-	private static final int OFF = 0xFF1E8C32;
+	private static final int EMPTY = 0xFF282828;
 	private static final int LOW = 0xFFFF5050;
-	private static final int TEXT_ON = 0xFFB4FFC3;
 	private static final int TEXT_OFF = 0xFFA0A0A0;
 
 	@Override
@@ -30,9 +28,14 @@ public class RingHud implements HudElement {
 		}
 
 		ItemStack ring = RingAttachments.getRing(player);
-		if (!(ring.getItem() instanceof RingItem)) {
+		if (!(ring.getItem() instanceof RingItem ringItem)) {
 			return;
 		}
+
+		// The ring's colour: bright when on, dim when off
+		int on = ARGB.opaque(ringItem.color().ui());
+		int off = ARGB.scaleRGB(on, 0.55F);
+		int textOn = ARGB.srgbLerp(0.55F, on, 0xFFFFFFFF);
 
 		float charge = (float) RingItem.charge(ring) / RingItem.MAX_CHARGE;
 		boolean active = player.getAttachedOrElse(RingAttachments.ACTIVE, false);
@@ -54,9 +57,9 @@ public class RingHud implements HudElement {
 		int filled = Math.round(14 * charge);
 		boolean blinkOff = low && active && (player.tickCount / 5) % 2 == 0;
 		if (filled > 0 && !blinkOff) {
-			graphics.fill(barX + 1, y + 15 - filled, barX + 4, y + 15, low ? LOW : active ? ON : OFF);
+			graphics.fill(barX + 1, y + 15 - filled, barX + 4, y + 15, low ? LOW : active ? on : off);
 		}
 
-		graphics.text(minecraft.font, Math.round(charge * 100) + "%", barX + 8, y + 4, low ? LOW : active ? TEXT_ON : TEXT_OFF, true);
+		graphics.text(minecraft.font, Math.round(charge * 100) + "%", barX + 8, y + 4, low ? LOW : active ? textOn : TEXT_OFF, true);
 	}
 }

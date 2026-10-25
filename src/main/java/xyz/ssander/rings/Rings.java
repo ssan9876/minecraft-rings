@@ -1,5 +1,7 @@
 package xyz.ssander.rings;
 
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.function.Function;
 
 import net.fabricmc.api.ModInitializer;
@@ -20,34 +22,50 @@ import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.material.MapColor;
 
 import xyz.ssander.rings.network.ActivateRingPayload;
+import xyz.ssander.rings.network.RingAnimationPayload;
 
 public class Rings implements ModInitializer {
 	public static final String MOD_ID = "rings";
 
-	/** Grants flight and turns the wearer into the lantern suit while active. */
-	public static final RingItem HERO_RING = register("hero_ring",
-			props -> new RingItem(props, true, id("lantern")),
-			new Item.Properties().stacksTo(1).rarity(Rarity.EPIC));
+	private static final Map<RingColor, RingItem> RINGS = new EnumMap<>(RingColor.class);
+	private static final Map<RingColor, PowerLanternBlock> LANTERNS = new EnumMap<>(RingColor.class);
+	private static final Map<RingColor, Item> LANTERN_ITEMS = new EnumMap<>(RingColor.class);
 
-	/** Charges rings: hold right-click on it while wearing (or holding) one. */
-	public static final Block POWER_LANTERN = registerBlock("power_lantern", PowerLanternBlock::new,
-			BlockBehaviour.Properties.of()
-					.mapColor(MapColor.EMERALD)
-					.strength(3.5F)
-					.sound(SoundType.LANTERN)
-					.lightLevel(state -> 15)
-					.noOcclusion());
-	public static final Item POWER_LANTERN_ITEM = register("power_lantern",
-			props -> new BlockItem(POWER_LANTERN, props), new Item.Properties().useBlockDescriptionPrefix());
+	static {
+		for (RingColor color : RingColor.values()) {
+			// Grants flight and turns the wearer into the colour's suit while active
+			RINGS.put(color, register(color.ringId(), props -> new RingItem(props, color),
+					new Item.Properties().stacksTo(1).rarity(Rarity.EPIC)));
+
+			// Charges rings of its colour: hold right-click on it while wearing (or holding) one
+			PowerLanternBlock lantern = registerBlock(color.lanternId(), props -> new PowerLanternBlock(props, color),
+					BlockBehaviour.Properties.of()
+							.mapColor(color.mapColor())
+							.strength(3.5F)
+							.sound(SoundType.LANTERN)
+							.lightLevel(state -> 15)
+							.noOcclusion());
+			LANTERNS.put(color, lantern);
+			LANTERN_ITEMS.put(color, register(color.lanternId(), props -> new BlockItem(lantern, props),
+					new Item.Properties().useBlockDescriptionPrefix()));
+		}
+	}
+
+	public static RingItem ring(RingColor color) {
+		return RINGS.get(color);
+	}
+
+	public static PowerLanternBlock lantern(RingColor color) {
+		return LANTERNS.get(color);
+	}
 
 	public static Identifier id(String path) {
 		return Identifier.fromNamespaceAndPath(MOD_ID, path);
 	}
 
-	private static Block registerBlock(String name, Function<BlockBehaviour.Properties, Block> factory, BlockBehaviour.Properties props) {
+	private static <T extends Block> T registerBlock(String name, Function<BlockBehaviour.Properties, T> factory, BlockBehaviour.Properties props) {
 		ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, id(name));
 		return Registry.register(BuiltInRegistries.BLOCK, key, factory.apply(props.setId(key)));
 	}
@@ -62,11 +80,12 @@ public class Rings implements ModInitializer {
 		RingAttachments.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {
-			output.accept(HERO_RING);
-			output.accept(POWER_LANTERN_ITEM);
+			RINGS.values().forEach(output::accept);
+			LANTERN_ITEMS.values().forEach(output::accept);
 		});
 
 		PayloadTypeRegistry.serverboundPlay().register(ActivateRingPayload.TYPE, ActivateRingPayload.CODEC);
+		PayloadTypeRegistry.clientboundPlay().register(RingAnimationPayload.TYPE, RingAnimationPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(ActivateRingPayload.TYPE, (payload, context) -> RingPowers.toggle(context.player()));
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {

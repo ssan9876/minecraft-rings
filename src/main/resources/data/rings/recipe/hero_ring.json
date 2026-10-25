@@ -2,12 +2,12 @@
   "type": "minecraft:crafting_shaped",
   "category": "equipment",
   "key": {
-    "D": "minecraft:diamond",
+    "C": "minecraft:diamond",
     "F": "minecraft:phantom_membrane",
     "G": "minecraft:gold_ingot"
   },
   "pattern": [
-    "FDF",
+    "FCF",
     "G G",
     " G "
   ],

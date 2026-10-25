@@ -34,7 +34,10 @@ public class RingsClient implements ClientModInitializer {
 			}
 
 			RingFlight.tick(client);
+			RingAnimations.tick(client);
 		});
+
+		RingAnimations.init();
 
 		LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {
 			if (entityType == EntityTypes.PLAYER && renderer instanceof AvatarRenderer<?> avatarRenderer) {

@@ -2,8 +2,9 @@ package xyz.ssander.rings;
 
 import java.util.Objects;
 
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -17,6 +18,8 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.jspecify.annotations.Nullable;
 
+import xyz.ssander.rings.network.RingAnimationPayload;
+
 /** Server-side ring logic: switching it on and off, its power, and keeping its powers in line every tick. */
 public final class RingPowers {
 	/** Slow falling after flight ends in mid-air, so survival players don't fall to their death. */
@@ -26,17 +29,13 @@ public final class RingPowers {
 	private static final int DRAIN_FLYING = 3;
 	/** Each interaction with a power lantern (every 4 ticks while right-click is held) adds this much. */
 	private static final int CHARGE_PER_USE = RingItem.MAX_CHARGE / 10;
-	/** The ring's green energy, burst out on activation and streamed from the lantern while charging. */
-	private static final DustParticleOptions RING_GLOW = new DustParticleOptions(0x3CFF5A, 1.5F);
-	private static final DustParticleOptions RING_GLOW_FADING = new DustParticleOptions(0x1E8C32, 1.0F);
-	private static final DustParticleOptions CHARGE_STREAM = new DustParticleOptions(0x3CFF5A, 0.6F);
 
 	private RingPowers() {
 	}
 
 	public static void toggle(ServerPlayer player) {
 		ItemStack ring = RingAttachments.getRing(player);
-		if (!(ring.getItem() instanceof RingItem)) {
+		if (!(ring.getItem() instanceof RingItem ringItem)) {
 			player.sendOverlayMessage(Component.translatable("message.rings.no_ring"));
 			return;
 		}
@@ -44,7 +43,7 @@ public final class RingPowers {
 		boolean active = !RingAttachments.isActive(player);
 		ServerLevel level = player.level();
 		if (active && RingItem.charge(ring) <= 0) {
-			player.sendOverlayMessage(Component.translatable("message.rings.no_power", ring.getHoverName()));
+			player.sendOverlayMessage(Component.translatable("message.rings.no_power", ring.getHoverName(), Rings.lantern(ringItem.color()).getName()));
 			level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.FIRE_EXTINGUISH, SoundSource.PLAYERS, 0.5F, 1.6F);
 			return;
 		}
@@ -54,8 +53,13 @@ public final class RingPowers {
 
 		level.playSound(null, player.getX(), player.getY(), player.getZ(),
 				active ? SoundEvents.BEACON_POWER_SELECT : SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0F, active ? 1.4F : 1.2F);
-		level.sendParticles(active ? RING_GLOW : RING_GLOW_FADING,
+		// The ring's energy bursts out on activation, and a smaller puff on deactivation
+		RingColor color = ringItem.color();
+		level.sendParticles(active ? color.dust(0.0F, 1.5F) : color.dust(0.0F, 1.0F),
 				player.getX(), player.getY() + 1.0, player.getZ(), active ? 60 : 25, 0.5, 0.9, 0.5, 0.0);
+		if (active) {
+			playAnimation(player, RingAnimationPayload.Kind.ACTIVATE);
+		}
 		player.sendOverlayMessage(Component.translatable(active ? "message.rings.activated" : "message.rings.deactivated", ring.getHoverName()));
 	}
 
@@ -85,14 +89,23 @@ public final class RingPowers {
 		}
 	}
 
-	/** Tops up the worn ring (or one held in the main hand) from a power lantern. */
-	public static void chargeAt(ServerPlayer player, ServerLevel level, BlockPos lantern) {
-		ItemStack stack = RingAttachments.getRing(player);
-		if (!(stack.getItem() instanceof RingItem)) {
-			stack = player.getMainHandItem();
-		}
-		if (!(stack.getItem() instanceof RingItem)) {
-			player.sendOverlayMessage(Component.translatable("message.rings.charge_no_ring"));
+	/**
+	 * Tops up a ring from a power lantern: the worn ring, or one held in the main hand, whichever matches the
+	 * lantern's colour.
+	 */
+	public static void chargeAt(ServerPlayer player, ServerLevel level, BlockPos pos, PowerLanternBlock lantern) {
+		ItemStack worn = RingAttachments.getRing(player);
+		ItemStack held = player.getMainHandItem();
+		ItemStack stack = matches(worn, lantern) ? worn : matches(held, lantern) ? held : null;
+		if (stack == null) {
+			ItemStack other = worn.getItem() instanceof RingItem ? worn : held;
+			if (other.getItem() instanceof RingItem ring) {
+				player.sendOverlayMessage(Component.translatable("message.rings.wrong_lantern",
+						other.getHoverName(), Rings.lantern(ring.color()).getName()));
+				level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.4F, 1.8F);
+			} else {
+				player.sendOverlayMessage(Component.translatable("message.rings.charge_no_ring"));
+			}
 			return;
 		}
 		if (RingItem.charge(stack) >= RingItem.MAX_CHARGE) {
@@ -104,18 +117,32 @@ public final class RingPowers {
 		boolean full = charge >= RingItem.MAX_CHARGE;
 
 		// A thin stream of energy from the lantern toward the wearer's hand, stopping short of their face
-		Vec3 from = Vec3.atCenterOf(lantern);
+		Vec3 from = Vec3.atCenterOf(pos);
 		Vec3 to = player.position().add(0.0, 0.9, 0.0);
 		for (int i = 0; i <= 6; i++) {
 			Vec3 point = from.lerp(to, i / 10.0);
-			level.sendParticles(CHARGE_STREAM, point.x, point.y, point.z, 1, 0.03, 0.03, 0.03, 0.0);
+			level.sendParticles(lantern.color().dust(0.0F, 0.6F), point.x, point.y, point.z, 1, 0.03, 0.03, 0.03, 0.0);
 		}
 
-		level.playSound(null, lantern, full ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS,
+		playAnimation(player, RingAnimationPayload.Kind.CHARGE);
+		level.playSound(null, pos, full ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS,
 				1.0F, 0.6F + 1.2F * charge / RingItem.MAX_CHARGE);
 		player.sendOverlayMessage(full
 				? Component.translatable("message.rings.charged", stack.getHoverName())
 				: Component.translatable("message.rings.charging", charge * 100 / RingItem.MAX_CHARGE + "%"));
+	}
+
+	private static boolean matches(ItemStack stack, PowerLanternBlock lantern) {
+		return stack.getItem() instanceof RingItem ring && ring.color() == lantern.color();
+	}
+
+	/** Plays a ring animation on the player for them and everyone who can see them. */
+	private static void playAnimation(ServerPlayer player, RingAnimationPayload.Kind kind) {
+		RingAnimationPayload payload = new RingAnimationPayload(player.getId(), kind);
+		ServerPlayNetworking.send(player, payload);
+		for (ServerPlayer watcher : PlayerLookup.tracking(player)) {
+			ServerPlayNetworking.send(watcher, payload);
+		}
 	}
 
 	private static void updateFlight(ServerPlayer player, boolean wanted) {

@@ -3,14 +3,12 @@ package xyz.ssander.rings.client.mixin;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Avatar;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.player.PlayerSkin;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,10 +20,7 @@ import xyz.ssander.rings.client.RingRenderState;
 
 @Mixin(AvatarRenderer.class)
 public abstract class AvatarRendererMixin {
-	@Unique
-	private static final int OUTLINE_GREEN = ARGB.opaque(0x3CFF5A);
-
-	// Swaps in the costume, outlines the wearer in green, and sets up the flying pose.
+	// Swaps in the costume, outlines the wearer in the ring's colour, and sets up the flying pose.
 	// First-person hands read this state too, so they show the suit's sleeves and gloves.
 	@Inject(method = "extractRenderState(Lnet/minecraft/world/entity/Avatar;Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;F)V", at = @At("TAIL"))
 	private void rings$applyRing(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
@@ -36,9 +31,9 @@ public abstract class AvatarRendererMixin {
 			return;
 		}
 
-		Identifier costume = player.getAttached(RingAttachments.COSTUME);
-		PlayerSkin.Patch patch = costume != null ? Costumes.get(costume) : null;
-		if (patch != null) {
+		Costumes.Costume costume = Costumes.get(player.getAttached(RingAttachments.COSTUME));
+		if (costume != null) {
+			PlayerSkin.Patch patch = costume.skin();
 			// The suit replaces everything below the neck. The head keeps the player's own skin (OwnHeadLayer).
 			ring.rings$setOwnSkin(state.skin);
 			state.skin = state.skin.with(patch);
@@ -49,7 +44,7 @@ public abstract class AvatarRendererMixin {
 			state.showLeftPants = true;
 			state.showRightPants = true;
 			state.showCape |= patch.cape().isPresent();
-			state.outlineColor = OUTLINE_GREEN;
+			state.outlineColor = ARGB.opaque(costume.color().energy());
 		}
 
 		float dive = RingFlight.dive(player, partialTicks);

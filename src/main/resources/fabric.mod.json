@@ -3,7 +3,7 @@
 	"id": "rings",
 	"version": "${version}",
 	"name": "Rings",
-	"description": "Adds a ring slot to the inventory. Rings grant powers, like flight and a costume, when you activate them.",
+	"description": "Adds a ring slot to the inventory, and power rings in seven colours. Rings grant flight and a suit when you activate them, and charge at a Power Lantern of their colour.",
 	"authors": ["ssan9876"],
 	"icon": "assets/rings/icon.png",
 	"environment": "*",
@@ -23,5 +23,9 @@
 		"minecraft": "~26.3",
 		"java": ">=25",
 		"fabric-api": "*"
+	},
+	"recommends": {
+		"player_animation_library": ">=1.2.8",
+		"bendable_cuboids": ">=2.1.0"
 	}
 }

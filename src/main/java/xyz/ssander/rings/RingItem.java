@@ -10,25 +10,26 @@ import org.jspecify.annotations.Nullable;
 public class RingItem extends Item {
 	/** A full ring: 30 minutes switched on, or 10 minutes of flying (see RingPowers). */
 	public static final int MAX_CHARGE = 1800;
-	private static final int BAR_COLOR = 0x3CFF5A;
 	private static final int BAR_COLOR_LOW = 0xFF5050;
 
-	private final boolean flight;
-	private final @Nullable Identifier costume;
+	private final RingColor color;
 
-	public RingItem(Properties properties, boolean flight, @Nullable Identifier costume) {
+	public RingItem(Properties properties, RingColor color) {
 		super(properties.component(RingComponents.CHARGE, MAX_CHARGE));
-		this.flight = flight;
-		this.costume = costume;
+		this.color = color;
+	}
+
+	public RingColor color() {
+		return this.color;
 	}
 
 	public boolean grantsFlight() {
-		return this.flight;
+		return true;
 	}
 
 	/** The costume the wearer turns into while active, or null for none. */
 	public @Nullable Identifier costume() {
-		return this.costume;
+		return this.color.costume();
 	}
 
 	public static int charge(ItemStack stack) {
@@ -54,6 +55,6 @@ public class RingItem extends Item {
 
 	@Override
 	public int getBarColor(ItemStack stack) {
-		return charge(stack) < MAX_CHARGE * 0.15F ? BAR_COLOR_LOW : BAR_COLOR;
+		return charge(stack) < MAX_CHARGE * 0.15F ? BAR_COLOR_LOW : this.color.ui();
 	}
 }

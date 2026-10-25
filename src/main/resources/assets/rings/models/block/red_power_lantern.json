@@ -1,0 +1,7 @@
+{
+  "parent": "rings:block/template_power_lantern",
+  "textures": {
+    "metal": "rings:block/red_power_lantern_metal",
+    "glass": "rings:block/red_power_lantern_glass"
+  }
+}

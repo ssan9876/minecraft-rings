@@ -9,25 +9,73 @@ ASSETS = Path("src/main/resources/assets/rings")
 CLEAR = (0, 0, 0, 0)
 SLOT_ICON = (85, 85, 85, 255)  # vanilla's empty-slot icon gray
 
-# Ring energy greens
-OUTLINE = (12, 48, 20, 255)
-DARK = (24, 112, 44, 255)
-GREEN = (48, 190, 80, 255)
-LIGHT = (130, 255, 150, 255)
-GLOW = (225, 255, 230, 255)
-
-# Suit
-SUIT = (36, 168, 72, 255)
-SUIT_DARK = (22, 118, 48, 255)
-SUIT_LIGHT = (86, 214, 110, 255)
 BLACK = (24, 26, 28, 255)
 BLACK_LIGHT = (44, 48, 52, 255)
-EMBLEM = (236, 244, 236, 255)
+WHITE = (236, 244, 236, 255)
 SKIN = (96, 62, 44, 255)
 SKIN_DARK = (78, 50, 36, 255)
 LIP = (70, 42, 32, 255)
 HAIR = (22, 18, 16, 255)
-EYE = (140, 255, 160, 255)
+
+
+def mix(a, b, t):
+    return tuple(round(x + (y - x) * t) for x, y in zip(a[:3], b[:3])) + (255,)
+
+
+def shade(c, f):
+    return tuple(min(255, round(x * f)) for x in c[:3]) + (255,)
+
+
+class Palette:
+    """Every shade one colour's textures use. Most are worked out from the colour's middle shade."""
+
+    def __init__(self, mid, **overrides):
+        mid = mid + (255,)
+        white = (255, 255, 255)
+        self.outline = shade(mid, 0.25)
+        self.dark = shade(mid, 0.58)
+        self.mid = mid
+        self.light = mix(mid, white, 0.5)
+        self.glow = mix(mid, white, 0.88)
+        self.suit = shade(mid, 0.88)
+        self.suit_dark = shade(mid, 0.62)
+        self.suit_light = mix(self.suit, white, 0.3)
+        self.panel = BLACK
+        self.panel_light = BLACK_LIGHT
+        self.emblem = WHITE
+        self.metal = mix(shade(mid, 0.3), (28, 30, 32), 0.45)
+        self.metal_dark = shade(self.metal, 0.55)
+        self.metal_light = mix(self.metal, mid, 0.45)
+        self.rivet = mix(mid, white, 0.6)
+        for name, color in overrides.items():
+            setattr(self, name, color + (255,))
+
+
+# Same names as RingColor
+COLORS = {
+    "green": Palette((48, 190, 80),
+                     outline=(12, 48, 20), dark=(24, 112, 44), light=(130, 255, 150), glow=(225, 255, 230),
+                     suit=(36, 168, 72), suit_dark=(22, 118, 48), suit_light=(86, 214, 110),
+                     metal=(30, 60, 40), metal_dark=(16, 34, 22), metal_light=(70, 120, 84), rivet=(150, 200, 160)),
+    "blue": Palette((50, 130, 235)),
+    "red": Palette((220, 40, 40)),
+    "pink": Palette((240, 90, 190)),
+    "orange": Palette((245, 140, 25)),
+    # White and black don't work out from one shade
+    "white": Palette((215, 220, 230),
+                     outline=(80, 86, 100), dark=(160, 166, 180), light=(240, 243, 250), glow=(255, 255, 255),
+                     suit=(228, 232, 238), suit_dark=(190, 195, 205), suit_light=(250, 250, 252),
+                     emblem=(50, 54, 62),
+                     metal=(200, 204, 212), metal_dark=(150, 154, 164), metal_light=(235, 238, 244), rivet=(255, 255, 255)),
+    "black": Palette((40, 40, 48),
+                     outline=(6, 6, 8), dark=(22, 22, 28), light=(80, 80, 94), glow=(150, 150, 170),
+                     suit=(34, 34, 40), suit_dark=(22, 22, 26), suit_light=(52, 52, 60),
+                     panel=(90, 92, 104), panel_light=(110, 112, 124), emblem=(220, 222, 230),
+                     metal=(24, 24, 28), metal_dark=(12, 12, 14), metal_light=(56, 56, 64), rivet=(130, 130, 145)),
+}
+# Item and block names, matching RingColor (green keeps its 1.0 names)
+RING_IDS = {c: "hero_ring" if c == "green" else c + "_ring" for c in COLORS}
+LANTERN_IDS = {c: "power_lantern" if c == "green" else c + "_power_lantern" for c in COLORS}
 
 
 def save(image, path):
@@ -50,10 +98,9 @@ RING_FACE = [
     "..kdggggggggdk..",
     "...kkkkkkkkkk...",
 ]
-RING_COLORS = {"k": OUTLINE, "d": DARK, "g": GREEN, "l": LIGHT, "w": GLOW}
 
 
-def ring_pixels():
+def ring_pixels(p):
     """Returns {(x, y): color} on a 16x16 grid: the band underneath, then the face on top."""
     px = {}
     cx, cy = 7.5, 10.5
@@ -63,19 +110,20 @@ def ring_pixels():
             inner = ((x - cx) / 4.0) ** 2 + ((y - cy) / 2.8) ** 2
             if outer <= 1.0 and inner > 1.0:
                 if outer > 0.78 or inner < 1.2:
-                    px[(x, y)] = OUTLINE
+                    px[(x, y)] = p.outline
                 else:
-                    px[(x, y)] = LIGHT if x < cx - 3 and y < 13 else GREEN if y < 14 else DARK
+                    px[(x, y)] = p.light if x < cx - 3 and y < 13 else p.mid if y < 14 else p.dark
+    colors = {"k": p.outline, "d": p.dark, "g": p.mid, "l": p.light, "w": p.glow}
     for y, row in enumerate(RING_FACE):
         for x, ch in enumerate(row):
             if ch != ".":
-                px[(x, y)] = RING_COLORS[ch]
+                px[(x, y)] = colors[ch]
     return px
 
 
-def ring_item():
+def ring_item(p):
     image = Image.new("RGBA", (16, 16), CLEAR)
-    for (x, y), color in ring_pixels().items():
+    for (x, y), color in ring_pixels(p).items():
         image.putpixel((x, y), color)
     return image
 
@@ -83,7 +131,7 @@ def ring_item():
 def ring_slot_icon():
     """Flat gray silhouette, like vanilla's empty armor and shield slot icons."""
     image = Image.new("RGBA", (16, 16), CLEAR)
-    for (x, y) in ring_pixels():
+    for (x, y) in ring_pixels(COLORS["green"]):
         image.putpixel((x, y), SLOT_ICON)
     return image
 
@@ -127,11 +175,12 @@ CHEST = [
 ]
 
 
-def lantern_skin():
+def lantern_skin(p):
+    """The suit. Its head only shows where the player's own head can't (worn, the player keeps their head)."""
     rng = random.Random(7)
     image = Image.new("RGBA", (64, 64), CLEAR)
-    suit = lambda: textured(SUIT, SUIT_DARK, SUIT_LIGHT, rng)
-    black = lambda: textured(BLACK, BLACK, BLACK_LIGHT, rng)
+    suit = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
+    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
 
     def head(face, x, y, w, h):
         if face == "top":
@@ -142,13 +191,13 @@ def lantern_skin():
             return HAIR if y < 4 else SKIN
         if face in ("left", "right"):
             return HAIR if y < 2 else SKIN
-        # Front: close-cropped hair, brows, glowing ring-green eyes, nose, mouth
+        # Front: close-cropped hair, brows, eyes glowing with the ring's energy, nose, mouth
         if y == 0 or (y == 1 and x in (0, 7)):
             return HAIR
         if y == 3 and x in (1, 2, 5, 6):
             return HAIR
         if y == 4 and x in (1, 2, 5, 6):
-            return EYE
+            return p.light
         if y == 5 and x in (3, 4):
             return SKIN_DARK
         if y == 6 and x in (3, 4):
@@ -158,7 +207,7 @@ def lantern_skin():
     def body(face, x, y, w, h):
         if face == "front":
             ch = CHEST[y][x]
-            return black() if ch == "K" else EMBLEM if ch == "W" else suit()
+            return black() if ch == "K" else p.emblem if ch == "W" else suit()
         if face in ("left", "right", "top"):
             return black()
         if face == "back":
@@ -170,20 +219,20 @@ def lantern_skin():
         if face == "top":
             return black()
         if face == "bottom":
-            return SUIT
+            return p.suit
         if y == 8:
-            return SUIT_LIGHT
+            return p.suit_light
         return suit() if y > 8 else black()
 
     def leg(outer_face):
         def paint(face, x, y, w, h):
             # Green legs with a black stripe down the outside, black boots
             if face == "top":
-                return SUIT
+                return p.suit
             if face == "bottom":
-                return BLACK
+                return p.panel
             if y == 8:
-                return SUIT_DARK
+                return p.suit_dark
             if y > 8:
                 return black()
             return black() if face == outer_face else suit()
@@ -217,45 +266,43 @@ LANTERN_GLASS = [
     "gggggggggggggggg",
     "gggggggggggggggg",
 ]
-GLASS_COLORS = {"g": GREEN, "d": DARK, "l": LIGHT, "w": GLOW}
-METAL = (30, 60, 40, 255)
-METAL_DARK = (16, 34, 22, 255)
-METAL_LIGHT = (70, 120, 84, 255)
 
 
-def lantern_glass():
+def lantern_glass(p):
+    colors = {"g": p.mid, "d": p.dark, "l": p.light, "w": p.glow}
     image = Image.new("RGBA", (16, 16), CLEAR)
     for y, row in enumerate(LANTERN_GLASS):
         for x, ch in enumerate(row):
-            image.putpixel((x, y), GLASS_COLORS[ch])
+            image.putpixel((x, y), colors[ch])
     return image
 
 
-def lantern_metal():
-    """Dark green metal with a lighter top edge and rivets."""
+def lantern_metal(p):
+    """Metal tinted with the colour, with a lighter top edge and rivets."""
     rng = random.Random(3)
     image = Image.new("RGBA", (16, 16), CLEAR)
     for y in range(16):
         for x in range(16):
-            color = textured(METAL, METAL_DARK, METAL_LIGHT, rng)
+            color = textured(p.metal, p.metal_dark, p.metal_light, rng)
             if x in (0, 15) or y in (0, 15):
-                color = METAL_DARK
+                color = p.metal_dark
             elif y == 1:
-                color = METAL_LIGHT
+                color = p.metal_light
             if (x, y) in ((2, 2), (13, 2), (2, 13), (13, 13)):
-                color = (150, 200, 160, 255)
+                color = p.rivet
             image.putpixel((x, y), color)
     return image
 
 
 def icon():
-    return ring_item().resize((128, 128), Image.NEAREST)
+    return ring_item(COLORS["green"]).resize((128, 128), Image.NEAREST)
 
 
 if __name__ == "__main__":
-    save(ring_item(), "textures/item/hero_ring.png")
+    for name, palette in COLORS.items():
+        save(ring_item(palette), f"textures/item/{RING_IDS[name]}.png")
+        save(lantern_skin(palette), f"textures/entity/costume/{name}_lantern.png")
+        save(lantern_glass(palette), f"textures/block/{LANTERN_IDS[name]}_glass.png")
+        save(lantern_metal(palette), f"textures/block/{LANTERN_IDS[name]}_metal.png")
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
-    save(lantern_skin(), "textures/entity/costume/lantern.png")
-    save(lantern_glass(), "textures/block/power_lantern_glass.png")
-    save(lantern_metal(), "textures/block/power_lantern_metal.png")
     save(icon(), "icon.png")

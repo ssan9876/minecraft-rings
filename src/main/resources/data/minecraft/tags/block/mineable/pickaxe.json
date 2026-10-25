@@ -1,3 +1,11 @@
 {
-  "values": ["rings:power_lantern"]
+  "values": [
+    "rings:power_lantern",
+    "rings:blue_power_lantern",
+    "rings:red_power_lantern",
+    "rings:pink_power_lantern",
+    "rings:orange_power_lantern",
+    "rings:white_power_lantern",
+    "rings:black_power_lantern"
+  ]
 }
