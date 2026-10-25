@@ -5,8 +5,8 @@ Rings grant powers while switched on with the **Activate Ring** key (default `R`
 Options → Controls → Rings.
 
 **Power rings** come in seven colours: green, blue, red, pink, orange, white and black. While one is on:
-- you can fly. Flying fast you tip into a superhero pose (fist out front, banking into turns) and leave a trail
-  of the ring's energy. Flying straight up or down, or hovering, you stay upright. Coming down to land, you drop
+- you can fly, leaving a trail of the ring's energy. You stay upright whichever way you fly, until you sprint:
+  then you tip into a superhero pose (fist out front, banking into turns). Coming down to land, you drop
   into a superhero landing: one knee down, fist to the ground;
 - **super flight:** hold sneak and forward while flying to blast off where you look, building up to 40 blocks a
   second. Near top speed you go sonic: a sonic boom as you break through, a streamlined pose, a white-hot trail,

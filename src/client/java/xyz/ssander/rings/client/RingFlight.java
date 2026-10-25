@@ -23,8 +23,8 @@ import xyz.ssander.rings.RingColor;
 /**
  * How ring-flying players look, for everyone watching. Each one eases between poses by how they're moving:
  * <ul>
- * <li>hovering: upright, limbs hanging loose;</li>
- * <li>cruising: tipped along the flight, fist out ahead, banking into turns;</li>
+ * <li>hovering: upright, limbs hanging loose, whichever way they move;</li>
+ * <li>cruising, while sprinting or in super flight: tipped along the flight, fist out ahead, banking into turns;</li>
  * <li>sonic, near super flight's top speed: streamlined, with a sonic boom on breaking through and a thick trail;</li>
  * <li>rising fast: upright, fist to the sky.</li>
  * </ul>
@@ -33,11 +33,12 @@ import xyz.ssander.rings.RingColor;
  */
 public final class RingFlight {
 	/**
-	 * Faster than this horizontally (blocks per tick), a flying player tips forward into the cruising pose. Flying
-	 * straight up or down keeps them upright, unless they're diving down faster than {@link #DIVE_DOWN_SPEED}.
+	 * Flying players stay upright whichever way they move, until they sprint (moving at least this fast
+	 * horizontally, in blocks per tick) or go faster than super flight's {@link #SUPER_SPEED}: then they tip into the
+	 * cruising pose. In super flight that includes diving down head first.
 	 */
-	private static final double DIVE_SPEED = 0.3;
-	private static final double DIVE_DOWN_SPEED = 0.9;
+	private static final double SPRINT_SPEED = 0.1;
+	private static final double SUPER_SPEED = 1.0;
 	/** Rising faster than this (blocks per tick) raises the fist to the sky. Normal flying rises at about 0.4. */
 	private static final double RISE_SPEED = 0.55;
 	/** Sonic from this speed (80% of super flight's top speed), and ready for another sonic boom below the second. */
@@ -86,9 +87,10 @@ public final class RingFlight {
 
 			Vec3 motion = new Vec3(player.getX() - player.xo, player.getY() - player.yo, player.getZ() - player.zo);
 			double speed = motion.length();
-			boolean diving = flying && (motion.horizontalDistance() > DIVE_SPEED || motion.y < -DIVE_DOWN_SPEED);
+			// Rocketing mostly straight up keeps them upright, fist to the sky, however fast
+			boolean rising = flying && motion.y > RISE_SPEED && motion.horizontalDistance() < motion.y * 0.5;
+			boolean diving = flying && !rising && (player.isSprinting() && motion.horizontalDistance() > SPRINT_SPEED || speed > SUPER_SPEED);
 			boolean sonic = diving && speed > SONIC_SPEED;
-			boolean rising = flying && !diving && motion.y > RISE_SPEED;
 			pose.diveO = pose.dive;
 			pose.hoverO = pose.hover;
 			pose.sonicO = pose.sonic;

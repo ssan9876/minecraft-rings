@@ -118,6 +118,16 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			checkClient(context, mc -> RingFlight.dive(mc.player, 1.0F) == 0.0F, "flying straight up stays upright");
 			context.takeScreenshot("rings-6-rising-side");
 			context.getInput().releaseKey(options -> options.keyJump);
+			context.getInput().holdKey(options -> options.keyLeft);
+			context.waitTicks(10);
+			checkClient(context, mc -> RingFlight.dive(mc.player, 1.0F) == 0.0F && mc.player.getDeltaMovement().horizontalDistance() > 0.2,
+					"flying sideways stays upright");
+			context.takeScreenshot("rings-6-strafing-side");
+			context.getInput().releaseKey(options -> options.keyLeft);
+			context.getInput().holdKey(options -> options.keyUp);
+			context.waitTicks(10);
+			checkClient(context, mc -> RingFlight.dive(mc.player, 1.0F) == 0.0F, "flying forward without sprinting stays upright");
+			context.getInput().releaseKey(options -> options.keyUp);
 			context.getInput().holdKey(options -> options.keyUp);
 			context.getInput().holdKey(options -> options.keySprint);
 			context.waitTicks(12);
