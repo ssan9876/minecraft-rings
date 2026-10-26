@@ -7,6 +7,6 @@ mod https://cdn.modrinth.com/data/P7dR8mSH/versions/EQKgpeKu/fabric-api-0.165.0%
 mod https://cdn.modrinth.com/data/ha1mEyJS/versions/xJ30QmpE/PlayerAnimationLibMerged-1.2.8%2Bmc.26.3.jar
 mod https://cdn.modrinth.com/data/OI3FlFon/versions/DbUl93Sa/BendableCuboidsMerged-2.1.0%2Bmc.26.3.jar
 mod https://cdn.modrinth.com/data/yBW8D80W/versions/rylKnJ4M/lambdynamiclights-4.13.0%2B26.3.jar
-mod https://github.com/ssan9876/minecraft-rings/releases/download/v1.8.0/rings-1.8.0.jar
+mod https://github.com/ssan9876/minecraft-rings/releases/download/v1.9.0/rings-1.9.0.jar
 mod https://github.com/ssan9876/minecraft-mystic/releases/download/v1.0.0/mystic-1.0.0.jar
 mod https://github.com/ssan9876/minecraft-spidey/releases/download/v1.0.0/spidey-1.0.0.jar
