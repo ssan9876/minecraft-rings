@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "condition": {
+            "type": "minecraft:survives_explosion"
+          },
+          "name": "rings:mars_crystal_block"
+        }
+      ],
+      "rolls": 1
+    }
+  ],
+  "random_sequence": "rings:blocks/mars_crystal_block"
+}

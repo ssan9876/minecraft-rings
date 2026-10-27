@@ -50,6 +50,8 @@ public final class RingConstructs {
 		HAMMER(30, "hammer"),
 		/** A sword, as strong as diamond. */
 		SWORD(45, "sword"),
+		/** A shield, for the off hand. */
+		SHIELD(40, "shield"),
 		/** An axe, as fast as netherite. */
 		AXE(45, "axe"),
 		/** A pickaxe, as fast as netherite. */
@@ -134,6 +136,7 @@ public final class RingConstructs {
 			case FIST -> level.addFreshEntity(ConstructFist.throwFrom(player, color));
 			case HAMMER -> level.addFreshEntity(ConstructFist.hammerOver(player, hammerTarget(player), color));
 			case SWORD -> tool(player, Rings.CONSTRUCT_SWORD, color, now);
+			case SHIELD -> tool(player, Rings.CONSTRUCT_SHIELD, color, now);
 			case AXE -> tool(player, Rings.CONSTRUCT_AXE, color, now);
 			case PICKAXE -> tool(player, Rings.CONSTRUCT_PICKAXE, color, now);
 			case SHOVEL -> tool(player, Rings.CONSTRUCT_SHOVEL, color, now);
@@ -289,6 +292,11 @@ public final class RingConstructs {
 		ItemStack tool = new ItemStack(item);
 		tool.set(DataComponents.DYED_COLOR, new DyedItemColor(color.energy()));
 		tool.set(RingComponents.CONSTRUCT_EXPIRES, now + TOOL_LIFETIME);
+		// The shield goes on the off hand, where it blocks while the sword swings
+		if (item == Rings.CONSTRUCT_SHIELD && player.getOffhandItem().isEmpty()) {
+			player.setItemInHand(InteractionHand.OFF_HAND, tool);
+			return true;
+		}
 		if (player.getMainHandItem().isEmpty()) {
 			player.setItemInHand(InteractionHand.MAIN_HAND, tool);
 			return true;

@@ -55,7 +55,7 @@
       "label": "PS"
     }
   ],
-  "default_block": "minecraft:stone",
+  "default_block": "rings:moon_rock",
   "default_fluid": "minecraft:air",
   "disable_mob_generation": true,
   "legacy_random_source": false,

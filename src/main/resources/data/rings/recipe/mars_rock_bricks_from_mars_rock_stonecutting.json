@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": "rings:mars_rock",
+  "result": {
+    "id": "rings:mars_rock_bricks"
+  }
+}

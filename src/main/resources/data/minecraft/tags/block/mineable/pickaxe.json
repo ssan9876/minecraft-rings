@@ -7,6 +7,22 @@
     "rings:orange_power_lantern",
     "rings:white_power_lantern",
     "rings:black_power_lantern",
-    "rings:yellow_power_lantern"
+    "rings:yellow_power_lantern",
+    "rings:moon_rock",
+    "rings:moon_rock_bricks",
+    "rings:moon_iron_ore",
+    "rings:moonstone_ore",
+    "rings:moonstone_block",
+    "rings:mars_rock",
+    "rings:mars_rock_bricks",
+    "rings:mars_iron_ore",
+    "rings:mars_gold_ore",
+    "rings:mars_crystal_block",
+    "rings:mars_crystal",
+    "rings:oan_stone",
+    "rings:oan_stone_bricks",
+    "rings:oan_emerald_ore",
+    "rings:will_crystal_ore",
+    "rings:oan_crystal"
   ]
 }

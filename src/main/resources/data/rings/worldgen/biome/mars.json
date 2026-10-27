@@ -10,14 +10,24 @@
   "features": [
     [],
     [],
+    [
+      "rings:mars_geode"
+    ],
     [],
     [],
     [],
+    [
+      "rings:mars_ore_iron",
+      "rings:mars_ore_gold",
+      "rings:mars_ice",
+      "rings:mars_blue_ice"
+    ],
     [],
     [],
-    [],
-    [],
-    [],
+    [
+      "rings:mars_spire",
+      "rings:mars_cave_crystals"
+    ],
     []
   ],
   "has_precipitation": false,

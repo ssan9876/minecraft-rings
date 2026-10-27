@@ -1,0 +1,7 @@
+{
+  "type": "minecraft:stonecutting",
+  "ingredient": "rings:moon_rock",
+  "result": {
+    "id": "rings:moon_rock_bricks"
+  }
+}

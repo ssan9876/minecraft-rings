@@ -15,7 +15,7 @@
             "if_true": "minecraft:on_floor",
             "then_run": {
               "type": "minecraft:block",
-              "result_state": "minecraft:light_gray_concrete_powder"
+              "result_state": "rings:moon_dust"
             }
           },
           {
@@ -23,7 +23,7 @@
             "if_true": "minecraft:under_floor",
             "then_run": {
               "type": "minecraft:block",
-              "result_state": "minecraft:andesite"
+              "result_state": "rings:moon_rock"
             }
           }
         ]

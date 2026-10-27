@@ -55,7 +55,7 @@
       "label": "PS"
     }
   ],
-  "default_block": "minecraft:deepslate",
+  "default_block": "rings:oan_stone",
   "default_fluid": "minecraft:air",
   "disable_mob_generation": true,
   "legacy_random_source": false,

@@ -31,7 +31,11 @@ your right hand whenever it's worn, glowing when it's on. While one is on:
 - hold **Fire Ring Beam** (default `G`) to fire a beam of the ring's energy from your fist to wherever you look,
   up to 40 blocks. It hits for 2 hearts every half second with knockback, and uses extra power while it fires.
 
-Switching it on, you thrust the ring to the sky. Everyone else sees all of this too.
+Switching it on, you dip and then thrust the ring to the sky. Making a construct, you draw your fist back and lunge;
+using the colour's power, you gather your fists and fling them wide; putting up the force field, you cross your arms
+and throw them apart; scanning, you raise your hand to your brow and look the world over. The ring's energy shows as
+glowing motes in its colour that flare up, twinkle and fade, and shine even in the dark. Everyone else sees all of
+this too.
 
 **Each colour's own power** (the Ring Power key) and gift (always on with the ring):
 
@@ -71,6 +75,19 @@ in the stars. Fly into one to land on it:
 | Mars | Red sand and rock under a butterscotch sky. 38% of the Earth's gravity. No air. |
 | Oa | Home of the Lantern Corps: green land under a green sky, with the violet giant Korugar overhead. Breathable. |
 
+Each planet is made of its own rock, with its own things to find:
+
+| Planet | Ground | To find |
+|---|---|---|
+| The Moon | Moon Dust over Moon Rock | Craters, with moonstone glinting in their floors; Moon Iron Ore; Moonstone Ore, which drops moonstone (nine make a glowing Block of Moonstone) |
+| Mars | Red sand over Mars Rock | Tall banded rock spires; Mars Iron Ore, rich in iron (2 to 4 raw iron); Mars Gold Ore; geodes of glowing Mars Crystal; ice frozen in the rock |
+| Oa | Green ground over Oan Stone | Glowing Oan Crystals, on the surface and in caves; Oan Emerald Ore; Will Crystal Ore, which drops Will Shards |
+
+A **Will Shard** charges the ring you wear by a quarter, whatever its colour: right-click with it. Every planet rock
+can be crafted (2×2) or stonecut into bricks. Ores need the same tools as vanilla's (stone for iron, iron for the
+rest), and fortune and silk touch work on them. The ring scan shows the new ores too. Ground that was explored before
+1.10.0 keeps its old blocks; new ground has the new ones.
+
 Fly back up past Y 400 to return to space, and down into the Earth to come home where you left. In space and on
 airless planets only an active ring keeps you breathing: if it goes out, your air runs out like underwater.
 Low gravity means higher jumps, slower falls and softer landings. Beds and respawn anchors don't work off the Earth.
@@ -103,7 +120,8 @@ click) to make it out of the ring's light, in its colour. Each costs a little po
 | Dome | A dome of hard light over you, 4 blocks out, for 20 seconds |
 | Grab | A chain of light that yanks the creature you look at to you |
 | Giant Hammer | A hammer brought down where you look, its shockwave throwing everything near it up |
-| Sword | A diamond-strength sword in your hand |
+| Sword | A diamond-strength sword in your hand. Right-click to send a crescent of light flying off the blade, up to 19 blocks, cutting everything in its path (7 damage, a little of the ring's charge). With a shield in the other hand, sneak and right-click instead |
+| Shield | A shield of light on your off hand: it blocks straight away, axes can't knock it down, and whatever hits it up close is thrown back |
 | Axe, Pickaxe, Shovel | Netherite-speed tools |
 | Wolf | A wolf of light that fights for you, for a minute |
 | Golem | A golem of light, slow and mighty, that fights for you for 45 seconds |
@@ -119,7 +137,8 @@ won't switch back on until you charge it: **hold right-click on a Power Lantern 
 wearing or holding the ring (about 6 seconds from empty), as its energy pours into the ring. While it charges you take the lantern oath: braced,
 ring fist thrust at the lantern and the other hand gripping the wrist, pulsing with each surge as energy spirals up
 around you, as the colour's oath appears line by line across your screen (each colour has its own, in the
-language file as `oath.rings.<colour>.1` to `.4`). When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
+language file as `oath.rings.<colour>.1` to `.4`, so a resource pack can swap in other words: a pack with
+`assets/rings/lang/en_us.json` setting those keys). When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
 sky. A lantern of another colour won't charge it.
 
 Crafting (shaped). Every colour uses the same pattern with its own material:
@@ -174,9 +193,9 @@ Needs JDK 25.
 | `./gradlew runClientGameTest` | Opens a real client and plays through the ring (`src/gametest`). Screenshots land in `build/run/clientGameTest/screenshots` |
 | `./release.sh` | Publishes the version in `gradle.properties` as a GitHub release and points `mods.txt` at it |
 | `./deploy.sh` | Builds and installs the mod on the server, then restarts it |
-| `python tools/gen_textures.py` | Redraws every colour's ring, suit and lantern textures, and the slot icon |
-| `python tools/gen_resources.py` | Writes every colour's models, recipes, loot tables and names |
-| `python tools/gen_worlds.py` | Writes space and the planets (dimensions, terrain, skies) and their maps |
+| `python tools/gen_textures.py` | Redraws every texture: each colour's ring, suit and lantern, constructs, particles and the planets' blocks |
+| `python tools/gen_resources.py` | Writes every colour's models, recipes, loot tables and names, and the planets' blocks' |
+| `python tools/gen_worlds.py` | Writes space and the planets (dimensions, terrain, skies, ores and features) and their maps |
 | `RINGS_SPACE=1 ./gradlew runClientGameTest` | Only flies to space and each planet and back, filming each |
 | `RINGS_FLIGHT=1 ./gradlew runClientGameTest` | Only films the ring on the hand, elytra mode and super flight |
 | `RINGS_POWERS=1 ./gradlew runClientGameTest` | Only the force field, bubble, scan, the last save and rings coming back |
@@ -184,6 +203,7 @@ Needs JDK 25.
 | `RINGS_CREATURES=1 ./gradlew runClientGameTest` | Only the construct wolf, golem and jet |
 | `RINGS_OA=1 ./gradlew runClientGameTest` | Only Oa, the Guardians, Manhunters, Parallax and Nekron |
 | `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
+| `RINGS_GEAR=1 ./gradlew runClientGameTest` | Only the construct sword's slash, the construct shield and a will shard |
 
 ## Releasing
 
@@ -238,5 +258,12 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
   vanilla creatures whose target goals are swapped for the ring's), `MobMoods` (fear and charm) and `EnergyBolt`.
 - **Force field, scan, saves and returns:** `RingAbilities`, `ForceBubble`, `RingProtection`, `RingReturn`, and on
   the client `ForceFields`, `EnergySphere` and `RingScan` (ores are drawn with a see-through render pipeline).
+- **Particles:** `RingColor.dust` makes a `RingParticles.Energy` mote (registered with its colour and size);
+  `EnergyParticle` draws it full-bright, growing then shrinking through a soft-orb-to-star sprite set.
+- **Construct weapons:** `ConstructSword` and `SwordWave` (the slash, moved on and cut every server tick); the
+  shield is a plain construct item with vanilla's `blocks_attacks` component, and `LivingEntityMixin` throws back
+  what it blocks.
+- **Planets' blocks:** `PlanetBlocks` (blocks and items), `PlanetFeatures` (craters, spires and crystal patches,
+  as worldgen feature types), placed by the planets' biome files that `tools/gen_worlds.py` writes.
 - **Oa and its foes:** `OaCitadel` builds the citadel on the first visit (once, marked on the level), `Bosses`
   spawns Manhunters and wakes Parallax and Nekron; `SpaceFlyer` is the flying base for Manhunters and Parallax.

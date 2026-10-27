@@ -13,10 +13,16 @@
     [],
     [],
     [],
+    [
+      "rings:oa_ore_emerald",
+      "rings:oa_ore_will_crystal"
+    ],
     [],
     [],
-    [],
-    [],
+    [
+      "rings:oa_crystals",
+      "rings:oa_cave_crystals"
+    ],
     []
   ],
   "has_precipitation": false,

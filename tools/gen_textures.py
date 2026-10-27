@@ -390,6 +390,40 @@ TOOL_SHADES = {"w": (255, 255, 255, 255), "l": (205, 205, 205, 255), "g": (230, 
                "h": (160, 160, 160, 255), "p": (120, 120, 120, 255)}
 
 
+# The construct shield's face, 12 wide (columns 2 to 13 of the texture): a heater shield of hard light, bright
+# rimmed, with the lantern emblem in the middle. "r" rim, "f" the see-through face, "e" the emblem.
+CONSTRUCT_SHIELD_FACE = [
+    "..rrrrrrrrrrrr..",
+    "..rffffffffffr..",
+    "..rffffffffffr..",
+    "..rfeeeeeeeefr..",
+    "..rffffffffffr..",
+    "..rfffeeeefffr..",
+    "..rffeffffeffr..",
+    "..rffeffffeffr..",
+    "..rfffeeeefffr..",
+    "..rffffffffffr..",
+    "..rfeeeeeeeefr..",
+    "..rffffffffffr..",
+    "...rffffffffr...",
+    "....rffffffr....",
+    ".....rffffr.....",
+    "......rrrr......",
+]
+
+
+def construct_shield(back):
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    shades = {"r": (255, 255, 255, 255), "f": (200, 200, 200, 150), "e": (255, 255, 255, 235)}
+    if back:
+        shades = {"r": (225, 225, 225, 255), "f": (165, 165, 165, 170), "e": (165, 165, 165, 170)}
+    for y, row in enumerate(CONSTRUCT_SHIELD_FACE):
+        for x, ch in enumerate(row[:16]):
+            if ch != ".":
+                image.putpixel((x, y), shades[ch])
+    return image
+
+
 def construct_tool(pattern):
     image = Image.new("RGBA", (16, 16), CLEAR)
     for y, row in enumerate(pattern):
@@ -551,6 +585,254 @@ def nekron_skin():
     return creature_skin(head, body, arm, leg)
 
 
+# Energy motes, 16x16, white so the particle's colour tints them: a soft orb that sharpens into a four-pointed
+# star and shrinks to a point over the mote's life
+ENERGY_FRAMES = 6
+
+
+def energy_particle(frame):
+    import math
+    t = frame / (ENERGY_FRAMES - 1)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    glow_radius = 7.5 - 4.5 * t
+    star = t * 1.4
+    for y in range(16):
+        for x in range(16):
+            dx, dy = x - 7.5, y - 7.5
+            d = math.hypot(dx, dy)
+            glow = max(0.0, 1.0 - d / glow_radius) ** 2
+            # The star's rays along the axes, thinning out with distance
+            ray = max(0.0, 1.0 - min(abs(dx), abs(dy)) / 0.9) * max(0.0, 1.0 - d / (2.0 + 5.5 * min(star, 1.0)))
+            a = min(1.0, glow + ray * min(star, 1.0))
+            if a <= 0.02:
+                continue
+            # White-hot in the middle, the tint's full colour toward the edge
+            v = round(255 - 60 * min(1.0, d / max(glow_radius, 1.0)))
+            image.putpixel((x, y), (v, v, v, round(a * 255)))
+    return image
+
+
+# The planets' blocks. Rock is drawn from tileable noise in a few shades of each planet's stone.
+PLANET_ROCK = {
+    "moon": [(88, 88, 92), (112, 112, 116), (134, 134, 138), (156, 156, 160)],
+    "moon_dust": [(150, 150, 154), (170, 170, 174), (186, 186, 190), (200, 200, 204)],
+    "mars": [(110, 46, 30), (140, 62, 38), (166, 82, 50), (190, 106, 66)],
+    "oan": [(30, 54, 42), (42, 72, 56), (56, 92, 70), (74, 114, 88)],
+}
+
+
+def tile_noise(seed, cells=4):
+    """16x16 smooth noise in 0..1 that wraps at the edges, so the texture tiles without seams."""
+    rng = random.Random(seed)
+    grid = [[rng.random() for _ in range(cells)] for _ in range(cells)]
+    out = [[0.0] * 16 for _ in range(16)]
+    step = 16 / cells
+    for y in range(16):
+        for x in range(16):
+            gx, gy = x / step, y / step
+            x0, y0 = int(gx) % cells, int(gy) % cells
+            x1, y1 = (x0 + 1) % cells, (y0 + 1) % cells
+            tx, ty = gx - int(gx), gy - int(gy)
+            tx, ty = tx * tx * (3 - 2 * tx), ty * ty * (3 - 2 * ty)
+            top = grid[y0][x0] * (1 - tx) + grid[y0][x1] * tx
+            bottom = grid[y1][x0] * (1 - tx) + grid[y1][x1] * tx
+            out[y][x] = top * (1 - ty) + bottom * ty
+    return out
+
+
+def rock(shades, seed, pits=0):
+    rng = random.Random(seed)
+    coarse, fine = tile_noise(seed, 4), tile_noise(seed + 1, 8)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            v = coarse[y][x] * 0.6 + fine[y][x] * 0.4 + (rng.random() - 0.5) * 0.25
+            shade = shades[max(0, min(len(shades) - 1, int(v * len(shades))))]
+            image.putpixel((x, y), shade + (255,))
+    # Little pits, dark with a lit lower rim, as on the Moon's dust and rock
+    for _ in range(pits):
+        px, py = rng.randrange(16), rng.randrange(16)
+        image.putpixel((px, py), shades[0] + (255,))
+        image.putpixel(((px + 1) % 16, (py + 1) % 16), shades[-1] + (255,))
+    return image
+
+
+def bricks(shades, seed):
+    """Bricks cut from the rock: rows of 8x4 blocks, staggered, with dark mortar and lit top edges."""
+    rng = random.Random(seed)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    mortar = tuple(round(c * 0.6) for c in shades[0])
+    for y in range(16):
+        row = y // 4
+        for x in range(16):
+            bx = (x + (4 if row % 2 else 0)) % 8
+            if y % 4 == 3 or bx == 7:
+                color = mortar
+            elif y % 4 == 0 or bx == 0:
+                color = shades[3]
+            else:
+                color = shades[1] if rng.random() < 0.3 else shades[2]
+            image.putpixel((x, y), color + (255,))
+    return image
+
+
+def ore(base, gem, seed, clusters=4):
+    """Gems or metal in the rock: small clumps, dark edged, with a highlight."""
+    rng = random.Random(seed)
+    image = base.copy()
+    dark = tuple(round(c * 0.55) for c in gem)
+    light = tuple(min(255, round(c + (255 - c) * 0.6)) for c in gem)
+    for _ in range(clusters):
+        cx, cy = rng.randrange(2, 13), rng.randrange(2, 13)
+        for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1), (-1, 0), (0, -1)):
+            if rng.random() < 0.8 or (dx, dy) == (0, 0):
+                image.putpixel((cx + dx, cy + dy), gem + (255,))
+        image.putpixel((cx - 1, cy + 1), dark + (255,))
+        image.putpixel((cx + 1, cy + 2), dark + (255,))
+        image.putpixel((cx, cy), light + (255,))
+    return image
+
+
+def crystal_block(gem, seed):
+    """Crystal grown solid: diagonal facets in light and shadow."""
+    rng = random.Random(seed)
+    dark = tuple(round(c * 0.6) for c in gem)
+    light = tuple(min(255, round(c + (255 - c) * 0.55)) for c in gem)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            facet = ((x + y) // 4 + (x - y + 16) // 6) % 3
+            color = (dark, gem, light)[facet]
+            if rng.random() < 0.06:
+                color = (255, 255, 255)
+            image.putpixel((x, y), color + (255,))
+    return image
+
+
+def polished(gem, seed):
+    """A block of cut gem: four tiles, bright edged, glowing in the middle."""
+    rng = random.Random(seed)
+    dark = tuple(round(c * 0.7) for c in gem)
+    light = tuple(min(255, round(c + (255 - c) * 0.7)) for c in gem)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            tx, ty = x % 8, y % 8
+            if tx == 7 or ty == 7:
+                color = dark
+            elif tx == 0 or ty == 0:
+                color = light
+            elif 2 <= tx <= 5 and 2 <= ty <= 5:
+                color = light if rng.random() < 0.5 else gem
+            else:
+                color = gem
+            image.putpixel((x, y), color + (255,))
+    return image
+
+
+# Crystal clusters, drawn for vanilla's cross model: three shards growing up from the bottom
+CRYSTAL = [
+    "................",
+    "........l.......",
+    ".......lg.......",
+    ".......lgd......",
+    "...l...lgd......",
+    "..lg...lgd...l..",
+    "..lgd..lgd..lg..",
+    "..lgd..lgd..lgd.",
+    "..lgd..lgd..lgd.",
+    "..lgd.llggd.lgd.",
+    "..lgddlggdd.lgd.",
+    "...lgdlggd.lgdd.",
+    "...lggdlgddlgd..",
+    "....lgdlgdlggd..",
+    ".....lggggggd...",
+    "......dddddd....",
+]
+GEM_ITEMS = {
+    # A round, milky gem with a bright glint
+    "moonstone": [
+        "................",
+        "................",
+        "......kkkk......",
+        "....kkggggkk....",
+        "...kgwwggggdk...",
+        "...kgwgggggdk...",
+        "..kggggggggddk..",
+        "..kggggggggddk..",
+        "..kgggggggdddk..",
+        "..kggggggdddk...",
+        "...kgggddddk....",
+        "....kkddddk.....",
+        "......kkkk......",
+        "................",
+        "................",
+        "................",
+    ],
+    # A long, sharp shard of green will
+    "will_shard": [
+        "................",
+        "...........kk...",
+        "..........kwgk..",
+        ".........kwggk..",
+        "........kwggdk..",
+        ".......kwggdk...",
+        "......kwggdk....",
+        ".....kwggdk.....",
+        "....kwggdk......",
+        "...kwggdk.......",
+        "...kggdk........",
+        "..kggdk.........",
+        "..kgdk..........",
+        "..kkk...........",
+        "................",
+        "................",
+    ],
+}
+
+
+def sprite(pattern, gem):
+    dark = tuple(round(c * 0.6) for c in gem)
+    light = tuple(min(255, round(c + (255 - c) * 0.6)) for c in gem)
+    outline = tuple(round(c * 0.3) for c in gem)
+    shades = {"g": gem, "d": dark, "l": light, "w": (255, 255, 255), "k": outline}
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y, row in enumerate(pattern):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                image.putpixel((x, y), shades[ch] + (255,))
+    return image
+
+
+MOONSTONE = (196, 222, 240)
+MARS_CRYSTAL = (226, 60, 48)
+OAN_CRYSTAL = (90, 240, 120)
+WILL = (130, 255, 150)
+
+
+def planet_textures():
+    moon, mars, oan = rock(PLANET_ROCK["moon"], 101, pits=5), rock(PLANET_ROCK["mars"], 201), rock(PLANET_ROCK["oan"], 301)
+    save(rock(PLANET_ROCK["moon_dust"], 111, pits=7), "textures/block/moon_dust.png")
+    save(moon, "textures/block/moon_rock.png")
+    save(bricks(PLANET_ROCK["moon"], 102), "textures/block/moon_rock_bricks.png")
+    save(ore(moon, (216, 175, 147), 103), "textures/block/moon_iron_ore.png")
+    save(ore(moon, MOONSTONE, 104, clusters=3), "textures/block/moonstone_ore.png")
+    save(polished(MOONSTONE, 105), "textures/block/moonstone_block.png")
+    save(mars, "textures/block/mars_rock.png")
+    save(bricks(PLANET_ROCK["mars"], 202), "textures/block/mars_rock_bricks.png")
+    save(ore(mars, (226, 214, 200), 203, clusters=5), "textures/block/mars_iron_ore.png")
+    save(ore(mars, (252, 222, 70), 204), "textures/block/mars_gold_ore.png")
+    save(crystal_block(MARS_CRYSTAL, 205), "textures/block/mars_crystal_block.png")
+    save(sprite(CRYSTAL, MARS_CRYSTAL), "textures/block/mars_crystal.png")
+    save(oan, "textures/block/oan_stone.png")
+    save(bricks(PLANET_ROCK["oan"], 302), "textures/block/oan_stone_bricks.png")
+    save(ore(oan, (60, 230, 110), 303), "textures/block/oan_emerald_ore.png")
+    save(ore(oan, WILL, 304, clusters=3), "textures/block/will_crystal_ore.png")
+    save(sprite(CRYSTAL, OAN_CRYSTAL), "textures/block/oan_crystal.png")
+    save(sprite(GEM_ITEMS["moonstone"], MOONSTONE), "textures/item/moonstone.png")
+    save(sprite(GEM_ITEMS["will_shard"], WILL), "textures/item/will_shard.png")
+
+
 def icon():
     return ring_item(COLORS["green"]).resize((128, 128), Image.NEAREST)
 
@@ -572,4 +854,9 @@ if __name__ == "__main__":
     save(construct_tool(CONSTRUCT_PICKAXE), "textures/item/construct_pickaxe.png")
     save(construct_tool(CONSTRUCT_AXE), "textures/item/construct_axe.png")
     save(construct_tool(CONSTRUCT_SHOVEL), "textures/item/construct_shovel.png")
+    save(construct_shield(False), "textures/item/construct_shield.png")
+    save(construct_shield(True), "textures/item/construct_shield_back.png")
+    for frame in range(ENERGY_FRAMES):
+        save(energy_particle(frame), f"textures/particle/energy_{frame}.png")
+    planet_textures()
     save(icon(), "icon.png")

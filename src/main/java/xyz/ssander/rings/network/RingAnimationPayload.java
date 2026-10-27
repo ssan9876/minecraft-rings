@@ -30,7 +30,11 @@ public record RingAnimationPayload(int entityId, Kind kind, RingColor color) imp
 		/** A construct made: the ring fist thrust out as it takes shape. */
 		CONSTRUCT,
 		/** A scan sent out: a pulse of the ring's energy, and for the wearer, what it finds (see RingScan). */
-		SCAN
+		SCAN,
+		/** The colour's power let loose: fists gathered at the chest, then flung wide. */
+		POWER,
+		/** The force field put up: forearms crossed, then thrown apart. */
+		FIELD
 	}
 
 	@Override

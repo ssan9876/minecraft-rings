@@ -1,7 +1,6 @@
 package xyz.ssander.rings;
 
 import io.netty.buffer.ByteBuf;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.util.ByIdMap;
@@ -82,8 +81,8 @@ public enum RingColor implements StringRepresentable {
 		return Rings.id(this.name + "_lantern");
 	}
 
-	/** A dust particle of this energy, mixed toward white by {@code light} (0 to 1). */
-	public DustParticleOptions dust(float light, float size) {
-		return new DustParticleOptions(ARGB.srgbLerp(light, this.energy, 0xFFFFFF), size);
+	/** A glowing mote of this energy (see RingParticles), mixed toward white by {@code light} (0 to 1). */
+	public RingParticles.Energy dust(float light, float size) {
+		return new RingParticles.Energy(ARGB.srgbLerp(light, this.energy, 0xFFFFFF), size);
 	}
 }

@@ -53,6 +53,12 @@ public final class RingAnimations {
 	public static final Identifier CHARGE_FULL = Rings.id("charge_full");
 	/** The ring fist thrust out as a construct takes shape. */
 	public static final Identifier CONSTRUCT = Rings.id("construct");
+	/** Both fists gathered at the chest, then flung wide, as the colour's power bursts out. */
+	public static final Identifier POWER = Rings.id("power");
+	/** Forearms crossed before the face, then thrown apart, as the force field opens. */
+	public static final Identifier FIELD = Rings.id("field");
+	/** The ring hand raised to the brow, looking the world over, while a scan goes out. */
+	public static final Identifier SCAN = Rings.id("scan");
 	/** Down on one knee, fist to the ground, after coming down from flight. */
 	public static final Identifier LAND = Rings.id("land");
 	/**
@@ -93,7 +99,12 @@ public final class RingAnimations {
 					case CHARGE -> charge(player, payload.color());
 					case CHARGE_FULL -> chargeFull(player, payload.color());
 					case CONSTRUCT -> play(player, CONSTRUCT);
-					case SCAN -> RingScan.start(player, payload.color());
+					case SCAN -> {
+						play(player, SCAN);
+						RingScan.start(player, payload.color());
+					}
+					case POWER -> play(player, POWER);
+					case FIELD -> play(player, FIELD);
 				}
 			}
 		});

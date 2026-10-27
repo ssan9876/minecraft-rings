@@ -1,7 +1,9 @@
 package xyz.ssander.rings;
 
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
 import net.fabricmc.api.ModInitializer;
@@ -20,6 +22,10 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.Unit;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.item.component.BlocksAttacks;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ToolMaterial;
@@ -124,7 +130,7 @@ public class Rings implements ModInitializer {
 			EntityType.Builder.<ConstructJet>of(ConstructJet::new, MobCategory.MISC).sized(2.0F, 0.9F).clientTrackingRange(10).updateInterval(1).noSummon());
 
 	/** Construct tools, made by the construct wheel in the ring's colour (their dye) and gone when it switches off. */
-	public static final ConstructItem CONSTRUCT_SWORD = register("construct_sword", ConstructItem::new,
+	public static final ConstructItem CONSTRUCT_SWORD = register("construct_sword", ConstructSword::new,
 			constructTool(new Item.Properties().sword(ToolMaterial.DIAMOND, 3.0F, -2.4F)));
 	public static final ConstructItem CONSTRUCT_AXE = register("construct_axe", ConstructItem::new,
 			constructTool(new Item.Properties().axe(ToolMaterial.NETHERITE, 5.0F, -3.0F)));
@@ -132,6 +138,19 @@ public class Rings implements ModInitializer {
 			constructTool(new Item.Properties().pickaxe(ToolMaterial.NETHERITE, 1.0F, -2.8F)));
 	public static final ConstructItem CONSTRUCT_SHOVEL = register("construct_shovel", ConstructItem::new,
 			constructTool(new Item.Properties().shovel(ToolMaterial.NETHERITE, 1.5F, -3.0F)));
+	/**
+	 * A shield of light for the off hand: it blocks like a shield, straight away and all round the front, and axes
+	 * can't knock it down. What it blocks up close is thrown back (see LivingEntityMixin).
+	 */
+	public static final ConstructItem CONSTRUCT_SHIELD = register("construct_shield", ConstructItem::new,
+			constructTool(new Item.Properties()
+					.equippableUnswappable(EquipmentSlot.OFFHAND)
+					.delayedComponent(DataComponents.BLOCKS_ATTACKS, registries -> new BlocksAttacks(0.0F, 0.0F,
+							List.of(new BlocksAttacks.DamageReduction(100.0F, Optional.empty(), 0.0F, 1.0F)),
+							BlocksAttacks.ItemDamageFunction.DEFAULT,
+							Optional.of(registries.getOrThrow(DamageTypeTags.BYPASSES_SHIELD)),
+							Optional.of(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.AMETHYST_BLOCK_HIT)),
+							Optional.of(BuiltInRegistries.SOUND_EVENT.wrapAsHolder(SoundEvents.AMETHYST_BLOCK_BREAK))))));
 
 	public static RingItem ring(RingColor color) {
 		return RINGS.get(color);
@@ -171,6 +190,9 @@ public class Rings implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		RingAttachments.init();
+		RingParticles.init();
+		PlanetBlocks.init();
+		PlanetFeatures.init();
 		RingReturn.init();
 		RingProtection.init();
 		Thralls.init();
@@ -186,6 +208,12 @@ public class Rings implements ModInitializer {
 			RINGS.values().forEach(output::accept);
 			LANTERN_ITEMS.values().forEach(output::accept);
 			output.accept(POWER_BATTERY_ITEM);
+		});
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.NATURAL_BLOCKS).register(output ->
+				PlanetBlocks.items().stream().filter(item -> item instanceof BlockItem).forEach(output::accept));
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS).register(output -> {
+			output.accept(PlanetBlocks.MOONSTONE);
+			output.accept(PlanetBlocks.WILL_SHARD);
 		});
 
 		PayloadTypeRegistry.serverboundPlay().register(ActivateRingPayload.TYPE, ActivateRingPayload.CODEC);
@@ -208,6 +236,7 @@ public class Rings implements ModInitializer {
 			Thralls.tick(server);
 			Bosses.tick(server);
 			MobMoods.tick();
+			SwordWave.tick(server);
 		});
 	}
 }

@@ -84,6 +84,7 @@ public class RingsClient implements ClientModInitializer {
 		LevelRenderEvents.COLLECT_SUBMITS.register(RingScan::render);
 
 		RingAnimations.init();
+		EnergyParticle.register();
 		UpdateNotice.init();
 
 		LivingEntityRenderLayerRegistrationCallback.EVENT.register((entityType, renderer, helper, context) -> {

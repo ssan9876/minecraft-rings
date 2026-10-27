@@ -81,6 +81,9 @@ public final class RingAbilities {
 
 		boolean up = !player.getAttachedOrElse(RingAttachments.SHIELD, false);
 		player.setAttached(RingAttachments.SHIELD, up ? true : null);
+		if (up) {
+			RingPowers.playAnimation(player, RingAnimationPayload.Kind.FIELD, color);
+		}
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), up ? SoundEvents.BEACON_POWER_SELECT : SoundEvents.BEACON_DEACTIVATE,
 				SoundSource.PLAYERS, 0.8F, up ? 0.8F : 1.6F);
 		player.sendOverlayMessage(Component.translatable(up ? "message.rings.shield_up" : "message.rings.shield_down"));

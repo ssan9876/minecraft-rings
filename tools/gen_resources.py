@@ -97,6 +97,53 @@ def main():
         }})
         write(ASSETS / f"models/item/{tool}.json", {"parent": "minecraft:item/handheld", "textures": {"layer0": f"rings:item/{tool}"}})
 
+    # The construct shield: a plate of see-through light with a handle behind, laid out like vanilla's shield (whose
+    # model is drawn in code) so vanilla's display settings for it fit, and raised while blocking like it
+    def shield_face(texture, uv):
+        return {"texture": texture, "uv": uv, "tintindex": 0}
+
+    shield_elements = [
+        {"from": [-6, -8, 1], "to": [6, 8, 2], "faces": {
+            "south": shield_face("#front", [2, 0, 14, 16]), "north": shield_face("#back", [14, 0, 2, 16]),
+            "east": shield_face("#back", [2, 0, 3, 16]), "west": shield_face("#back", [13, 0, 14, 16]),
+            "up": shield_face("#back", [2, 0, 14, 1]), "down": shield_face("#back", [6, 15, 10, 16])}},
+        {"from": [-1, -3, -5], "to": [1, 3, 1],
+         "faces": {side: shield_face("#back", [2, 1, 4, 7]) for side in ("north", "south", "east", "west", "up", "down")}},
+    ]
+    shield_textures = {
+        "front": {"sprite": "rings:item/construct_shield", "force_translucent": True},
+        "back": {"sprite": "rings:item/construct_shield_back", "force_translucent": True},
+        "particle": "rings:item/construct_shield",
+    }
+    write(ASSETS / "models/item/construct_shield.json", {"gui_light": "front", "textures": shield_textures, "elements": shield_elements, "display": {
+        "thirdperson_righthand": {"rotation": [0, 90, 0], "translation": [10, 6, -4], "scale": [1, 1, 1]},
+        "thirdperson_lefthand": {"rotation": [0, 90, 0], "translation": [10, 6, 12], "scale": [1, 1, 1]},
+        "firstperson_righthand": {"rotation": [0, 180, 5], "translation": [-10, 1.75, -10], "scale": [1.25, 1.25, 1.25]},
+        "firstperson_lefthand": {"rotation": [0, 180, 5], "translation": [10, 0, -10], "scale": [1.25, 1.25, 1.25]},
+        "gui": {"rotation": [15, -25, -5], "translation": [2, 3, 0], "scale": [0.65, 0.65, 0.65]},
+        "fixed": {"rotation": [0, 180, 0], "translation": [-4.5, 4.5, -5], "scale": [0.55, 0.55, 0.55]},
+        "ground": {"rotation": [0, 0, 0], "translation": [2, 4, 2], "scale": [0.25, 0.25, 0.25]},
+    }})
+    write(ASSETS / "models/item/construct_shield_blocking.json", {"parent": "rings:item/construct_shield", "display": {
+        "thirdperson_righthand": {"rotation": [45, 155, 0], "translation": [-3.49, 11, -2], "scale": [1, 1, 1]},
+        "thirdperson_lefthand": {"rotation": [45, 155, 0], "translation": [11.51, 7, 2.5], "scale": [1, 1, 1]},
+        "firstperson_righthand": {"rotation": [0, 180, -5], "translation": [-15, 3.25, -11], "scale": [1.25, 1.25, 1.25]},
+        "firstperson_lefthand": {"rotation": [0, 180, -5], "translation": [5, 5, -11], "scale": [1.25, 1.25, 1.25]},
+        "gui": {"rotation": [15, -25, -5], "translation": [2, 3, 0], "scale": [0.65, 0.65, 0.65]},
+    }})
+    shield_tint = [{"type": "minecraft:dye", "default": -1}]
+    write(ASSETS / "items/construct_shield.json", {"model": {
+        "type": "minecraft:condition",
+        "property": "minecraft:using_item",
+        "on_false": {"type": "minecraft:model", "model": "rings:item/construct_shield", "tints": shield_tint},
+        "on_true": {"type": "minecraft:model", "model": "rings:item/construct_shield_blocking", "tints": shield_tint},
+    }})
+    lang["item.rings.construct_shield"] = "Construct Shield"
+    lang["construct.rings.shield"] = "Shield"
+
+    # The ring's energy motes (frames drawn by gen_textures.py)
+    write(ASSETS / "particles/energy.json", {"textures": [f"rings:energy_{frame}" for frame in range(6)]})
+
     # The Central Power Battery's core: its own block (it never drops, so it has no loot table)
     write(ASSETS / "blockstates/power_battery.json", {"variants": {"": {"model": "rings:block/power_battery"}}})
     write(ASSETS / "models/block/power_battery.json", {"parent": "minecraft:block/cube_all", "textures": {"all": "rings:block/power_battery"}})
@@ -115,9 +162,109 @@ def main():
     drops("parallax", pool("rings:yellow_power_lantern", 1, 1), pool("minecraft:diamond", 3, 6), pool("minecraft:gold_block", 2, 4))
     drops("nekron", pool("rings:white_ring", 1, 1), pool("rings:white_power_lantern", 1, 1), pool("minecraft:diamond", 3, 6))
 
-    write(RESOURCES / "data/minecraft/tags/block/mineable/pickaxe.json",
-          {"values": [f"rings:{lantern_id(color)}" for color in COLORS]})
+    # The planets' blocks (see PlanetBlocks)
+    planet_blocks(lang)
     write(lang_path, lang)
+
+
+# What each planet block drops: None for itself, else (item, least, most, with fortune). Silk touch always gives the
+# block itself back.
+PLANET_BLOCKS = {
+    "moon_dust": ("Moon Dust", None, "shovel", None),
+    "moon_rock": ("Moon Rock", None, "pickaxe", None),
+    "moon_rock_bricks": ("Moon Rock Bricks", None, "pickaxe", None),
+    "moon_iron_ore": ("Moon Iron Ore", ("minecraft:raw_iron", 1, 1), "pickaxe", "stone"),
+    "moonstone_ore": ("Moonstone Ore", ("rings:moonstone", 1, 2), "pickaxe", "iron"),
+    "moonstone_block": ("Block of Moonstone", None, "pickaxe", "iron"),
+    "mars_rock": ("Mars Rock", None, "pickaxe", None),
+    "mars_rock_bricks": ("Mars Rock Bricks", None, "pickaxe", None),
+    "mars_iron_ore": ("Mars Iron Ore", ("minecraft:raw_iron", 2, 4), "pickaxe", "stone"),
+    "mars_gold_ore": ("Mars Gold Ore", ("minecraft:raw_gold", 1, 2), "pickaxe", "iron"),
+    "mars_crystal_block": ("Block of Mars Crystal", None, "pickaxe", None),
+    "mars_crystal": ("Mars Crystal", None, "pickaxe", None),
+    "oan_stone": ("Oan Stone", None, "pickaxe", None),
+    "oan_stone_bricks": ("Oan Stone Bricks", None, "pickaxe", None),
+    "oan_emerald_ore": ("Oan Emerald Ore", ("minecraft:emerald", 1, 1), "pickaxe", "iron"),
+    "will_crystal_ore": ("Will Crystal Ore", ("rings:will_shard", 1, 2), "pickaxe", "iron"),
+    "oan_crystal": ("Oan Crystal", None, "pickaxe", None),
+}
+CRYSTALS = ("mars_crystal", "oan_crystal")
+
+
+def planet_blocks(lang):
+    for block, (name, drop, tool, tier) in PLANET_BLOCKS.items():
+        lang[f"block.rings.{block}"] = name
+        if block in CRYSTALS:
+            # Like amethyst clusters: a cross of shards, turned to face away from whatever it grows on
+            write(ASSETS / f"blockstates/{block}.json", {"variants": {
+                f"facing={facing}": {"model": f"rings:block/{block}", **rotation} for facing, rotation in {
+                    "up": {}, "down": {"x": 180}, "north": {"x": 90}, "south": {"x": 90, "y": 180},
+                    "east": {"x": 90, "y": 90}, "west": {"x": 90, "y": 270}}.items()}})
+            write(ASSETS / f"models/block/{block}.json", {"parent": "minecraft:block/cross", "textures": {"cross": f"rings:block/{block}"}})
+            write(ASSETS / f"items/{block}.json", {"model": {"type": "minecraft:model", "model": f"rings:item/{block}"}})
+            write(ASSETS / f"models/item/{block}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"rings:block/{block}"}})
+        else:
+            write(ASSETS / f"blockstates/{block}.json", {"variants": {"": {"model": f"rings:block/{block}"}}})
+            write(ASSETS / f"models/block/{block}.json", {"parent": "minecraft:block/cube_all", "textures": {"all": f"rings:block/{block}"}})
+            write(ASSETS / f"items/{block}.json", {"model": {"type": "minecraft:model", "model": f"rings:block/{block}"}})
+
+        itself = {"type": "minecraft:item", "condition": {"type": "minecraft:survives_explosion"}, "name": f"rings:{block}"}
+        if drop is None:
+            entry = itself
+        else:
+            item, least, most = drop
+            modifiers = []
+            if (least, most) != (1, 1):
+                modifiers.append({"type": "minecraft:set_count", "count": {"type": "minecraft:uniform", "min": least, "max": most}})
+            modifiers += [{"type": "minecraft:apply_bonus", "enchantment": "minecraft:fortune", "formula": "minecraft:ore_drops"},
+                          {"type": "minecraft:explosion_decay"}]
+            entry = {"type": "minecraft:alternatives", "children": [
+                {"type": "minecraft:item", "condition": "minecraft:tool/can_silk_touch", "name": f"rings:{block}"},
+                {"type": "minecraft:item", "modifier": modifiers, "name": item},
+            ]}
+        write(DATA / f"loot_table/blocks/{block}.json", {"type": "minecraft:block", "pools": [{"entries": [entry], "rolls": 1}],
+                                                        "random_sequence": f"rings:blocks/{block}"})
+
+    lang["item.rings.moonstone"] = "Moonstone"
+    lang["item.rings.will_shard"] = "Will Shard"
+    lang["message.rings.shard_no_ring"] = "Wear a ring to charge it with the shard"
+    lang["message.rings.shard_full"] = "%s is already full"
+    for item in ("moonstone", "will_shard"):
+        write(ASSETS / f"items/{item}.json", {"model": {"type": "minecraft:model", "model": f"rings:item/{item}"}})
+        write(ASSETS / f"models/item/{item}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"rings:item/{item}"}})
+
+    # Mining: which tool, and how good it has to be
+    def tag(path, values):
+        write(RESOURCES / f"data/minecraft/tags/block/{path}.json", {"values": values})
+
+    for tool in ("pickaxe", "shovel"):
+        values = [f"rings:{block}" for block, entry in PLANET_BLOCKS.items() if entry[2] == tool]
+        if tool == "pickaxe":
+            values = [f"rings:{lantern_id(color)}" for color in COLORS] + values
+        tag(f"mineable/{tool}", values)
+    for tier in ("stone", "iron"):
+        tag(f"needs_{tier}_tool", [f"rings:{block}" for block, entry in PLANET_BLOCKS.items() if entry[3] == tier])
+    # So ring scans and other mods see the ores for what they are
+    tag("iron_ores", ["rings:moon_iron_ore", "rings:mars_iron_ore"])
+    tag("gold_ores", ["rings:mars_gold_ore"])
+    tag("emerald_ores", ["rings:oan_emerald_ore"])
+    tag("ores", ["rings:moonstone_ore", "rings:will_crystal_ore"])
+
+    # Crafting: bricks from rock, and moonstone to its block and back
+    for rock_name, bricks in (("moon_rock", "moon_rock_bricks"), ("mars_rock", "mars_rock_bricks"), ("oan_stone", "oan_stone_bricks")):
+        write(DATA / f"recipe/{bricks}.json", {"type": "minecraft:crafting_shaped", "category": "building",
+                                               "key": {"#": f"rings:{rock_name}"}, "pattern": ["##", "##"],
+                                               "result": {"count": 4, "id": f"rings:{bricks}"}})
+        write(DATA / f"recipe/{bricks}_from_{rock_name}_stonecutting.json", {"type": "minecraft:stonecutting",
+                                                                             "ingredient": f"rings:{rock_name}", "result": {"id": f"rings:{bricks}"}})
+    write(DATA / "recipe/moonstone_block.json", {"type": "minecraft:crafting_shaped", "category": "building",
+                                                 "key": {"#": "rings:moonstone"}, "pattern": ["###", "###", "###"],
+                                                 "result": {"id": "rings:moonstone_block"}})
+    write(DATA / "recipe/moonstone.json", {"type": "minecraft:crafting_shapeless", "category": "misc",
+                                           "ingredients": ["rings:moonstone_block"], "result": {"count": 9, "id": "rings:moonstone"}})
+    write(DATA / "recipe/mars_crystal_block.json", {"type": "minecraft:crafting_shaped", "category": "building",
+                                                    "key": {"#": "rings:mars_crystal"}, "pattern": ["##", "##"],
+                                                    "result": {"id": "rings:mars_crystal_block"}})
 
 
 if __name__ == "__main__":

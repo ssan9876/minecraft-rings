@@ -1,6 +1,7 @@
 package xyz.ssander.rings.gametest;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.function.Function;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
@@ -26,6 +27,7 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.skeleton.Skeleton;
+import net.minecraft.world.entity.monster.zombie.Husk;
 import net.minecraft.world.entity.monster.zombie.Zombie;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.inventory.Slot;
@@ -33,6 +35,7 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -52,6 +55,7 @@ import xyz.ssander.rings.Thralls;
 import xyz.ssander.rings.HardLightBlock;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingBeam;
+import xyz.ssander.rings.PlanetBlocks;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingComponents;
 import xyz.ssander.rings.RingConstructs;
@@ -60,6 +64,7 @@ import xyz.ssander.rings.RingProtection;
 import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Space;
 import xyz.ssander.rings.Rings;
+import xyz.ssander.rings.WillShardItem;
 import xyz.ssander.rings.client.ConstructWheelScreen;
 import xyz.ssander.rings.client.FriendScreen;
 import xyz.ssander.rings.client.RingAnimations;
@@ -106,6 +111,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
 				ringPowers(context, world.getConnection(), world.getServer());
+			}
+			return;
+		}
+		if (System.getenv("RINGS_GEAR") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				constructGear(context, world.getConnection(), world.getServer());
 			}
 			return;
 		}
@@ -726,7 +738,11 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			}
 			server.runOnServer(s -> {
 				ServerPlayer p = player(s);
-				int ground = p.level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, p.getBlockX(), p.getBlockZ());
+				// The ground: the first solid block down from the sky (the heightmap can still be catching up)
+				int ground = p.level().getMaxY();
+				while (ground > p.level().getMinY() && p.level().getBlockState(new BlockPos(p.getBlockX(), ground, p.getBlockZ())).isAir()) {
+					ground--;
+				}
 				p.teleportTo(p.getX(), ground + 12, p.getZ());
 			});
 			connection.waitForChunksRender();
@@ -740,7 +756,14 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				context.waitTicks(3);
 				context.takeScreenshot("space-6-" + planet.id() + "-sky-" + (int) yaw);
 			}
+			// From high above, looking straight down: the Moon's craters, Mars's spires, Oa's crystals
+			server.runOnServer(s -> player(s).teleportTo(player(s).getX(), player(s).getY() + 45.0, player(s).getZ()));
+			connection.waitForChunksRender();
+			context.runOnClient(mc -> mc.player.setXRot(90.0F));
+			context.waitTicks(20);
+			context.takeScreenshot("space-7-" + planet.id() + "-from-above");
 			context.runOnClient(mc -> mc.gui.hud.toggle());
+			checkPlanetBlocks(server, planet);
 			if (planet == Space.Planet.MOON) {
 				check(server, p -> Math.abs(p.getAttributeValue(Attributes.GRAVITY) - 0.08 / 6.0) < 0.001, "the Moon has a sixth of the Earth's gravity");
 				// No air without the ring
@@ -763,6 +786,30 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		activate(context, connection);
 		server.runCommand("tp @a 0.5 -60 0.5");
 		context.waitTicks(3);
+	}
+
+	/** Each planet is made of its own rock, with its own ores in it. */
+	private static void checkPlanetBlocks(TestServerContext server, Space.Planet planet) {
+		List<Block> expected = switch (planet) {
+			case MOON -> List.of(PlanetBlocks.MOON_DUST, PlanetBlocks.MOON_ROCK, PlanetBlocks.MOON_IRON_ORE);
+			case MARS -> List.of(PlanetBlocks.MARS_ROCK, PlanetBlocks.MARS_IRON_ORE);
+			case OA -> List.of(PlanetBlocks.OAN_STONE, PlanetBlocks.OAN_EMERALD_ORE);
+		};
+		for (Block block : expected) {
+			check(server, p -> {
+				BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+				for (int x = -32; x <= 32; x++) {
+					for (int z = -32; z <= 32; z++) {
+						for (int y = p.level().getMinY(); y < p.level().getMaxY(); y++) {
+							if (p.level().getBlockState(pos.set(p.getBlockX() + x, y, p.getBlockZ() + z)).is(block)) {
+								return true;
+							}
+						}
+					}
+				}
+				return false;
+			}, planet.id() + " has " + block.getDescriptionId());
+		}
 	}
 
 	/** The ring on the hand, off and on, and elytra mode and super flight. Run on its own with RINGS_FLIGHT=1. */
@@ -1440,6 +1487,88 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(core), net.minecraft.core.Direction.NORTH, core, false));
 	}
 
+	/** The construct sword's slash, the construct shield, and a will shard topping up a ring. Run on its own with RINGS_GEAR=1. */
+	private static void constructGear(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runCommand("time set noon");
+		server.runCommand("weather clear");
+		server.runCommand("gamemode survival @a");
+		wear(context, connection, server, RingColor.GREEN);
+		// Facing south, down the line the targets stand on
+		context.runOnClient(mc -> {
+			mc.player.setYRot(0.0F);
+			mc.player.setXRot(0.0F);
+		});
+		context.waitTicks(5);
+		server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.SWORD));
+		context.waitTicks(12);
+		server.runOnServer(s -> RingConstructs.make(player(s), RingConstructs.Construct.SHIELD));
+		check(server, p -> p.getMainHandItem().is(Rings.CONSTRUCT_SWORD) && p.getOffhandItem().is(Rings.CONSTRUCT_SHIELD),
+				"the sword goes in hand and the shield on the off hand");
+
+		// The slash: cuts down a line of husks ahead (husks, as zombies would burn in the sun), wherever the wearer looks
+		server.runCommand("summon minecraft:husk 0.5 -60 6.5 {NoAI:1b}");
+		server.runCommand("summon minecraft:husk 1.5 -60 10.5 {NoAI:1b}");
+		context.waitTicks(5);
+		int charge = server.computeOnServer(s -> RingItem.charge(RingAttachments.getRing(player(s))));
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			p.setShiftKeyDown(true);
+			Rings.CONSTRUCT_SWORD.use(p.level(), p, InteractionHand.MAIN_HAND);
+			p.setShiftKeyDown(false);
+		});
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 120.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("gear-1-slash");
+		context.waitTicks(10);
+		check(server, p -> p.level().getEntitiesOfClass(Husk.class, p.getBoundingBox().inflate(16), z -> z.getHealth() >= z.getMaxHealth()).isEmpty(),
+				"the slash cuts both husks");
+		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) < charge, "the slash costs the ring some charge");
+		server.runCommand("kill @e[type=minecraft:husk]");
+
+		// The shield: up at once, takes a hit whole, and throws the attacker back
+		// Holding right-click with the sword in hand raises the shield, rather than slashing
+		context.getInput().holdKey(options -> options.keyUse);
+		context.waitTicks(2);
+		check(server, ServerPlayer::isBlocking, "the construct shield blocks straight away");
+		// (Free to move this time: a mob with no AI can't be knocked about)
+		server.runCommand("summon minecraft:husk 0.5 -60 2.0");
+		context.waitTicks(2);
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			Husk zombie = p.level().getEntitiesOfClass(Husk.class, p.getBoundingBox().inflate(4)).getFirst();
+			p.hurtServer(p.level(), p.damageSources().mobAttack(zombie), 6.0F);
+		});
+		context.waitTicks(1);
+		context.takeScreenshot("gear-2-shield");
+		TestCamera.yawOffset = 200.0F;
+		context.waitTick();
+		context.takeScreenshot("gear-2-shield-front");
+		check(server, p -> p.getHealth() >= p.getMaxHealth(), "the shield takes the hit");
+		context.waitTicks(4);
+		check(server, p -> p.level().getEntitiesOfClass(Husk.class, p.getBoundingBox().inflate(16), z -> z.isAlive() && z.distanceTo(p) > 3.0F).size() == 1,
+				"the shield throws the attacker back");
+		server.runCommand("kill @e[type=minecraft:husk]");
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.takeScreenshot("gear-3-first-person-blocking");
+		context.getInput().releaseKey(options -> options.keyUse);
+		context.waitTicks(2);
+		context.takeScreenshot("gear-3-first-person");
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+
+		// A will shard tops a ring up a quarter
+		server.runOnServer(s -> {
+			ServerPlayer p = player(s);
+			RingAttachments.getRing(p).set(RingComponents.CHARGE, 100);
+			p.getInventory().setItem(8, new ItemStack(PlanetBlocks.WILL_SHARD, 2));
+			p.getInventory().setSelectedSlot(8);
+			PlanetBlocks.WILL_SHARD.use(p.level(), p, InteractionHand.MAIN_HAND);
+		});
+		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == 100 + WillShardItem.CHARGE
+				&& p.getInventory().getItem(8).getCount() == 1, "a will shard charges the ring a quarter and is used up");
+	}
+
 	/** Wears a ring of the colour, fully charged and switched on, standing at the test spot. */
 	private static void wear(ClientGameTestContext context, TestServerConnection connection, TestServerContext server, RingColor color) {
 		server.runOnServer(s -> {
@@ -1505,6 +1634,10 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			film(context, RingAnimations.CHARGE, 8);
 			film(context, RingAnimations.CHARGE_FULL, 9);
 			film(context, RingAnimations.LAND, 4);
+			film(context, RingAnimations.CONSTRUCT, 5);
+			film(context, RingAnimations.POWER, 7);
+			film(context, RingAnimations.FIELD, 7);
+			film(context, RingAnimations.SCAN, 6);
 			TestCamera.yawOffset = 0.0F;
 			// At night a suited-up player lights up their surroundings (LambDynamicLights)
 			server.runCommand("time set midnight");

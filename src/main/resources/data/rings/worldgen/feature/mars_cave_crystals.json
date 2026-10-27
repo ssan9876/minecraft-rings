@@ -1,0 +1,6 @@
+{
+  "type": "rings:crystal_patch",
+  "crystal": "rings:mars_crystal",
+  "tries": 10,
+  "spread": 3
+}

@@ -1,0 +1,30 @@
+{
+  "variants": {
+    "facing=up": {
+      "model": "rings:block/mars_crystal"
+    },
+    "facing=down": {
+      "model": "rings:block/mars_crystal",
+      "x": 180
+    },
+    "facing=north": {
+      "model": "rings:block/mars_crystal",
+      "x": 90
+    },
+    "facing=south": {
+      "model": "rings:block/mars_crystal",
+      "x": 90,
+      "y": 180
+    },
+    "facing=east": {
+      "model": "rings:block/mars_crystal",
+      "x": 90,
+      "y": 90
+    },
+    "facing=west": {
+      "model": "rings:block/mars_crystal",
+      "x": 90,
+      "y": 270
+    }
+  }
+}

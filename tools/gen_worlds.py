@@ -18,17 +18,17 @@ PLANET_TEXTURES = Path("src/main/resources/assets/rings/textures/environment/pla
 # Planet blocks: (surface, under the surface, the rest of the ground)
 PLANETS = {
     "moon": {
-        "blocks": ("minecraft:light_gray_concrete_powder", "minecraft:andesite", "minecraft:stone"),
+        "blocks": ("rings:moon_dust", "rings:moon_rock", "rings:moon_rock"),
         "sky": "#000000", "fog": "#16161c", "stars": 0.9, "ambient": 0.05, "clouds": False,
         "carvers": ["minecraft:cave", "minecraft:canyon"],
     },
     "mars": {
-        "blocks": ("minecraft:red_sand", "minecraft:red_sandstone", "minecraft:terracotta"),
+        "blocks": ("minecraft:red_sand", "minecraft:red_sandstone", "rings:mars_rock"),
         "sky": "#d99a66", "fog": "#c77a4e", "stars": 0.0, "ambient": 0.0, "clouds": False,
         "carvers": ["minecraft:cave", "minecraft:canyon"],
     },
     "oa": {
-        "blocks": ("minecraft:green_concrete_powder", "minecraft:green_terracotta", "minecraft:deepslate"),
+        "blocks": ("minecraft:green_concrete_powder", "minecraft:green_terracotta", "rings:oan_stone"),
         "sky": "#3e9a5e", "fog": "#2f7d4b", "stars": 0.3, "ambient": 0.1, "clouds": True,
         "carvers": ["minecraft:cave"],
     },
@@ -87,13 +87,19 @@ def dimension_type(sky, fog, stars, ambient, clouds, min_y, height, fog_end):
     }
 
 
-def biome(carvers):
+# The steps features generate in, in vanilla's order (a biome lists its features for each)
+STEPS = ["raw_generation", "lakes", "local_modifications", "underground_structures", "surface_structures", "strongholds",
+         "underground_ores", "underground_decoration", "fluid_springs", "vegetal_decoration", "top_layer_modification"]
+
+
+def biome(carvers, features=None):
+    features = features or {}
     return {
         "carvers": carvers,
         "downfall": 0.0,
         "effects": {"water_color": "#3f76e4"},
-        # No features in any of the eleven generation steps: bare ground
-        "features": [[] for _ in range(11)],
+        # Each step's features, by name (see planet_features); space has none
+        "features": [[f"rings:{name}" for name in features.get(step, [])] for step in STEPS],
         "has_precipitation": False,
         "temperature": 0.5,
     }
@@ -115,7 +121,7 @@ def main():
         surface, under, ground = planet["blocks"]
         write(DATA / f"dimension_type/{name}.json", dimension_type(
             planet["sky"], planet["fog"], planet["stars"], planet["ambient"], planet["clouds"], -64, 384, 640.0))
-        write(DATA / f"worldgen/biome/{name}.json", biome(planet["carvers"]))
+        write(DATA / f"worldgen/biome/{name}.json", biome(planet["carvers"], planet_features(name, ground)))
 
         # The overworld's shape in the planet's own rock, with no water, aquifers, ore veins or mobs
         settings = dict(overworld)
@@ -145,6 +151,102 @@ def main():
         })
 
     write(DATA / "damage_type/vacuum.json", {"message_id": "rings.vacuum", "exhaustion": 0.0, "scaling": "never"})
+
+
+def uniform(low, high):
+    return {"type": "minecraft:uniform", "min_inclusive": {"absolute": low}, "max_inclusive": {"absolute": high}}
+
+
+def ore(name, block, rock, size, count, low, high, air_exposure=0.0):
+    """Veins of an ore (or any block) in the planet's rock, spread evenly between two heights."""
+    write(DATA / f"worldgen/feature/{name}.json", {
+        "type": "minecraft:ore", "discard_chance_on_air_exposure": air_exposure, "size": size,
+        "targets": [{"state": block, "target": {"predicate_type": "minecraft:block_match", "block": rock}}]})
+    write(DATA / f"worldgen/placed_feature/{name}.json", {"feature": f"rings:{name}", "placement": [
+        {"type": "minecraft:count", "count": count}, {"type": "minecraft:in_square"},
+        {"type": "minecraft:height_range", "height": uniform(low, high)}, {"type": "minecraft:biome"}]})
+    return name
+
+
+def on_surface(name, feature, rarity):
+    """A feature on the ground, in about one chunk in {rarity}."""
+    write(DATA / f"worldgen/feature/{name}.json", feature)
+    write(DATA / f"worldgen/placed_feature/{name}.json", {"feature": f"rings:{name}", "placement": [
+        {"type": "minecraft:rarity_filter", "chance": rarity}, {"type": "minecraft:in_square"},
+        {"type": "minecraft:heightmap", "heightmap": "WORLD_SURFACE_WG"}, {"type": "minecraft:biome"}]})
+    return name
+
+
+def in_caves(name, feature, count, low, high):
+    """A feature underground, tried {count} times a chunk between two heights."""
+    write(DATA / f"worldgen/feature/{name}.json", feature)
+    write(DATA / f"worldgen/placed_feature/{name}.json", {"feature": f"rings:{name}", "placement": [
+        {"type": "minecraft:count", "count": count}, {"type": "minecraft:in_square"},
+        {"type": "minecraft:height_range", "height": uniform(low, high)}, {"type": "minecraft:biome"}]})
+    return name
+
+
+def crystals(block, tries, spread):
+    # The patch stands each crystal upright itself
+    return {"type": "rings:crystal_patch", "crystal": block, "tries": tries, "spread": spread}
+
+
+def planet_features(name, rock):
+    """What's to be found on and in each planet, by generation step (see PlanetFeatures for the planets' own)."""
+    if name == "moon":
+        return {
+            "local_modifications": [on_surface("moon_crater", {"type": "rings:crater"}, 3)],
+            "underground_ores": [
+                ore("moon_ore_iron", "rings:moon_iron_ore", rock, 9, 14, -60, 160),
+                ore("moon_ore_moonstone", "rings:moonstone_ore", rock, 5, 6, -60, 50),
+            ],
+        }
+    if name == "mars":
+        write(DATA / "worldgen/feature/mars_geode.json", {
+            "type": "minecraft:geode",
+            "blocks": {
+                "filling_provider": {"id": "minecraft:air"},
+                "inner_layer_provider": {"id": "rings:mars_crystal_block"},
+                "alternate_inner_layer_provider": {"id": "rings:mars_crystal_block"},
+                "middle_layer_provider": {"id": "minecraft:red_sandstone"},
+                "outer_layer_provider": {"id": "minecraft:smooth_basalt"},
+                "inner_placements": ["rings:mars_crystal"],
+                "cannot_replace": "#minecraft:features_cannot_replace",
+                "invalid_blocks": "#minecraft:geode_invalid_blocks",
+            },
+            "crack": {"generate_crack_chance": 0.95},
+            "invalid_blocks_threshold": 1,
+            "layers": {},
+            "outer_wall_distance": {"type": "minecraft:uniform", "min_inclusive": 4, "max_inclusive": 6},
+            "use_alternate_layer0_chance": 0.083,
+        })
+        write(DATA / "worldgen/placed_feature/mars_geode.json", {"feature": "rings:mars_geode", "placement": [
+            {"type": "minecraft:rarity_filter", "chance": 12}, {"type": "minecraft:in_square"},
+            {"type": "minecraft:height_range", "height": uniform(-54, 40)}, {"type": "minecraft:biome"}]})
+        return {
+            "local_modifications": ["mars_geode"],
+            "underground_ores": [
+                ore("mars_ore_iron", "rings:mars_iron_ore", rock, 12, 20, -60, 180),
+                ore("mars_ore_gold", "rings:mars_gold_ore", rock, 8, 6, -60, 40),
+                # Ice, frozen deep in the rock: what water Mars has
+                ore("mars_ice", "minecraft:packed_ice", rock, 24, 3, -40, 70),
+                ore("mars_blue_ice", "minecraft:blue_ice", rock, 8, 2, -60, 20),
+            ],
+            "vegetal_decoration": [
+                on_surface("mars_spire", {"type": "rings:spire"}, 2),
+                in_caves("mars_cave_crystals", crystals("rings:mars_crystal", 10, 3), 6, -60, 60),
+            ],
+        }
+    return {
+        "underground_ores": [
+            ore("oa_ore_emerald", "rings:oan_emerald_ore", rock, 4, 12, -60, 140),
+            ore("oa_ore_will_crystal", "rings:will_crystal_ore", rock, 5, 7, -60, 60),
+        ],
+        "vegetal_decoration": [
+            on_surface("oa_crystals", crystals("rings:oan_crystal", 8, 4), 2),
+            in_caves("oa_cave_crystals", crystals("rings:oan_crystal", 10, 3), 8, -60, 80),
+        ],
+    }
 
 
 # Planet maps: equirectangular textures for the spheres drawn in the sky. Noise is sampled on the sphere itself so

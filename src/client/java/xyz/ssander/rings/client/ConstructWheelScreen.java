@@ -44,7 +44,7 @@ public class ConstructWheelScreen extends Screen {
 		this.icons = new ItemStack[constructs.length];
 		for (Construct construct : constructs) {
 			this.icons[construct.ordinal()] = switch (construct) {
-				case WALL -> new ItemStack(Items.SHIELD);
+				case WALL -> new ItemStack(Items.STONE_BRICK_WALL);
 				case BRIDGE -> new ItemStack(Items.SCAFFOLDING);
 				case STAIRS -> new ItemStack(Items.QUARTZ_STAIRS);
 				case DOME -> new ItemStack(Items.GLASS);
@@ -53,6 +53,7 @@ public class ConstructWheelScreen extends Screen {
 				case FIST -> new ItemStack(Items.MACE);
 				case HAMMER -> new ItemStack(Items.ANVIL);
 				case SWORD -> tinted(new ItemStack(Rings.CONSTRUCT_SWORD));
+				case SHIELD -> tinted(new ItemStack(Rings.CONSTRUCT_SHIELD));
 				case AXE -> tinted(new ItemStack(Rings.CONSTRUCT_AXE));
 				case PICKAXE -> tinted(new ItemStack(Rings.CONSTRUCT_PICKAXE));
 				case SHOVEL -> tinted(new ItemStack(Rings.CONSTRUCT_SHOVEL));

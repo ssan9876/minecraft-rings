@@ -136,7 +136,11 @@ public final class RingScan implements HudElement {
 			return 0;
 		}
 		String name = BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
-		if (name.contains("diamond")) {
+		if (name.contains("will_crystal")) {
+			return 0x80FFA0;
+		} else if (name.contains("moonstone")) {
+			return 0xD8F0FF;
+		} else if (name.contains("diamond")) {
 			return 0x50FFF0;
 		} else if (name.contains("emerald")) {
 			return 0x30FF60;

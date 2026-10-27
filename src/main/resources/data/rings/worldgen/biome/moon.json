@@ -10,11 +10,16 @@
   "features": [
     [],
     [],
+    [
+      "rings:moon_crater"
+    ],
     [],
     [],
     [],
-    [],
-    [],
+    [
+      "rings:moon_ore_iron",
+      "rings:moon_ore_moonstone"
+    ],
     [],
     [],
     [],

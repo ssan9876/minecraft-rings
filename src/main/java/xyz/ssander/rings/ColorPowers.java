@@ -154,7 +154,7 @@ public final class ColorPowers {
 		if (spent > 0) {
 			LAST_USED.put(player, now);
 			RingItem.addCharge(ring, -spent);
-			RingPowers.playAnimation(player, RingAnimationPayload.Kind.CONSTRUCT, color);
+			RingPowers.playAnimation(player, RingAnimationPayload.Kind.POWER, color);
 		}
 	}
 
