@@ -116,7 +116,7 @@ public final class RingPowers {
 		if (active != null) {
 			ColorPowers.tick(player, active.color());
 		}
-		updateCostume(player, active != null ? active.costume() : null);
+		updateCostume(player, active != null ? active.color().costume(RingAttachments.suit(player)) : null);
 		RingColor worn = ring != null ? ring.color() : null;
 		if (worn != player.getAttached(RingAttachments.WORN_RING)) {
 			player.setAttached(RingAttachments.WORN_RING, worn);

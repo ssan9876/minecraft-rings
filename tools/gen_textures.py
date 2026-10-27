@@ -176,13 +176,8 @@ CHEST = [
 ]
 
 
-def lantern_skin(p):
-    """The suit. Its head only shows where the player's own head can't (worn, the player keeps their head)."""
-    rng = random.Random(7)
-    image = Image.new("RGBA", (64, 64), CLEAR)
-    suit = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
-    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
-
+def suit_head(p):
+    """A suit's head. It only shows where the player's own head can't (worn, the player keeps their head)."""
     def head(face, x, y, w, h):
         if face == "top":
             return HAIR
@@ -204,6 +199,25 @@ def lantern_skin(p):
         if y == 6 and x in (3, 4):
             return LIP
         return SKIN
+    return head
+
+
+def paint_suit(head, body, right_arm, left_arm, right_leg, left_leg):
+    image = Image.new("RGBA", (64, 64), CLEAR)
+    paint_box(image, 0, 0, 8, 8, 8, head)
+    paint_box(image, 16, 16, 8, 12, 4, body)
+    paint_box(image, 40, 16, 4, 12, 4, right_arm)
+    paint_box(image, 32, 48, 4, 12, 4, left_arm)
+    paint_box(image, 0, 16, 4, 12, 4, right_leg)
+    paint_box(image, 16, 48, 4, 12, 4, left_leg)
+    return image
+
+
+def lantern_skin(p):
+    """The classic suit: black shoulders, sleeves and boots, the ring's colour over the chest, gloves and legs."""
+    rng = random.Random(7)
+    suit = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
+    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
 
     def body(face, x, y, w, h):
         if face == "front":
@@ -239,13 +253,153 @@ def lantern_skin(p):
             return black() if face == outer_face else suit()
         return paint
 
-    paint_box(image, 0, 0, 8, 8, 8, head)
-    paint_box(image, 16, 16, 8, 12, 4, body)
-    paint_box(image, 40, 16, 4, 12, 4, arm)             # right arm
-    paint_box(image, 32, 48, 4, 12, 4, arm)             # left arm
-    paint_box(image, 0, 16, 4, 12, 4, leg("right"))     # right leg
-    paint_box(image, 16, 48, 4, 12, 4, leg("left"))     # left leg
-    return image
+    return paint_suit(suit_head(p), body, arm, arm, leg("right"), leg("left"))
+
+
+def shadow_skin(p):
+    """The shadow suit: black all over, lit by the ring's colour at the emblem, the shoulders, stripes down the outside
+    of the arms and legs, and the gloves and boots."""
+    rng = random.Random(11)
+    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
+
+    def body(face, x, y, w, h):
+        if face == "front":
+            ch = CHEST[y][x]
+            if ch == "W":
+                return p.glow
+            if ch == "K" and y < 2:
+                return p.suit if y == 0 else p.suit_dark
+            return black()
+        if face == "back":
+            return p.suit if y == 0 else black()
+        if face == "top":
+            return p.suit
+        return black()
+
+    def arm(outer_face):
+        def paint(face, x, y, w, h):
+            if face == "top":
+                return p.suit
+            if face == "bottom":
+                return p.suit_dark
+            if y > 8:
+                return p.suit if y > 9 else p.light
+            return p.suit if face == outer_face and x in (1, 2) else black()
+        return paint
+
+    def leg(outer_face):
+        def paint(face, x, y, w, h):
+            if face == "top":
+                return p.panel
+            if face == "bottom":
+                return p.suit_dark
+            if y > 9:
+                return p.suit if y > 10 else p.light
+            return p.suit if face == outer_face and x in (1, 2) else black()
+        return paint
+
+    return paint_suit(suit_head(p), body, arm("right"), arm("left"), leg("right"), leg("left"))
+
+
+def armored_skin(p):
+    """The armored suit: plates of the ring's colour with seams between, metal pauldrons, belt, knee guards, gauntlets
+    and boots, and the emblem glowing on the breastplate."""
+    rng = random.Random(13)
+    plate = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
+    metal = lambda: textured(p.metal, p.metal_dark, p.metal_light, rng)
+
+    def body(face, x, y, w, h):
+        if face == "front":
+            if y >= 10:
+                return p.rivet if y == 10 and x in (3, 4) else metal()
+            ch = CHEST[y][x]
+            if ch == "W":
+                return p.glow
+            if ch == "K":
+                return p.metal_light if y == 0 else metal()
+            return p.suit_dark if y == 7 else plate()
+        if face == "back":
+            if y >= 10 or y == 0:
+                return metal()
+            return p.suit_dark if y in (4, 7) or x == w // 2 else plate()
+        if face in ("left", "right"):
+            return metal() if y >= 10 else p.suit_dark if y in (4, 7) else plate()
+        return metal()
+
+    def arm(face, x, y, w, h):
+        if face == "top" or y < 3:
+            # The pauldron, studded along its edge
+            if face == "top" or y == 0:
+                return p.metal_light
+            return p.rivet if y == 2 and x % 2 == 0 else metal()
+        if face == "bottom" or y > 8:
+            return metal()
+        if y == 8:
+            return p.metal_light
+        return p.suit_dark if y == 5 else plate()
+
+    def leg(face, x, y, w, h):
+        if face == "top":
+            return plate()
+        if face == "bottom" or y > 8:
+            return p.metal_dark if y == 11 else metal()
+        if y in (5, 6):
+            return p.metal_light if y == 5 else metal()
+        return p.suit_dark if y == 2 else plate()
+
+    return paint_suit(suit_head(p), body, arm, arm, leg, leg)
+
+
+def robed_skin(p):
+    """The robed suit: a long tunic of the ring's colour with a light trim and a black sash, its emblem high on the
+    chest, wide sleeves over black cuffs, and black trousers and boots below the hem."""
+    rng = random.Random(17)
+    cloth = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
+    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
+    emblem = {(3, 2), (4, 2), (2, 3), (5, 3), (2, 4), (5, 4), (3, 5), (4, 5)}
+
+    def body(face, x, y, w, h):
+        if face == "top":
+            return p.light
+        if face == "bottom":
+            return p.suit_dark
+        if y == 0:
+            return p.light
+        if y == 8:
+            return p.glow if face == "front" and x in (3, 4) else black()
+        if face == "front":
+            if (x, y) in emblem:
+                return p.emblem
+            # The tunic's front edge, trimmed down the middle below the sash
+            return p.light if y > 8 and x in (3, 4) else cloth()
+        return cloth()
+
+    def arm(face, x, y, w, h):
+        if face == "top":
+            return p.light
+        if face == "bottom" or y > 9:
+            return p.suit_light if face == "bottom" else p.suit
+        if y == 9:
+            return p.light
+        return black() if y > 7 else cloth()
+
+    def leg(face, x, y, w, h):
+        if face == "top":
+            return cloth()
+        if face == "bottom":
+            return p.panel
+        # The tunic hangs to the knee, trimmed at the hem
+        if y < 4:
+            return cloth()
+        if y == 4:
+            return p.light
+        return HAIR if y > 9 else black()
+
+    return paint_suit(suit_head(p), body, arm, arm, leg, leg)
+
+
+# Same names as SuitStyle (the classic suit keeps its first name, lantern)
+SUITS = {"lantern": lantern_skin, "shadow": shadow_skin, "armored": armored_skin, "robed": robed_skin}
 
 
 # Power lantern glass, 16x16. The lantern's glass faces show x 4-11, y 5-13 of it (the model's UVs).
@@ -840,7 +994,8 @@ def icon():
 if __name__ == "__main__":
     for name, palette in COLORS.items():
         save(ring_item(palette), f"textures/item/{RING_IDS[name]}.png")
-        save(lantern_skin(palette), f"textures/entity/costume/{name}_lantern.png")
+        for style, skin in SUITS.items():
+            save(skin(palette), f"textures/entity/costume/{name}_{style}.png")
         save(lantern_glass(palette), f"textures/block/{LANTERN_IDS[name]}_glass.png")
         save(lantern_metal(palette), f"textures/block/{LANTERN_IDS[name]}_metal.png")
         save(hard_light(palette), f"textures/block/hard_light_{name}.png")

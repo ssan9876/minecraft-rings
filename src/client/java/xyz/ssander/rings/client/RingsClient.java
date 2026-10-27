@@ -33,6 +33,7 @@ public class RingsClient implements ClientModInitializer {
 	public static KeyMapping scanKey;
 	public static KeyMapping powerKey;
 	public static KeyMapping callKey;
+	public static KeyMapping suitKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -51,6 +52,8 @@ public class RingsClient implements ClientModInitializer {
 				new KeyMapping("key.rings.power", InputConstants.KEY_C, category));
 		callKey = KeyMappingHelper.registerKeyMapping(
 				new KeyMapping("key.rings.call", InputConstants.KEY_H, category));
+		suitKey = KeyMappingHelper.registerKeyMapping(
+				new KeyMapping("key.rings.suit", InputConstants.KEY_J, category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (activateKey.consumeClick()) {
@@ -69,6 +72,11 @@ public class RingsClient implements ClientModInitializer {
 			}
 			while (powerKey.consumeClick()) {
 				usePower(client);
+			}
+			while (suitKey.consumeClick()) {
+				if (client.player != null && client.gui.screen() == null) {
+					client.gui.setScreen(new SuitScreen());
+				}
 			}
 			while (callKey.consumeClick()) {
 				if (client.player != null) {

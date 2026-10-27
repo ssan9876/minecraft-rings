@@ -8,6 +8,7 @@ import com.mojang.authlib.GameProfile;
 import io.netty.channel.embedded.EmbeddedChannel;
 
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerConnection;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
@@ -77,6 +78,7 @@ import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.RingProtection;
 import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Space;
+import xyz.ssander.rings.SuitStyle;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.WillShardItem;
 import xyz.ssander.rings.client.ConstructAnyScreen;
@@ -86,7 +88,9 @@ import xyz.ssander.rings.client.RingAnimations;
 import xyz.ssander.rings.client.RingFlight;
 import xyz.ssander.rings.client.RingScan;
 import xyz.ssander.rings.client.RingsClient;
+import xyz.ssander.rings.client.SuitScreen;
 import xyz.ssander.rings.client.SuperFlight;
+import xyz.ssander.rings.network.ChooseSuitPayload;
 
 /** Plays through the ring: equip, activate, fly, land, costume, charge, every colour, take off, death drop, creative inventory. */
 public class RingsClientGameTest implements FabricClientGameTest {
@@ -126,6 +130,16 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
 				ringPowers(context, world.getConnection(), world.getServer());
+			}
+			return;
+		}
+		if (System.getenv("RINGS_SUITS") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				world.getServer().runCommand("gamemode survival @a");
+				world.getServer().runCommand("time set noon");
+				world.getServer().runCommand("tp @a 0 -60 0 180 0");
+				chooseSuits(context, world.getConnection(), world.getServer());
 			}
 			return;
 		}
@@ -643,6 +657,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				camera(context, CameraType.FIRST_PERSON);
 			}
 			server.runCommand("clear @a");
+
+			// Choosing a suit: each style in the ring's colour, kept when the ring goes off and on again
+			chooseSuits(context, connection, server);
 
 			// Up into space, to each planet and home again
 			exploreSpace(context, connection, server);
@@ -1834,6 +1851,44 @@ public class RingsClientGameTest implements FabricClientGameTest {
 	private static boolean isHardLight(ServerPlayer player, BlockPos pos, RingColor color) {
 		BlockState state = player.level().getBlockState(pos);
 		return state.is(Rings.HARD_LIGHT) && state.getValue(HardLightBlock.COLOR) == color;
+	}
+
+	/** Every suit style, picked on the suit screen with a red ring on, and filmed from the front. Run on its own with RINGS_SUITS=1. */
+	private static void chooseSuits(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(Rings.ring(RingColor.RED))));
+		activate(context, connection);
+		check(server, p -> RingColor.RED.costume().equals(p.getAttached(RingAttachments.COSTUME)), "with no choice made, a ring wears the classic suit");
+		context.getInput().pressKey(RingsClient.suitKey);
+		context.waitTicks(3);
+		checkClient(context, mc -> mc.gui.screen() instanceof SuitScreen, "the suit key opens the suit screen");
+		for (SuitStyle style : SuitStyle.values()) {
+			context.runOnClient(mc -> ClientPlayNetworking.send(new ChooseSuitPayload(style)));
+			connection.waitForServerboundPackets();
+			context.waitTicks(2);
+			check(server, p -> RingColor.RED.costume(style).equals(p.getAttached(RingAttachments.COSTUME)), "choosing " + style.id() + " wears it");
+			connection.waitForClientboundPackets();
+			context.waitTicks(3);
+			context.takeScreenshot("rings-13-suit-screen-" + style.id());
+		}
+		context.setScreen(() -> null);
+		camera(context, CameraType.THIRD_PERSON_FRONT);
+		for (SuitStyle style : SuitStyle.values()) {
+			context.runOnClient(mc -> ClientPlayNetworking.send(new ChooseSuitPayload(style)));
+			connection.waitForServerboundPackets();
+			connection.waitForClientboundPackets();
+			context.waitTicks(5);
+			context.takeScreenshot("rings-13-suit-" + style.id());
+		}
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> ClientPlayNetworking.send(new ChooseSuitPayload(SuitStyle.ARMORED)));
+		connection.waitForServerboundPackets();
+		activate(context, connection);
+		activate(context, connection);
+		check(server, p -> RingColor.RED.costume(SuitStyle.ARMORED).equals(p.getAttached(RingAttachments.COSTUME)), "the chosen suit is kept");
+		context.runOnClient(mc -> ClientPlayNetworking.send(new ChooseSuitPayload(SuitStyle.CLASSIC)));
+		connection.waitForServerboundPackets();
+		activate(context, connection);
+		server.runCommand("clear @a");
 	}
 
 	/** Which way to look to face the sun in space and on the planets (SpaceSky.SUN). */

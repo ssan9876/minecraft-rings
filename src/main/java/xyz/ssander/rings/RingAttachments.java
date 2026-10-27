@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.attachment.v1.AttachmentSyncPredicate;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import org.jspecify.annotations.Nullable;
@@ -28,6 +29,10 @@ public final class RingAttachments {
 	/** The costume being worn. Synced to every client so everyone sees it. */
 	public static final AttachmentType<Identifier> COSTUME = AttachmentRegistry.create(Rings.id("costume"),
 			builder -> builder.syncWith(Identifier.STREAM_CODEC, AttachmentSyncPredicate.all()));
+
+	/** Which suit the player's rings dress them in (missing means the classic one). Synced to them for the suit screen. */
+	public static final AttachmentType<SuitStyle> SUIT = AttachmentRegistry.create(Rings.id("suit"),
+			builder -> builder.persistent(SuitStyle.CODEC).copyOnDeath().syncWith(SuitStyle.STREAM_CODEC, AttachmentSyncPredicate.targetOnly()));
 
 	/** Set while the wearer is flying on the ring's power. Synced to every client for the flying pose and trail. */
 	public static final AttachmentType<Boolean> FLYING = AttachmentRegistry.create(Rings.id("flying"),
@@ -66,6 +71,15 @@ public final class RingAttachments {
 
 	public static boolean isActive(Player player) {
 		return player.getAttachedOrElse(ACTIVE, false);
+	}
+
+	public static SuitStyle suit(Player player) {
+		return player.getAttachedOrElse(SUIT, SuitStyle.CLASSIC);
+	}
+
+	/** The player picked a suit. It goes on straight away if their ring is on. */
+	public static void chooseSuit(ServerPlayer player, SuitStyle style) {
+		player.setAttached(SUIT, style == SuitStyle.CLASSIC ? null : style);
 	}
 
 	/** The colour of the worn ring while it's switched on, otherwise null. */

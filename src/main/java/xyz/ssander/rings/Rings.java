@@ -40,6 +40,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
 import xyz.ssander.rings.network.ActivateRingPayload;
+import xyz.ssander.rings.network.ChooseSuitPayload;
 import xyz.ssander.rings.network.ConstructItemPayload;
 import xyz.ssander.rings.network.CreateConstructPayload;
 import xyz.ssander.rings.network.FireBeamPayload;
@@ -223,6 +224,8 @@ public class Rings implements ModInitializer {
 		PayloadTypeRegistry.clientboundPlay().register(RingAnimationPayload.TYPE, RingAnimationPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(CreateConstructPayload.TYPE, CreateConstructPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(CreateConstructPayload.TYPE, (payload, context) -> RingConstructs.make(context.player(), payload.construct()));
+		PayloadTypeRegistry.serverboundPlay().register(ChooseSuitPayload.TYPE, ChooseSuitPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(ChooseSuitPayload.TYPE, (payload, context) -> RingAttachments.chooseSuit(context.player(), payload.style()));
 		PayloadTypeRegistry.serverboundPlay().register(ConstructItemPayload.TYPE, ConstructItemPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(ConstructItemPayload.TYPE,
 				(payload, context) -> RingConstructs.makeItem(context.player(), payload.item(), payload.stack()));

@@ -76,9 +76,14 @@ public enum RingColor implements StringRepresentable {
 		return this.mapColor;
 	}
 
-	/** The suit a wearer of this colour's ring turns into. */
+	/** The classic suit a wearer of this colour's ring turns into. */
 	public Identifier costume() {
-		return Rings.id(this.name + "_lantern");
+		return this.costume(SuitStyle.CLASSIC);
+	}
+
+	/** This colour's suit of that style (or, for no suit, the costume that only outlines the wearer in the colour). */
+	public Identifier costume(SuitStyle style) {
+		return Rings.id(this.name + "_" + style.id());
 	}
 
 	/** A glowing mote of this energy (see RingParticles), mixed toward white by {@code light} (0 to 1). */

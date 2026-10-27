@@ -12,20 +12,25 @@ import org.jspecify.annotations.Nullable;
 
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.Rings;
+import xyz.ssander.rings.SuitStyle;
 
 /**
  * How each costume looks. A costume's skin is at {@code textures/entity/costume/<name>.png} and its cape,
- * if it has one, at {@code <name>_cape.png}. Each ring colour has its own suit, outlined in its energy.
+ * if it has one, at {@code <name>_cape.png}. Each ring colour has each style of suit, outlined in its energy; with no
+ * suit ({@code skin} null) the wearer keeps their own skin and only the outline shows.
  */
 public final class Costumes {
-	public record Costume(PlayerSkin.Patch skin, RingColor color) {
+	public record Costume(PlayerSkin.@Nullable Patch skin, RingColor color) {
 	}
 
 	private static final Map<Identifier, Costume> COSTUMES = new HashMap<>();
 
 	static {
 		for (RingColor color : RingColor.values()) {
-			COSTUMES.put(color.costume(), new Costume(skin(color.costume().getPath(), false, PlayerModelType.WIDE), color));
+			for (SuitStyle style : SuitStyle.values()) {
+				Identifier id = color.costume(style);
+				COSTUMES.put(id, new Costume(style.hasSuit() ? skin(id.getPath(), false, PlayerModelType.WIDE) : null, color));
+			}
 		}
 	}
 

@@ -13,6 +13,7 @@ Options → Controls → Rings.
 | Force Field | `B` | Force field on or off; looking at a creature or player, carries them in a bubble instead |
 | Ring Scan | `Z` | Scans what's round about |
 | Call Ring | `H` | Calls your rings back to you from wherever they are (works with no ring on) |
+| Choose Suit | `J` | Picks which suit your rings dress you in (works with no ring on) |
 
 **Power rings** come in eight colours: green, yellow, blue, red, pink, orange, white and black. The ring shows on
 your right hand whenever it's worn, glowing when it's on. While one is on:
@@ -25,7 +26,11 @@ your right hand whenever it's worn, glowing when it's on. While one is on:
   rushing wind, a wider view and a shaking camera. Hitting the ground fast sends a shockwave out around your
   landing. Let go and your momentum carries you back into hovering. Holding sneak to boost doesn't crouch you.
   Sneak on its own still flies down;
-- you wear the ring's suit, in its colour with the lantern emblem, under your own head;
+- you wear the ring's suit, in its colour with the lantern emblem, under your own head. Press **Choose Suit** (`J`)
+  to pick which: **Classic** (black shoulders and sleeves over the ring's colour), **Shadow** (black, lit by the
+  ring's colour at the emblem, stripes, gloves and boots), **Armored** (plates of the colour with metal pauldrons,
+  belt, knee guards and gauntlets), **Robed** (a long tunic with a sash over black trousers), or **No suit**, keeping
+  your own skin with just the glowing outline. Your choice is kept, for every ring you wear;
 - you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls;
 - you glow, lighting up the world around you (brighter while firing the beam), with LambDynamicLights installed;
 - the ring's energy shields you: +8 armor and +2 armor toughness, about a full set of iron armor, on top of
@@ -220,6 +225,7 @@ Needs JDK 25.
 | `RINGS_OA=1 ./gradlew runClientGameTest` | Only Oa, the Guardians, Manhunters, Parallax and Nekron |
 | `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
 | `RINGS_GEAR=1 ./gradlew runClientGameTest` | Only the construct sword's slash, the construct shield and a will shard |
+| `RINGS_SUITS=1 ./gradlew runClientGameTest` | Only choosing each suit, on the suit screen and from the front |
 
 ## Releasing
 

@@ -52,10 +52,12 @@ public abstract class AvatarRendererMixin implements SlimArms {
 		if (color == null) {
 			return;
 		}
-		boolean costume = player.getAttached(RingAttachments.COSTUME) != null;
+		Costumes.Costume costume = Costumes.get(player.getAttached(RingAttachments.COSTUME));
+		// A suit has wide arms, whatever the player's own are
+		boolean suit = costume != null && costume.skin() != null;
 		poseStack.pushPose();
 		((AvatarRenderer<?>) (Object) this).getModel().rightArm.translateAndRotate(poseStack);
-		WornRing.submit(poseStack, collector, lightCoords, color, this.rings$slim && !costume, costume);
+		WornRing.submit(poseStack, collector, lightCoords, color, this.rings$slim && !suit, costume != null);
 		poseStack.popPose();
 	}
 	// Swaps in the costume, outlines the wearer in the ring's colour, and sets up the flying pose.
@@ -74,7 +76,7 @@ public abstract class AvatarRendererMixin implements SlimArms {
 		ring.rings$setFiring(RingBeam.isFiring(player));
 
 		Costumes.Costume costume = Costumes.get(player.getAttached(RingAttachments.COSTUME));
-		if (costume != null) {
+		if (costume != null && costume.skin() != null) {
 			PlayerSkin.Patch patch = costume.skin();
 			// The suit replaces everything below the neck. The head keeps the player's own skin (OwnHeadLayer).
 			ring.rings$setOwnSkin(state.skin);
@@ -86,6 +88,8 @@ public abstract class AvatarRendererMixin implements SlimArms {
 			state.showLeftPants = true;
 			state.showRightPants = true;
 			state.showCape |= patch.cape().isPresent();
+		}
+		if (costume != null) {
 			state.outlineColor = ARGB.opaque(costume.color().energy());
 		}
 
