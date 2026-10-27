@@ -193,6 +193,7 @@ public class Rings implements ModInitializer {
 		RingParticles.init();
 		PlanetBlocks.init();
 		PlanetFeatures.init();
+		OaCitadel.init();
 		RingReturn.init();
 		RingProtection.init();
 		Thralls.init();

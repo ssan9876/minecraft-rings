@@ -35,6 +35,13 @@ public final class OaCitadel {
 	private OaCitadel() {
 	}
 
+	/**
+	 * Registers the built marker. It has to be done at startup, before Oa's saved data loads, or the marker is
+	 * thrown away as unknown and the citadel built again over itself.
+	 */
+	static void init() {
+	}
+
 	/** Builds the citadel on Oa if it isn't there yet. */
 	public static void ensureBuilt(ServerLevel oa) {
 		if (oa.getAttachedOrElse(BUILT, false)) {
