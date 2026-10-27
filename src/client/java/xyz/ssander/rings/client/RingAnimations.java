@@ -22,12 +22,14 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 import xyz.ssander.rings.PowerLanternBlock;
 import xyz.ssander.rings.RingColor;
+import xyz.ssander.rings.RingPowers;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.network.RingAnimationPayload;
 
@@ -72,6 +74,9 @@ public final class RingAnimations {
 	/** The full-charge shockwave grows for this many ticks; the burst off the raised fist follows. */
 	private static final int SHOCKWAVE_TICKS = 7;
 	private static final int BURST_TICKS = 16;
+	/** The charging pose drives the fist forward in a surge at this tick, then every second after (see charge). */
+	private static final int SURGE_START = 22;
+	private static final int SURGE_TICKS = 20;
 
 	private record Charging(int lastTopUp, int start, RingColor color) {
 	}
@@ -189,22 +194,60 @@ public final class RingAnimations {
 		});
 	}
 
-	/** A double helix of energy spiralling up around the wearer, and a glow at the ring fist. */
+	/**
+	 * The lantern's energy pouring into the kneeling wearer: motes drawn out of the lantern along a wavering stream
+	 * into the ring fist, a glow there that swells with each surge, light rising round the wearer, and with each surge
+	 * (in step with the charge animation's, a second apart) a ring of it rippling out along the ground.
+	 */
 	private static void chargingEnergy(ClientLevel level, Player player, int age, RingColor color) {
 		RandomSource random = player.getRandom();
-		for (int strand = 0; strand < 2; strand++) {
-			float angle = age * 0.45F + strand * Mth.PI;
-			float height = (age * 0.09F + strand * 0.9F) % 1.9F;
-			float radius = 0.8F - height * 0.2F;
-			level.addParticle(color.dust(strand * 0.4F, 0.8F),
-					player.getX() + Mth.cos(angle) * radius, player.getY() + height, player.getZ() + Mth.sin(angle) * radius,
-					0.0, 0.02, 0.0);
+		Vec3 fist = ringFist(player);
+		Vec3 lantern = lanternLookedAt(level, player);
+
+		if (lantern != null) {
+			for (int i = 0; i < 3; i++) {
+				double along = random.nextDouble();
+				Vec3 point = lantern.lerp(fist, along);
+				// A sideways wave down the stream, so it reads as flowing rather than a straight bar
+				double wave = Mth.sin((float) (along * 9.0 - age * 0.6)) * 0.08 * (1.0 - along);
+				Vec3 toFist = fist.subtract(point).scale(0.25);
+				level.addParticle(color.dust(i == 0 ? 0.7F : 0.15F, 0.5F + random.nextFloat() * 0.4F),
+						point.x + wave, point.y + wave * 0.5, point.z - wave, toFist.x, toFist.y, toFist.z);
+			}
 		}
 
-		Vec3 fist = ringFist(player);
-		level.addParticle(color.dust(0.6F, 0.7F),
-				fist.x + (random.nextDouble() - 0.5) * 0.15, fist.y + (random.nextDouble() - 0.5) * 0.15, fist.z + (random.nextDouble() - 0.5) * 0.15,
-				0.0, 0.0, 0.0);
+		boolean surge = age >= SURGE_START && (age - SURGE_START) % SURGE_TICKS == 0;
+		int glow = surge ? 8 : 1;
+		for (int i = 0; i < glow; i++) {
+			level.addParticle(color.dust(0.75F, surge ? 1.0F : 0.6F),
+					fist.x + (random.nextDouble() - 0.5) * 0.2, fist.y + (random.nextDouble() - 0.5) * 0.2, fist.z + (random.nextDouble() - 0.5) * 0.2,
+					0.0, 0.0, 0.0);
+		}
+
+		// Light rising round the wearer, faint, faster as the charge goes on
+		float angle = age * 0.5F;
+		float radius = 0.75F;
+		level.addParticle(color.dust(0.3F, 0.7F),
+				player.getX() + Mth.cos(angle) * radius, player.getY() + 0.1, player.getZ() + Mth.sin(angle) * radius,
+				0.0, 0.6 + Math.min(age, 120) * 0.005, 0.0);
+
+		if (surge) {
+			for (int i = 0; i < 18; i++) {
+				float around = Mth.TWO_PI * i / 18;
+				level.addParticle(color.dust(0.2F, 0.9F),
+						player.getX() + Mth.cos(around) * 0.5, player.getY() + 0.1, player.getZ() + Mth.sin(around) * 0.5,
+						Mth.cos(around) * 1.2, 0.0, Mth.sin(around) * 1.2);
+			}
+		}
+	}
+
+	/** The middle of the power lantern the player is looking at, close by, or null if they're not. */
+	private static Vec3 lanternLookedAt(ClientLevel level, Player player) {
+		Vec3 eye = player.getEyePosition();
+		BlockHitResult hit = level.clip(new ClipContext(eye, eye.add(player.getViewVector(1.0F).scale(5.0)),
+				ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, player));
+		return hit.getType() == HitResult.Type.BLOCK && level.getBlockState(hit.getBlockPos()).getBlock() instanceof PowerLanternBlock
+				? Vec3.atCenterOf(hit.getBlockPos()) : null;
 	}
 
 	/** A ring of energy blasting outward along the ground, then a fountain of it off the fist raised to the sky. */
@@ -230,12 +273,12 @@ public final class RingAnimations {
 		}
 	}
 
-	/** Roughly where the ring hand is in the charging pose: held out in front, at chest height. */
+	/** Roughly where the ring hand is in the charging pose: kneeling, held out in front at the lantern. */
 	private static Vec3 ringFist(Player player) {
 		float yaw = player.yBodyRot * Mth.DEG_TO_RAD;
 		Vec3 forward = new Vec3(-Mth.sin(yaw), 0.0, Mth.cos(yaw));
 		Vec3 right = new Vec3(-Mth.cos(yaw), 0.0, -Mth.sin(yaw));
-		return player.position().add(0.0, 1.05, 0.0).add(forward.scale(0.7)).add(right.scale(0.15));
+		return player.position().add(0.0, RingPowers.CHARGE_FIST_HEIGHT, 0.0).add(forward.scale(RingPowers.CHARGE_FIST_REACH)).add(right.scale(0.2));
 	}
 
 	public static void play(Player player, Identifier animation) {

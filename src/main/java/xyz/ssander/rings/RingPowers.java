@@ -26,6 +26,10 @@ import xyz.ssander.rings.network.RingAnimationPayload;
 
 /** Server-side ring logic: switching it on and off, its power, and keeping its powers in line every tick. */
 public final class RingPowers {
+	/** Where the ring fist is in the charging pose, kneeling before the lantern: its height, and how far ahead. */
+	public static final double CHARGE_FIST_HEIGHT = 0.85;
+	public static final double CHARGE_FIST_REACH = 0.75;
+
 	/** Slow falling after flight ends in mid-air, so survival players don't fall to their death. */
 	private static final int SAFE_LANDING_TICKS = 100;
 	/** Charge used each second while the ring is on, and while flying on it. */
@@ -153,7 +157,7 @@ public final class RingPowers {
 		// bright core with the lantern's energy swirling around it, thickest at the lantern
 		Vec3 from = Vec3.atCenterOf(pos);
 		float yaw = player.yBodyRot * Mth.DEG_TO_RAD;
-		Vec3 to = player.position().add(-Mth.sin(yaw) * 0.7, 1.05, Mth.cos(yaw) * 0.7);
+		Vec3 to = player.position().add(-Mth.sin(yaw) * CHARGE_FIST_REACH, CHARGE_FIST_HEIGHT, Mth.cos(yaw) * CHARGE_FIST_REACH);
 		RingColor color = lantern.color();
 		for (int i = 0; i < STREAM_PARTICLES; i++) {
 			double along = level.getRandom().nextDouble();

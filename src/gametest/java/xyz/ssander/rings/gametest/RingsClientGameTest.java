@@ -1631,7 +1631,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.waitTicks(30);
 
 			film(context, RingAnimations.ACTIVATE, 10);
-			film(context, RingAnimations.CHARGE, 8);
+			film(context, RingAnimations.CHARGE, 30);
+			film(context, RingAnimations.CHARGE_FULL, 4);
 			film(context, RingAnimations.CHARGE_FULL, 9);
 			film(context, RingAnimations.LAND, 4);
 			film(context, RingAnimations.CONSTRUCT, 5);
