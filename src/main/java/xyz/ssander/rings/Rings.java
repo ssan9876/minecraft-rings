@@ -40,6 +40,7 @@ import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 
 import xyz.ssander.rings.network.ActivateRingPayload;
+import xyz.ssander.rings.network.ConstructItemPayload;
 import xyz.ssander.rings.network.CreateConstructPayload;
 import xyz.ssander.rings.network.FireBeamPayload;
 import xyz.ssander.rings.network.RingActionPayload;
@@ -195,6 +196,7 @@ public class Rings implements ModInitializer {
 		PlanetFeatures.init();
 		OaCitadel.init();
 		RingReturn.init();
+		RingCall.init();
 		RingProtection.init();
 		Thralls.init();
 		FabricDefaultAttributeRegistry.register(CONSTRUCT_WOLF, ConstructBeast.wolfAttributes());
@@ -221,6 +223,9 @@ public class Rings implements ModInitializer {
 		PayloadTypeRegistry.clientboundPlay().register(RingAnimationPayload.TYPE, RingAnimationPayload.CODEC);
 		PayloadTypeRegistry.serverboundPlay().register(CreateConstructPayload.TYPE, CreateConstructPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(CreateConstructPayload.TYPE, (payload, context) -> RingConstructs.make(context.player(), payload.construct()));
+		PayloadTypeRegistry.serverboundPlay().register(ConstructItemPayload.TYPE, ConstructItemPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(ConstructItemPayload.TYPE,
+				(payload, context) -> RingConstructs.makeItem(context.player(), payload.item(), payload.stack()));
 		PayloadTypeRegistry.serverboundPlay().register(FireBeamPayload.TYPE, FireBeamPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(FireBeamPayload.TYPE, (payload, context) -> RingBeam.setFiring(context.player(), payload.firing()));
 		ServerPlayNetworking.registerGlobalReceiver(ActivateRingPayload.TYPE, (payload, context) -> RingPowers.toggle(context.player()));
@@ -234,6 +239,7 @@ public class Rings implements ModInitializer {
 				RingPowers.tick(player);
 				Space.tick(player);
 			}
+			RingCall.tick(server);
 			Thralls.tick(server);
 			Bosses.tick(server);
 			MobMoods.tick();

@@ -18,14 +18,16 @@ import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.jspecify.annotations.Nullable;
 
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.Space;
 
 /**
- * Draws the planets. In space: the Earth curving away below, and the Moon, Mars and Oa where they hang (fly into one
- * to land on it). On a planet: what's in its sky, like the Earth over the Moon. Each is a textured sphere, lit from
- * the sun's side, with a faint glow of atmosphere. Anything further than the fog is drawn closer and smaller in the
+ * Draws the planets and the sun. In space: the Earth curving away below, and the Moon, Mars and Oa where they hang (fly
+ * into one to land on it). On a planet: what's in its sky, like the Earth over the Moon. Each is a textured sphere, lit
+ * from the sun's side, with a faint glow of atmosphere. The sun shines over all of them, always the same way off, so it
+ * can be seen but never reached; vanilla's flat sun and moon are switched off out here (SkyRendererMixin). Anything further than the fog is drawn closer and smaller in the
  * same proportion, so it looks the same size but isn't lost in the fog or cut off at the far edge of the view.
  */
 public final class SpaceSky {
@@ -35,14 +37,19 @@ public final class SpaceSky {
 	/** How finely spheres are divided: the Earth below, which fills half the view, much more finely. */
 	private static final int LATITUDES = 24;
 	private static final int EARTH_LATITUDES = 96;
+	/** The sun: far enough off that flying never brings it closer, and about the size the Moon looks from space. */
+	private static final double SUN_DISTANCE = 50000.0;
+	private static final double SUN_RADIUS = 4000.0;
+	private static final int SUN_GLOW = 0xFFC850;
 
 	/**
 	 * A sphere to draw: its centre relative to the camera, its size, its map, the colour of its air (0 for none), and
-	 * how it's turned: tipped over by {@code tilt} (radians) and spun round by {@code spin} (radians).
+	 * how it's turned: tipped over by {@code tilt} (radians) and spun round by {@code spin} (radians). One that
+	 * {@code shines} gives off its own light rather than being lit from the sun's side.
 	 */
-	private record Body(Vec3 offset, double radius, Identifier texture, int glow, float tilt, float spin, int latitudes) {
+	private record Body(Vec3 offset, double radius, Identifier texture, int glow, float tilt, float spin, int latitudes, boolean shines) {
 		Body(Vec3 offset, double radius, Identifier texture, int glow) {
-			this(offset, radius, texture, glow, 0.0F, 0.0F, LATITUDES);
+			this(offset, radius, texture, glow, 0.0F, 0.0F, LATITUDES, false);
 		}
 	}
 
@@ -51,6 +58,11 @@ public final class SpaceSky {
 
 	private static Identifier map(String name) {
 		return Rings.id("textures/environment/planet/" + name + ".png");
+	}
+
+	/** Whether the sky here is this mod's: space and the planets, where vanilla's sun and moon don't belong. */
+	public static boolean ownsSky(@Nullable ClientLevel level) {
+		return level != null && (level.dimension() == Space.SPACE || Space.Planet.of(level.dimension()) != null);
 	}
 
 	public static void render(LevelRenderContext context) {
@@ -78,17 +90,27 @@ public final class SpaceSky {
 				context.submitNodeCollector().submitCustomGeometry(poseStack, RenderTypes.lightning(),
 						(pose, consumer) -> sphere(pose, consumer, centre, radius * 1.04F, body, false));
 			}
+			if (body.shines) {
+				// A wide corona round the sun
+				for (float size : new float[] {1.15F, 1.35F, 1.6F, 1.9F}) {
+					context.submitNodeCollector().submitCustomGeometry(poseStack, RenderTypes.lightning(),
+							(pose, consumer) -> sphere(pose, consumer, centre, radius * size, body, false));
+				}
+			}
 		}
 	}
 
 	/** What there is to see from the camera in this dimension. */
 	private static List<Body> bodies(ResourceKey<Level> dimension, Vec3 camera) {
 		List<Body> bodies = new ArrayList<>();
+		if (dimension == Space.SPACE || Space.Planet.of(dimension) != null) {
+			bodies.add(new Body(SUN.scale(SUN_DISTANCE), SUN_RADIUS, map("sun"), SUN_GLOW, 0.0F, 0.0F, LATITUDES, true));
+		}
 		if (dimension == Space.SPACE) {
 			// Tipped over so the part below is the middle of the map, not the ice at the pole, and turning slowly
 			float spin = (float) ((Minecraft.getInstance().level.getGameTime() % 72000L) / 72000.0 * Mth.TWO_PI);
 			bodies.add(new Body(new Vec3(0.0, Space.EARTH_Y - EARTH_RADIUS - camera.y, 0.0), EARTH_RADIUS, map("earth"), 0x5A8CFF,
-					Mth.HALF_PI, spin, EARTH_LATITUDES));
+					Mth.HALF_PI, spin, EARTH_LATITUDES, false));
 			for (Space.Planet planet : Space.Planet.values()) {
 				bodies.add(new Body(planet.centre().subtract(camera), planet.radius(), map(planet.id()), glow(planet)));
 			}
@@ -152,14 +174,15 @@ public final class SpaceSky {
 		if (textured) {
 			// The sun's side bright and the far side dim but not black. The normal points straight up for every vertex so
 			// the entity shader's own lighting is the same all over and this shading is what shows.
-			float light = 0.4F + 0.6F * Math.max(0.0F, (float) (nx * SUN.x + ny * SUN.y + nz * SUN.z));
+			float light = body.shines ? 1.0F : 0.4F + 0.6F * Math.max(0.0F, (float) (nx * SUN.x + ny * SUN.y + nz * SUN.z));
 			consumer.addVertex(pose, x, y, z).setColor(light, light, light, 1.0F).setUv(u, v)
 					.setOverlay(OverlayTexture.NO_OVERLAY).setLight(LightCoordsUtil.FULL_BRIGHT).setNormal(pose, 0.0F, 1.0F, 0.0F);
 		} else {
 			// Brightest at the rim as seen from the camera, which sits at the origin
 			Vec3 toCamera = new Vec3(-x, -y, -z).normalize();
 			float facing = Math.abs((float) (nx * toCamera.x + ny * toCamera.y + nz * toCamera.z));
-			float alpha = 0.35F * (1.0F - facing) * (1.0F - facing);
+			// The sun's corona is brightest over its face and fades out to each layer's edge, so the layers blend
+			float alpha = body.shines ? 0.2F * facing * facing : 0.35F * (1.0F - facing) * (1.0F - facing);
 			int glow = body.glow;
 			consumer.addVertex(pose, x, y, z).setColor(ARGB.red(glow) / 255.0F, ARGB.green(glow) / 255.0F, ARGB.blue(glow) / 255.0F, alpha);
 		}

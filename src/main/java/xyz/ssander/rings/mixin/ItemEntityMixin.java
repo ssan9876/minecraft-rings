@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import xyz.ssander.rings.ConstructItem;
+import xyz.ssander.rings.RingCall;
 import xyz.ssander.rings.RingConstructs;
 import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.RingReturn;
@@ -23,8 +24,11 @@ public abstract class ItemEntityMixin {
 			level.sendParticles(RingConstructs.colorOf(self.getItem()).dust(0.4F, 0.8F), self.getX(), self.getY() + 0.3, self.getZ(), 8, 0.2, 0.2, 0.2, 0.0);
 			self.discard();
 			ci.cancel();
-		} else if (self.getItem().getItem() instanceof RingItem && self.level() instanceof ServerLevel level && RingReturn.tick(self, level)) {
-			ci.cancel();
+		} else if (self.getItem().getItem() instanceof RingItem && self.level() instanceof ServerLevel level) {
+			RingCall.seen(self.getItem(), level, self.position(), self.tickCount);
+			if (RingReturn.tick(self, level)) {
+				ci.cancel();
+			}
 		}
 	}
 

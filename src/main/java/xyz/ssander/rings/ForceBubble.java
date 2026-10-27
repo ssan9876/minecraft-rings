@@ -128,8 +128,9 @@ public class ForceBubble extends Entity {
 
 	@Override
 	protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scale) {
-		// Whatever's carried floats in the middle of the bubble rather than sitting on top of it
-		return Vec3.ZERO;
+		// Whatever's carried floats in the middle of the bubble rather than sitting on top of it. Players sit lower
+		// than creatures do (their vehicle attachment), which would leave their legs hanging out of the bottom.
+		return passenger.getVehicleAttachmentPoint(this);
 	}
 
 	@Override

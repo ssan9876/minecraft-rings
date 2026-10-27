@@ -346,6 +346,11 @@ def planet_maps():
     rgb = mix(rgb, (230, 170, 210), (fbm(x, y, z, 53, 4.0) - 0.6) * 3)
     save_map("korugar", rgb)
 
+    # The sun, seen from space and the planets but never reached: white-hot, mottled with granules, a few dark spots
+    rgb = mix((255, 190, 60), (255, 246, 205), fbm(x, y, z, 61, 8.0, 4))
+    rgb = mix(rgb, (160, 76, 24), (fbm(x, y, z, 63, 3.0) - 0.72) * 6)
+    save_map("sun", rgb)
+
 
 if __name__ == "__main__":
     main()

@@ -5,13 +5,18 @@ import java.util.WeakHashMap;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -19,6 +24,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -153,6 +159,62 @@ public final class RingConstructs {
 		RingPowers.playAnimation(player, RingAnimationPayload.Kind.CONSTRUCT, color);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.2F, 1.4F);
 		level.sendParticles(color.dust(0.5F, 1.0F), player.getX(), player.getY() + 1.2, player.getZ(), 20, 0.4, 0.4, 0.4, 0.0);
+	}
+
+	/** Items a ring can't make: operator-only blocks and tools, and the rings themselves. */
+	public static final TagKey<Item> NOT_CONSTRUCTABLE = TagKey.create(Registries.ITEM, Rings.id("not_constructable"));
+
+	/** Whether a ring can make this item out of its energy. */
+	public static boolean canConstruct(ItemStack stack, FeatureFlagSet features) {
+		return !stack.isEmpty() && stack.isItemEnabled(features) && !stack.is(NOT_CONSTRUCTABLE);
+	}
+
+	/** The charge to make one item of each worth: common, then dearer, up to the likes of netherite and nether stars. */
+	private static final int[] ITEM_COSTS = {9, 36, 135, 360};
+
+	/**
+	 * The charge it takes to make one of this item: more the rarer it is, or the more precious what it's made of (most
+	 * diamond and netherite gear counts as common otherwise).
+	 */
+	public static int itemCost(ItemStack stack) {
+		String name = BuiltInRegistries.ITEM.getKey(stack.getItem()).getPath();
+		int worth = name.contains("netherite") || name.contains("ancient_debris") ? 3
+				: name.contains("diamond") ? 2
+				: name.contains("gold") || name.contains("emerald") ? 1
+				: 0;
+		return ITEM_COSTS[Math.max(worth, stack.getRarity().ordinal())];
+	}
+
+	/** The wearer picked an item to make from the construct wheel's search: one of it, or a whole stack. */
+	public static void makeItem(ServerPlayer player, Holder<Item> item, boolean wholeStack) {
+		ItemStack ring = RingAttachments.getRing(player);
+		if (!(ring.getItem() instanceof RingItem ringItem) || !RingAttachments.isActive(player)) {
+			player.sendOverlayMessage(Component.translatable("message.rings.construct_inactive"));
+			return;
+		}
+		ServerLevel level = player.level();
+		ItemStack made = new ItemStack(item);
+		if (!canConstruct(made, level.enabledFeatures())) {
+			player.sendOverlayMessage(Component.translatable("message.rings.not_constructable", made.getHoverName()));
+			return;
+		}
+		made.setCount(wholeStack ? made.getMaxStackSize() : 1);
+		int cost = itemCost(made) * made.getCount();
+		if (RingItem.charge(ring) < cost) {
+			player.sendOverlayMessage(Component.translatable("message.rings.construct_no_power", ring.getHoverName()));
+			return;
+		}
+
+		RingItem.addCharge(ring, -cost);
+		Component name = made.getHoverName();
+		int count = made.getCount();
+		// Into their inventory, and dropped at their feet if it's full
+		player.getInventory().placeItemBackInInventory(made, Prediction.SERVER_ONLY);
+		RingColor color = ringItem.color();
+		RingPowers.playAnimation(player, RingAnimationPayload.Kind.CONSTRUCT, color);
+		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.2F, 1.4F);
+		level.sendParticles(color.dust(0.5F, 1.0F), player.getX(), player.getY() + 1.2, player.getZ(), 20, 0.4, 0.4, 0.4, 0.0);
+		player.sendOverlayMessage(Component.translatable("message.rings.constructed", count, name));
 	}
 
 	private static boolean wall(ServerLevel level, ServerPlayer player, RingColor color) {

@@ -10,8 +10,10 @@
 		"CameraMixin",
 		"CreativeModeInventoryScreenMixin",
 		"EntityRendererMixin",
+		"LocalPlayerMixin",
 		"PlayerModelMixin",
 		"PlayerTravelMixin",
+		"SkyRendererMixin",
 		"SlotAccessor"
 	],
 	"injectors": {

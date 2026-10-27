@@ -1,0 +1,30 @@
+{
+  "values": [
+    "minecraft:command_block",
+    "minecraft:chain_command_block",
+    "minecraft:repeating_command_block",
+    "minecraft:command_block_minecart",
+    "minecraft:structure_block",
+    "minecraft:structure_void",
+    "minecraft:jigsaw",
+    "minecraft:barrier",
+    "minecraft:light",
+    "minecraft:debug_stick",
+    {
+      "id": "minecraft:test_block",
+      "required": false
+    },
+    {
+      "id": "minecraft:test_instance_block",
+      "required": false
+    },
+    "rings:hero_ring",
+    "rings:blue_ring",
+    "rings:red_ring",
+    "rings:pink_ring",
+    "rings:orange_ring",
+    "rings:white_ring",
+    "rings:black_ring",
+    "rings:yellow_ring"
+  ]
+}

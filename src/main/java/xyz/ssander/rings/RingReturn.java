@@ -64,6 +64,8 @@ public final class RingReturn {
 	/** Sends the ring of a dying wearer flying off to the new wearer it chose. */
 	public static void sendToHeir(ServerPlayer wearer, ItemStack ring, ServerPlayer heir) {
 		ServerLevel level = wearer.level();
+		// It's theirs now, to call as their own
+		RingCall.bind(ring, heir, true);
 		ItemEntity item = new ItemEntity(level, wearer.getX(), wearer.getEyeY(), wearer.getZ(), ring);
 		item.setAttached(HOMING, heir.getUUID());
 		item.setTarget(heir.getUUID());

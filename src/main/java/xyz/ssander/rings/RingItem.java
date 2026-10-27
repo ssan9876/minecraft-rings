@@ -51,7 +51,7 @@ public class RingItem extends Item {
 		return charge;
 	}
 
-	/** What the ring's colour can do (see ColorPowers), and what an orange ring has claimed. */
+	/** What the ring's colour can do (see ColorPowers), what an orange ring has claimed, and who the ring is bound to. */
 	@Override
 	public void appendHoverText(ItemStack stack, Item.TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
 		builder.accept(Component.translatable("tooltip.rings." + this.color.id() + ".power").withStyle(ChatFormatting.GRAY));
@@ -60,6 +60,10 @@ public class RingItem extends Item {
 		if (!claims.isEmpty()) {
 			builder.accept(Component.translatable("tooltip.rings.claims", Component.literal(String.join(", ", claims.stream()
 					.map(id -> BuiltInRegistries.ENTITY_TYPE.getValue(id).getDescription().getString()).toList()))).withStyle(ChatFormatting.GOLD));
+		}
+		RingComponents.Bond bond = stack.get(RingComponents.BOND);
+		if (bond != null) {
+			builder.accept(Component.translatable("tooltip.rings.bond", bond.name()).withStyle(ChatFormatting.DARK_AQUA));
 		}
 	}
 

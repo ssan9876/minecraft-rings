@@ -85,6 +85,9 @@ public final class RingPowers {
 	public static void tick(ServerPlayer player) {
 		ItemStack stack = RingAttachments.getRing(player);
 		RingItem ring = stack.getItem() instanceof RingItem r ? r : null;
+		if (ring != null) {
+			RingCall.bind(stack, player);
+		}
 		if (RingAttachments.isActive(player)) {
 			if (ring == null) {
 				// Taking the ring off switches it off

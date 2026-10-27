@@ -36,6 +36,7 @@ public final class RingAbilities {
 			case FORCE_FIELD -> forceField(player);
 			case SCAN -> scan(player);
 			case POWER -> ColorPowers.use(player);
+			case CALL -> RingCall.call(player);
 		}
 	}
 

@@ -10,8 +10,9 @@ Options → Controls → Rings.
 | Fire Ring Beam | `G` (hold) | Fires the ring's beam |
 | Construct Wheel | `V` (hold) | Opens the construct wheel |
 | Ring Power | `C` | The ring colour's own power (sneak too, on a pink ring, to go to a friend) |
-| Force Field | `B` | Force field on or off; looking at a creature, carries it in a bubble instead |
+| Force Field | `B` | Force field on or off; looking at a creature or player, carries them in a bubble instead |
 | Ring Scan | `Z` | Scans what's round about |
+| Call Ring | `H` | Calls your rings back to you from wherever they are (works with no ring on) |
 
 **Power rings** come in eight colours: green, yellow, blue, red, pink, orange, white and black. The ring shows on
 your right hand whenever it's worn, glowing when it's on. While one is on:
@@ -22,7 +23,8 @@ your right hand whenever it's worn, glowing when it's on. While one is on:
 - **super flight:** hold sneak and forward while flying to blast off where you look, building up to 80 blocks a
   second. Past cruising speed you go sonic: a sonic boom as you break through, a streamlined pose, a white-hot trail,
   rushing wind, a wider view and a shaking camera. Hitting the ground fast sends a shockwave out around your
-  landing. Let go and your momentum carries you back into hovering. Sneak on its own still flies down;
+  landing. Let go and your momentum carries you back into hovering. Holding sneak to boost doesn't crouch you.
+  Sneak on its own still flies down;
 - you wear the ring's suit, in its colour with the lantern emblem, under your own head;
 - you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls;
 - you glow, lighting up the world around you (brighter while firing the beam), with LambDynamicLights installed;
@@ -65,9 +67,17 @@ attack, follow you about, and fade away when their time's up or they die, leavin
 - **Rings come back:** a dropped ring lying 10 seconds flies back to whoever dropped it, one fallen into the void
   comes straight back, and rings don't burn. When its wearer dies, a ring flies off to choose a new one: the nearest
   player within 64 blocks with no ring. With nobody to choose, it stays on its wearer's finger through death.
+- **Call your ring** (`H`): a ring is bound to the first player to wear it (or the heir it chooses), and its tooltip
+  says who. Press the call key and every ring bound to you that isn't on you comes: out of chests, barrels, hoppers
+  and any other container, out of shulker boxes and bundles inside those, item frames, armor stands, mobs' hands,
+  chest minecarts, and other players' inventories, ring slots and ender chests. It bursts out and flies to you
+  through whatever's in the way; from more than 96 blocks off or another world, it streaks in out of the sky. A ring
+  left where nobody is (its chunk unloaded) is found where it was last seen: that spot wakes up for a few seconds
+  while the ring answers.
 
 **Space:** fly up past Y 450 on a ring and you're in space, over the curve of the Earth, with three planets hanging
-in the stars. Fly into one to land on it:
+in the stars and the sun blazing beyond them (always out of reach; fly at it all you like). The sun shines in every
+planet's sky too, in place of the Overworld's sun and moon. Fly into a planet to land on it:
 
 | Planet | What it's like |
 |---|---|
@@ -109,6 +119,12 @@ ring is given one, once).
 
 **Constructs:** hold **Construct Wheel** (default `V`) while the ring is on, point at a construct and let go (or
 click) to make it out of the ring's light, in its colour. Each costs a little power (the wheel shows how much).
+
+**Any item:** click the eye in the middle of the wheel and type an item's name, then click an item for one or
+shift-click for a stack. It's a real, lasting item, paid for out of the ring's charge: 0.5% each for common things,
+2% for gold, emerald and uncommon items, 7.5% for diamond and rare ones, 20% for netherite and epic ones. Operator
+blocks (command and structure blocks, barriers, light, the debug stick) and the rings themselves can't be made; the
+list is the `rings:not_constructable` item tag, which a data pack can change.
 
 | Construct | What it makes |
 |---|---|
@@ -256,7 +272,8 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
   synced flying flag. The layer only moves the bones an animation keys, on top of the vanilla and flying poses.
 - **Colour powers:** `ColorPowers` (the power key and gifts), `Thralls` (creatures raised to fight for a wearer: real
   vanilla creatures whose target goals are swapped for the ring's), `MobMoods` (fear and charm) and `EnergyBolt`.
-- **Force field, scan, saves and returns:** `RingAbilities`, `ForceBubble`, `RingProtection`, `RingReturn`, and on
+- **Force field, scan, saves, returns and calls:** `RingAbilities`, `ForceBubble`, `RingProtection`, `RingReturn`,
+  `RingCall` (the bond component, the last-seen map kept on the Overworld, and the search), and on
   the client `ForceFields`, `EnergySphere` and `RingScan` (ores are drawn with a see-through render pipeline).
 - **Particles:** `RingColor.dust` makes a `RingParticles.Energy` mote (registered with its colour and size);
   `EnergyParticle` draws it full-bright, growing then shrinking through a soft-orb-to-star sprite set.

@@ -22,7 +22,9 @@ public record RingActionPayload(Action action) implements CustomPacketPayload {
 		/** The scan key. */
 		SCAN,
 		/** The ring power key: what the ring's colour does (see ColorPowers). */
-		POWER
+		POWER,
+		/** The call key: rings bound to the player come back to them (see RingCall). Works with no ring on. */
+		CALL
 	}
 
 	@Override

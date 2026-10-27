@@ -4,6 +4,9 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.function.Function;
 
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
+
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerConnection;
@@ -14,15 +17,23 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ClientInformation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.pig.Pig;
+import net.minecraft.world.entity.decoration.ItemFrame;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
@@ -35,6 +46,8 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ItemContainerContents;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -55,6 +68,7 @@ import xyz.ssander.rings.Thralls;
 import xyz.ssander.rings.HardLightBlock;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingBeam;
+import xyz.ssander.rings.RingCall;
 import xyz.ssander.rings.PlanetBlocks;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingComponents;
@@ -65,6 +79,7 @@ import xyz.ssander.rings.RingSlot;
 import xyz.ssander.rings.Space;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.WillShardItem;
+import xyz.ssander.rings.client.ConstructAnyScreen;
 import xyz.ssander.rings.client.ConstructWheelScreen;
 import xyz.ssander.rings.client.FriendScreen;
 import xyz.ssander.rings.client.RingAnimations;
@@ -267,6 +282,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.getInput().holdKey(options -> options.keyShift);
 			context.waitTicks(30);
 			checkClient(context, mc -> SuperFlight.isActive(), "sneak and forward while ring flying is super flight");
+			checkClient(context, mc -> !mc.player.isCrouching(), "holding sneak for super flight doesn't crouch");
 			checkClient(context, mc -> new Vec3(mc.player.getX() - mc.player.xo, mc.player.getY() - mc.player.yo, mc.player.getZ() - mc.player.zo).length() > 1.6,
 					"super flight builds up to sonic speed");
 			context.waitTicks(10);
@@ -720,6 +736,15 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		context.runOnClient(mc -> { mc.player.setYRot(60.0F); mc.player.setXRot(-8.0F); });
 		context.waitTicks(3);
 		context.takeScreenshot("space-4-oa");
+		// The sun, where the planets are lit from, and none of vanilla's flat sun and moon overhead
+		context.runOnClient(mc -> { mc.player.setYRot(SUN_YAW); mc.player.setXRot(SUN_PITCH); });
+		context.waitTicks(3);
+		context.takeScreenshot("space-0-sun");
+		for (float yaw : new float[] {-90.0F, 90.0F}) {
+			context.runOnClient(mc -> { mc.player.setYRot(yaw); mc.player.setXRot(-60.0F); });
+			context.waitTicks(3);
+			context.takeScreenshot("space-0-overhead-" + (int) yaw);
+		}
 		context.runOnClient(mc -> mc.gui.hud.toggle());
 
 		// Into each planet, look around, and back up to space
@@ -756,6 +781,12 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				context.waitTicks(3);
 				context.takeScreenshot("space-6-" + planet.id() + "-sky-" + (int) yaw);
 			}
+			context.runOnClient(mc -> { mc.player.setYRot(SUN_YAW); mc.player.setXRot(SUN_PITCH); });
+			context.waitTicks(3);
+			context.takeScreenshot("space-6-" + planet.id() + "-sun");
+			context.runOnClient(mc -> { mc.player.setYRot(90.0F); mc.player.setXRot(-60.0F); });
+			context.waitTicks(3);
+			context.takeScreenshot("space-6-" + planet.id() + "-overhead");
 			// From high above, looking straight down: the Moon's craters, Mars's spires, Oa's crystals
 			server.runOnServer(s -> player(s).teleportTo(player(s).getX(), player(s).getY() + 45.0, player(s).getZ()));
 			connection.waitForChunksRender();
@@ -849,6 +880,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			context.takeScreenshot("flight-elytra-side");
 			context.getInput().holdKey(options -> options.keyShift);
 			context.waitTicks(30);
+			checkClient(context, mc -> SuperFlight.isActive() && !mc.player.isCrouching(), "holding sneak for super flight doesn't crouch");
 			context.takeScreenshot("flight-super-side");
 			TestCamera.yawOffset = 150.0F;
 			context.waitTick();
@@ -946,6 +978,42 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		server.runCommand("execute in minecraft:overworld run tp @a 0.5 -60 0.5 0 0");
 		context.waitTicks(5);
 
+		// A bubble round another player, flown up with the wearer, who can sneak to climb out
+		server.runOnServer(s -> player(s).getAbilities().flying = false);
+		server.runOnServer(s -> joinTestPlayer(s, "Friend"));
+		server.runCommand("tp Friend 0.5 -60 5.5 180 0");
+		connection.waitForClientboundPackets();
+		context.waitTicks(5);
+		context.getInput().lookAt(new BlockPos(0, -59, 5));
+		context.waitTicks(2);
+		context.getInput().pressKey(RingsClient.forceFieldKey);
+		connection.waitForServerboundPackets();
+		context.waitTicks(2);
+		check(server, p -> friend(p.level().getServer()).getVehicle() instanceof ForceBubble, "looking at a player puts them in a bubble");
+		double friendStart = server.computeOnServer(s -> friend(s).getY());
+		fly(context, connection, server);
+		context.getInput().holdKey(options -> options.keyJump);
+		context.waitTicks(40);
+		context.getInput().releaseKey(options -> options.keyJump);
+		context.waitTicks(10);
+		check(server, p -> friend(p.level().getServer()).getVehicle() instanceof ForceBubble && friend(p.level().getServer()).getY() > friendStart + 5.0
+				&& friend(p.level().getServer()).distanceTo(p) < 4.0, "flying up carries the player in the bubble up too");
+		connection.waitForClientboundPackets();
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		TestCamera.yawOffset = 160.0F;
+		camera(context, CameraType.THIRD_PERSON_BACK);
+		context.takeScreenshot("powers-2-bubble-player");
+		TestCamera.yawOffset = 0.0F;
+		camera(context, CameraType.FIRST_PERSON);
+		context.runOnClient(mc -> mc.gui.hud.toggle());
+		server.runOnServer(s -> friend(s).setShiftKeyDown(true));
+		context.waitTicks(3);
+		check(server, p -> !(friend(p.level().getServer()).getVehicle() instanceof ForceBubble) && !ForceBubble.isCarrying(p),
+				"the player in the bubble sneaks to climb out, and it pops");
+		server.runOnServer(s -> s.getPlayerList().remove(friend(s)));
+		server.runCommand("execute in minecraft:overworld run tp @a 0.5 -60 0.5 0 0");
+		context.waitTicks(5);
+
 		// The scan: creatures outlined through walls, ores glowing through the rock, and a readout of what's looked at
 		server.runCommand("fill -2 -64 6 2 -62 8 minecraft:stone");
 		server.runCommand("setblock 0 -63 7 minecraft:diamond_ore");
@@ -998,6 +1066,77 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		check(server, p -> RingAttachments.getRing(p).isEmpty(), "a dropped ring lies a while first");
 		context.waitTicks(160);
 		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "a dropped ring left lying flies back to its wearer");
+
+		// Calling the ring: bound to its first wearer, it comes out of wherever it's been put
+		check(server, p -> RingAttachments.getRing(p).get(RingComponents.BOND) != null
+				&& p.getUUID().equals(RingAttachments.getRing(p).get(RingComponents.BOND).owner()), "a worn ring binds to its wearer");
+		server.runCommand("setblock 4 -60 4 minecraft:chest");
+		server.runOnServer(s -> {
+			ChestBlockEntity chest = (ChestBlockEntity) player(s).level().getBlockEntity(new BlockPos(4, -60, 4));
+			chest.setItem(13, RingAttachments.getRing(player(s)));
+			RingAttachments.setRing(player(s), ItemStack.EMPTY);
+		});
+		callRing(context, connection);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING) && ((ChestBlockEntity) p.level().getBlockEntity(new BlockPos(4, -60, 4))).isEmpty(),
+				"a called ring comes out of a chest");
+
+		server.runCommand("setblock 4 -59 4 minecraft:stone");
+		server.runCommand("summon minecraft:item_frame 4.5 -59 3.97 {Facing:2b,Tags:[\"ring_frame\"]}");
+		context.waitTicks(2);
+		server.runOnServer(s -> {
+			ItemFrame frame = player(s).level().getEntitiesOfClass(ItemFrame.class, player(s).getBoundingBox().inflate(16)).getFirst();
+			frame.setItem(RingAttachments.getRing(player(s)));
+			RingAttachments.setRing(player(s), ItemStack.EMPTY);
+		});
+		callRing(context, connection);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING)
+				&& p.level().getEntitiesOfClass(ItemFrame.class, p.getBoundingBox().inflate(16)).getFirst().getItem().isEmpty(), "a called ring comes out of an item frame");
+		server.runCommand("kill @e[type=minecraft:item_frame]");
+
+		server.runOnServer(s -> {
+			ItemStack box = new ItemStack(Items.SHULKER_BOX);
+			box.set(DataComponents.CONTAINER, ItemContainerContents.fromItems(List.of(ItemStack.EMPTY, RingAttachments.getRing(player(s)))));
+			((ChestBlockEntity) player(s).level().getBlockEntity(new BlockPos(4, -60, 4))).setItem(0, box);
+			RingAttachments.setRing(player(s), ItemStack.EMPTY);
+		});
+		callRing(context, connection);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING) && ((ChestBlockEntity) p.level().getBlockEntity(new BlockPos(4, -60, 4))).getItem(0)
+				.getOrDefault(DataComponents.CONTAINER, ItemContainerContents.EMPTY).nonEmptyItemCopyStream().findAny().isEmpty(),
+				"a called ring comes out of a shulker box in a chest");
+		server.runCommand("setblock 4 -60 4 minecraft:air");
+		server.runCommand("setblock 4 -59 4 minecraft:air");
+
+		server.runOnServer(s -> joinTestPlayer(s, "Friend"));
+		server.runCommand("tp Friend 0.5 -60 8.5");
+		server.runOnServer(s -> {
+			friend(s).getInventory().add(RingAttachments.getRing(player(s)));
+			RingAttachments.setRing(player(s), ItemStack.EMPTY);
+		});
+		callRing(context, connection);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING) && !friend(p.level().getServer()).getInventory().contains(stack -> stack.is(GREEN_RING)),
+				"a called ring leaves another player for its owner");
+		server.runOnServer(s -> s.getPlayerList().remove(friend(s)));
+
+		// Somewhere nobody is: the spot it was last seen wakes up, and it streaks in from the sky
+		server.runCommand("execute in minecraft:overworld run forceload add 4000 4000");
+		server.runCommand("execute in minecraft:overworld run setblock 4000 -60 4000 minecraft:chest");
+		server.runOnServer(s -> {
+			ServerLevel overworld = s.overworld();
+			ItemStack ring = RingAttachments.getRing(player(s));
+			RingAttachments.setRing(player(s), ItemStack.EMPTY);
+			((ChestBlockEntity) overworld.getBlockEntity(new BlockPos(4000, -60, 4000))).setItem(0, ring);
+			RingCall.seen(ring, overworld, new Vec3(4000.5, -60.0, 4000.5), 0);
+		});
+		server.runCommand("execute in minecraft:overworld run forceload remove 4000 4000");
+		for (int i = 0; i < 400 && server.computeOnServer(s -> s.overworld().getChunkSource().getChunkNow(250, 250) != null); i++) {
+			context.waitTick();
+		}
+		check(server, p -> p.level().getServer().overworld().getChunkSource().getChunkNow(250, 250) == null, "the far-off chest's chunk unloads");
+		callRing(context, connection);
+		context.waitTicks(80);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "a ring called from somewhere unloaded comes back");
+		callRing(context, connection);
+		check(server, p -> RingAttachments.getRing(p).is(GREEN_RING), "calling with the ring on leaves it on");
 
 		// The yellow ring and its suit
 		server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(Rings.ring(RingColor.YELLOW))));
@@ -1487,7 +1626,10 @@ public class RingsClientGameTest implements FabricClientGameTest {
 				new net.minecraft.world.phys.BlockHitResult(Vec3.atCenterOf(core), net.minecraft.core.Direction.NORTH, core, false));
 	}
 
-	/** The construct sword's slash, the construct shield, and a will shard topping up a ring. Run on its own with RINGS_GEAR=1. */
+	/**
+	 * The construct sword's slash, the construct shield, a will shard topping up a ring, and constructing any item from
+	 * the wheel's eye. Run on its own with RINGS_GEAR=1.
+	 */
 	private static void constructGear(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
 		server.runCommand("time set noon");
 		server.runCommand("weather clear");
@@ -1567,6 +1709,32 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		});
 		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == 100 + WillShardItem.CHARGE
 				&& p.getInventory().getItem(8).getCount() == 1, "a will shard charges the ring a quarter and is used up");
+
+		// Any item, from the eye in the middle of the construct wheel, paid for out of the ring's charge
+		server.runCommand("clear @a");
+		server.runOnServer(s -> RingAttachments.getRing(player(s)).set(RingComponents.CHARGE, RingItem.MAX_CHARGE));
+		// (The wheel only stays open while the construct key is held)
+		context.getInput().holdKey(RingsClient.constructKey);
+		context.waitTicks(3);
+		checkClient(context, mc -> mc.gui.screen() instanceof ConstructWheelScreen, "the construct key opens the wheel");
+		context.takeScreenshot("gear-4-wheel-eye");
+		context.runOnClient(mc -> mc.gui.setScreen(new ConstructAnyScreen(RingColor.GREEN)));
+		context.getInput().releaseKey(RingsClient.constructKey);
+		context.waitTicks(2);
+		context.getInput().typeChars("diamond");
+		context.waitTicks(2);
+		context.takeScreenshot("gear-4-construct-any");
+		context.runOnClient(mc -> mc.gui.setScreen(null));
+		server.runOnServer(s -> {
+			RingConstructs.makeItem(player(s), Items.DIAMOND_SWORD.builtInRegistryHolder(), false);
+			RingConstructs.makeItem(player(s), Items.STONE.builtInRegistryHolder(), true);
+			RingConstructs.makeItem(player(s), Items.COMMAND_BLOCK.builtInRegistryHolder(), false);
+		});
+		int spent = RingConstructs.itemCost(new ItemStack(Items.DIAMOND_SWORD)) + 64 * RingConstructs.itemCost(new ItemStack(Items.STONE));
+		check(server, p -> p.getInventory().contains(stack -> stack.is(Items.DIAMOND_SWORD)) && p.getInventory().countItem(Items.STONE) == 64,
+				"the ring constructs one of an item, or a whole stack");
+		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE - spent, "constructing items costs the ring's charge");
+		check(server, p -> !p.getInventory().contains(stack -> stack.is(Items.COMMAND_BLOCK)), "a ring can't construct a command block");
 	}
 
 	/** Wears a ring of the colour, fully charged and switched on, standing at the test spot. */
@@ -1668,8 +1836,45 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		return state.is(Rings.HARD_LIGHT) && state.getValue(HardLightBlock.COLOR) == color;
 	}
 
+	/** Which way to look to face the sun in space and on the planets (SpaceSky.SUN). */
+	private static final float SUN_YAW = -38.2F;
+	private static final float SUN_PITCH = -26.8F;
+
 	private static ServerPlayer player(MinecraftServer server) {
 		return server.getPlayerList().getPlayers().getFirst();
+	}
+
+	/** Presses the call key and gives the ring time to fly back. */
+	private static void callRing(ClientGameTestContext context, TestServerConnection connection) {
+		context.getInput().pressKey(RingsClient.callKey);
+		connection.waitForServerboundPackets();
+		context.waitTicks(80);
+	}
+
+	/** The second player joinTestPlayer brought in. */
+	private static ServerPlayer friend(MinecraftServer server) {
+		return server.getPlayerList().getPlayerByName("Friend");
+	}
+
+	/**
+	 * Joins a second player to the test server, with no client behind it (packets to it go nowhere), so the test
+	 * can try things on another player. Fabric's FakePlayer won't do: it refuses to ride anything.
+	 */
+	private static ServerPlayer joinTestPlayer(MinecraftServer server, String name) {
+		Connection connection = new Connection(PacketFlow.SERVERBOUND) {
+			@Override
+			public void setReadOnly() {
+			}
+
+			@Override
+			public void handleDisconnection() {
+			}
+		};
+		new EmbeddedChannel(connection);
+		GameProfile profile = new GameProfile(UUIDUtil.createOfflinePlayerUUID(name), name);
+		ServerPlayer player = new ServerPlayer(server, server.overworld(), profile, ClientInformation.createDefault());
+		server.getPlayerList().placeNewPlayer(connection, player, CommonListenerCookie.createInitial(profile, false));
+		return player;
 	}
 
 	private static void selectInventoryTab(Minecraft mc) {

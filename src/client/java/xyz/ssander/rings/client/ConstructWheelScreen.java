@@ -23,7 +23,8 @@ import xyz.ssander.rings.network.CreateConstructPayload;
 
 /**
  * The construct wheel: open while the construct key is held, it shows the constructs in a ring around the middle
- * of the screen. Point the mouse at one and let go of the key (or click) to make it.
+ * of the screen. Point the mouse at one and let go of the key (or click) to make it. Click the eye in the middle to
+ * make any item instead (ConstructAnyScreen); letting go of the key there cancels.
  */
 public class ConstructWheelScreen extends Screen {
 	private static final int RADIUS = 88;
@@ -32,6 +33,8 @@ public class ConstructWheelScreen extends Screen {
 	private static final int DEAD_ZONE = 18;
 	/** The wheel sits a little above the middle of the screen, clear of the hotbar. */
 	private static final int RAISE = 12;
+
+	private static final ItemStack EYE = new ItemStack(Items.ENDER_EYE);
 
 	private final RingColor color;
 	private final ItemStack[] icons;
@@ -103,17 +106,25 @@ public class ConstructWheelScreen extends Screen {
 			graphics.item(this.icons[index], x - 8, y - 8);
 		}
 
-		// The middle: what letting go makes, and what it costs
-		Component title = this.selected >= 0 ? Component.translatable(constructs[this.selected].translationKey()) : this.title;
-		graphics.text(this.font, title, centreX - this.font.width(title) / 2, centreY - 9, bright, true);
-		if (this.selected >= 0) {
-			float percent = 100.0F * ColorPowers.constructCost(constructs[this.selected], this.color) / RingItem.MAX_CHARGE;
-			Component cost = Component.translatable("screen.rings.construct_cost", String.format("%.1f", percent));
-			graphics.text(this.font, cost, centreX - this.font.width(cost) / 2, centreY + 3, 0xFFC0C0C0, true);
-		}
+		// The eye in the middle, for making any item
+		boolean eye = this.selected < 0;
+		int half = SLOT / 2 + (eye ? 3 : 0);
+		graphics.fill(centreX - half - 1, centreY - half - 1, centreX + half + 1, centreY + half + 1, eye ? bright : ARGB.scaleRGB(energy, 0.5F));
+		graphics.fill(centreX - half, centreY - half, centreX + half, centreY + half, eye ? ARGB.color(220, ARGB.scaleRGB(energy, 0.35F)) : 0xC0101010);
+		graphics.item(EYE, centreX - 8, centreY - 8);
+
+		// Above and below it: what letting go makes, and what it costs
+		Component title = this.selected >= 0 ? Component.translatable(constructs[this.selected].translationKey())
+				: Component.translatable("screen.rings.construct_any");
+		graphics.text(this.font, title, centreX - this.font.width(title) / 2, centreY - SLOT / 2 - 16, bright, true);
+		Component below = this.selected >= 0
+				? Component.translatable("screen.rings.construct_cost",
+						String.format("%.1f", 100.0F * ColorPowers.constructCost(constructs[this.selected], this.color) / RingItem.MAX_CHARGE))
+				: Component.translatable("screen.rings.construct_any_click");
+		graphics.text(this.font, below, centreX - this.font.width(below) / 2, centreY + SLOT / 2 + 7, 0xFFC0C0C0, true);
 	}
 
-	/** Which construct the mouse points at, or -1 near the middle. */
+	/** Which construct the mouse points at, or -1 on the eye in the middle. */
 	private int pick(double mouseX, double mouseY) {
 		double dx = mouseX - this.width / 2.0;
 		double dy = mouseY - (this.height / 2.0 - RAISE);
@@ -141,6 +152,10 @@ public class ConstructWheelScreen extends Screen {
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		this.selected = this.pick(event.x(), event.y());
+		if (this.selected < 0) {
+			this.minecraft.gui.setScreen(new ConstructAnyScreen(this.color));
+			return true;
+		}
 		this.finish();
 		return true;
 	}
