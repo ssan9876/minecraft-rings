@@ -286,7 +286,9 @@ final class MasteryTest {
 		context.waitTicks(60);
 		context.takeScreenshot("rings-16-dialogue-taken");
 		check(server, p -> p.getInventory().contains(stack -> stack.is(Rings.ring(RingColor.GREEN)))
-				&& p.getInventory().contains(stack -> stack.is(Rings.lantern(RingColor.GREEN).asItem())), "the pilot hands on their ring and lantern");
+				&& p.getInventory().countItem(Rings.lantern(RingColor.GREEN).asItem()) == 1, "the pilot hands on their ring and lantern");
+		check(server, p -> BlockPos.betweenClosedStream(new BlockPos(-24, GROUND - 8, -24), new BlockPos(24, GROUND + 10, 24))
+				.noneMatch(pos -> p.level().getBlockState(pos).is(Rings.lantern(RingColor.GREEN))), "the lantern handed on is gone from the crash site");
 		check(server, p -> Mastery.isHeir(p) && SuitStyle.PILOT.unlocked(p), "taking the ring unlocks the pilot's uniform");
 		check(server, p -> p.getInventory().contains(stack -> stack.is(Rings.ring(RingColor.GREEN)) && RingItem.charge(stack) < RingItem.MAX_CHARGE),
 				"the pilot's ring is low after the crash");

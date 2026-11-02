@@ -38,7 +38,7 @@ next can't fall until its pilot's ring has been taken.
 hand and their lantern beside them. Each colour's pilot is of a different people: the green ring's bearer is **Abin
 Sur**. When you come near, the ship's computer warns them you're coming and they call out. Right-click them to talk:
 they tell you who they are, what brought their ship down and what the ring is, and offer it to you. Take it and they
-give you their ring (low on charge after the crash, and bound to you) and their lantern, then pass, fading into the
+give you their ring (low on charge after the crash, and bound to you) and the lantern beside them, then pass, fading into the
 ring's light. A player who already wears or carries a ring can't take another.
 
 **The ship's console**, inside the wreck, holds the flight recorder: right-click it to read the ship's last log

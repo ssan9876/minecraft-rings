@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -57,6 +58,8 @@ public class CrashPilot extends PathfinderMob {
 	private static final int PASSING_TICKS = 100;
 	/** The share of a full charge the pilot's ring has left after the crash. */
 	private static final int RING_CHARGE = RingItem.MAX_CHARGE / 4;
+	/** How far from the pilot their lantern can be (the crash site sets it two blocks off). */
+	private static final int LANTERN_REACH = 3;
 
 	private final Set<UUID> warned = new HashSet<>();
 	private final Set<UUID> called = new HashSet<>();
@@ -165,7 +168,7 @@ public class CrashPilot extends PathfinderMob {
 		RingCall.bind(ring, player, true);
 		Component ringName = ring.getHoverName();
 		give(level, player, ring);
-		give(level, player, new ItemStack(Rings.lantern(color)));
+		handOverLantern(level, player, color);
 
 		if (!player.hasAttached(Mastery.MASTERY)) {
 			player.setAttached(Mastery.MASTERY, Mastery.Data.NEW);
@@ -182,6 +185,23 @@ public class CrashPilot extends PathfinderMob {
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 1.0F, 1.0F);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.8F, 1.0F);
 		player.sendSystemMessage(Component.translatable("message.rings.ring_chose_you", ringName).withColor(color.ui()));
+	}
+
+	/**
+	 * The lantern beside the pilot goes to the new bearer: lifted out of the ground and into their hands. If it's gone
+	 * already (someone broke it, and has it), there's no other to give.
+	 */
+	private void handOverLantern(ServerLevel level, ServerPlayer player, RingColor color) {
+		PowerLanternBlock lantern = Rings.lantern(color);
+		BlockPos centre = this.blockPosition();
+		for (BlockPos pos : BlockPos.betweenClosed(centre.offset(-LANTERN_REACH, -2, -LANTERN_REACH), centre.offset(LANTERN_REACH, 2, LANTERN_REACH))) {
+			if (level.getBlockState(pos).is(lantern)) {
+				level.removeBlock(pos, false);
+				level.sendParticles(color.dust(0.5F, 1.0F), pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 25, 0.25, 0.35, 0.25, 0.0);
+				give(level, player, new ItemStack(lantern));
+				return;
+			}
+		}
 	}
 
 	private static void give(ServerLevel level, ServerPlayer player, ItemStack stack) {
