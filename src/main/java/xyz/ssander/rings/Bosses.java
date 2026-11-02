@@ -37,8 +37,6 @@ public final class Bosses {
 	 * The Devourer hunts ring-bearers of this level and up out in space: a chance in this many each check (about once
 	 * in five minutes there), and not again for the same player for a while.
 	 */
-	public static final int DEVOURER_LEVEL = 20;
-	private static final int DEVOURER_CHANCE = 60;
 	private static final long DEVOURER_COOLDOWN = 20L * 60 * 20;
 	private static final Map<UUID, Long> LAST_DEVOURER = new HashMap<>();
 
@@ -53,12 +51,12 @@ public final class Bosses {
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			ServerLevel level = player.level();
 			if (level.dimension() == Space.SPACE && !player.isCreative() && !player.isSpectator() && level.getDifficulty() != Difficulty.PEACEFUL
-					&& Mastery.level(player) >= DEVOURER_LEVEL && player.getRandom().nextInt(DEVOURER_CHANCE) == 0
+					&& Mastery.level(player) >= RingsConfig.get().devourerLevel && player.getRandom().nextInt(Math.max(1, RingsConfig.get().devourerChance)) == 0
 					&& level.getGameTime() - LAST_DEVOURER.getOrDefault(player.getUUID(), Long.MIN_VALUE / 2) > DEVOURER_COOLDOWN) {
 				summonDevourer(level, player);
 			}
 			boolean hunted = level.dimension() == Space.SPACE || level.dimension() == Space.Planet.MOON.dimension()
-					|| level.dimension() == Space.Planet.MARS.dimension();
+					|| level.dimension() == Space.Planet.MARS.dimension() || level.dimension() == Space.Planet.KORUGAR.dimension();
 			if (!hunted || player.isCreative() || player.isSpectator() || level.getDifficulty() == Difficulty.PEACEFUL
 					|| player.getRandom().nextFloat() > SPAWN_CHANCE
 					|| level.getEntitiesOfClass(Manhunter.class, player.getBoundingBox().inflate(64.0)).size() >= MAX_MANHUNTERS) {

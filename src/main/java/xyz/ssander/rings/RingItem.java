@@ -61,6 +61,10 @@ public class RingItem extends Item {
 			builder.accept(Component.translatable("tooltip.rings.claims", Component.literal(String.join(", ", claims.stream()
 					.map(id -> BuiltInRegistries.ENTITY_TYPE.getValue(id).getDescription().getString()).toList()))).withStyle(ChatFormatting.GOLD));
 		}
+		String engraving = stack.get(RingComponents.ENGRAVING);
+		if (engraving != null) {
+			builder.accept(Component.translatable("tooltip.rings.engraving", engraving).withStyle(ChatFormatting.ITALIC, ChatFormatting.GOLD));
+		}
 		RingComponents.Bond bond = stack.get(RingComponents.BOND);
 		if (bond != null) {
 			builder.accept(Component.translatable("tooltip.rings.bond", bond.name()).withStyle(ChatFormatting.DARK_AQUA));

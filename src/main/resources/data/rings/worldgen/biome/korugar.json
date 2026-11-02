@@ -1,0 +1,31 @@
+{
+  "carvers": [
+    "minecraft:cave",
+    "minecraft:canyon"
+  ],
+  "downfall": 0.0,
+  "effects": {
+    "water_color": "#3f76e4"
+  },
+  "features": [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [],
+    [
+      "rings:korugar_ore_gold",
+      "rings:korugar_ore_glowstone"
+    ],
+    [],
+    [],
+    [
+      "rings:korugar_crystals",
+      "rings:korugar_cave_crystals"
+    ],
+    []
+  ],
+  "has_precipitation": false,
+  "temperature": 0.5
+}

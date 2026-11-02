@@ -27,12 +27,18 @@ public final class Dialogues {
 		MISSION,
 		/** Tells a Guardian the task is done (the server checks, and answers). */
 		TURN_IN,
+		/** Asks a Guardian what unmaking everything learned would cost (the server answers). */
+		RESPEC_ASK,
+		/** Asks a Guardian for the day's bounty (the server answers). */
+		BOUNTY,
+		/** Asks a Guardian for the roll of honour (the server answers). */
+		ROLL,
 		/** Asks a Guardian to unmake everything the player has learned, for will shards (the server answers). */
 		RESPEC;
 
 		/** Whether the server answers it with what's said next, rather than the answer leading on by itself. */
 		public boolean serverAnswers() {
-			return this == MISSION || this == TURN_IN || this == RESPEC;
+			return this == MISSION || this == TURN_IN || this == RESPEC || this == RESPEC_ASK || this == BOUNTY || this == ROLL;
 		}
 	}
 
@@ -106,8 +112,6 @@ public final class Dialogues {
 	public static final String LOG_AFTER = "after";
 	/** How many of the Oan lore sayings a Guardian has (nodes lore_1 on). */
 	public static final int GUARDIAN_LORE = 8;
-	/** Will shards a Guardian asks to unmake what a player has learned. */
-	public static final int RESPEC_SHARDS = 8;
 	/** Leads back to wherever the talk started. */
 	public static final String BACK = "@start";
 
@@ -169,7 +173,11 @@ public final class Dialogues {
 		Dialogue guardian = Dialogue.GUARDIAN;
 		Option work = new Option("work", null, Action.MISSION);
 		guardian.add("start", Speaker.GUARDIAN,
-				Option.to("lore", "lore_1"), work, Option.to("respec", "respec_ask"), Option.end("farewell"));
+				Option.to("lore", "lore_1"), work, new Option("bounty", null, Action.BOUNTY), new Option("roll", null, Action.ROLL),
+				new Option("respec", null, Action.RESPEC_ASK), Option.end("farewell"));
+		guardian.add("bounty_new", Speaker.GUARDIAN, Option.end("will_do"), Option.to("back", "start"));
+		guardian.add("bounty_done_today", Speaker.GUARDIAN, work, Option.to("back", "start"));
+		guardian.add("roll", Speaker.GUARDIAN, Option.to("back", "start"), Option.end("farewell"));
 		for (int i = 1; i <= GUARDIAN_LORE; i++) {
 			guardian.add("lore_" + i, Speaker.GUARDIAN,
 					Option.to("more", "lore_" + (i % GUARDIAN_LORE + 1)), Option.to("back", "start"));

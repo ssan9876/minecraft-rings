@@ -34,6 +34,10 @@ public final class RingComponents {
 	public static final DataComponentType<Bond> BOND = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Rings.id("bond"),
 			DataComponentType.<Bond>builder().persistent(Bond.CODEC).networkSynchronized(Bond.STREAM_CODEC).build());
 
+	/** What the bearer has had engraved on the ring (see RingStyles). */
+	public static final DataComponentType<String> ENGRAVING = Registry.register(BuiltInRegistries.DATA_COMPONENT_TYPE, Rings.id("engraving"),
+			DataComponentType.<String>builder().persistent(Codec.STRING).networkSynchronized(ByteBufCodecs.STRING_UTF8).build());
+
 	/** A ring's bond to a player: who, and their name for the tooltip. */
 	public record Bond(UUID owner, String name) {
 		public static final Codec<Bond> CODEC = RecordCodecBuilder.create(instance -> instance.group(

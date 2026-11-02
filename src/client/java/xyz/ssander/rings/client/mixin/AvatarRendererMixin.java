@@ -22,6 +22,8 @@ import xyz.ssander.rings.ForceBubble;
 import net.minecraft.network.chat.Component;
 
 import xyz.ssander.rings.Mastery;
+import xyz.ssander.rings.RingCorps;
+import xyz.ssander.rings.RingStyles;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingBeam;
@@ -69,6 +71,7 @@ public abstract class AvatarRendererMixin implements SlimArms {
 	private void rings$applyRing(Avatar entity, AvatarRenderState state, float partialTicks, CallbackInfo ci) {
 		RingRenderState ring = (RingRenderState) state;
 		ring.rings$setOwnSkin(null);
+		ring.rings$setEmblem(null);
 		if (!(entity instanceof Player player)) {
 			ring.rings$setFlight(0.0F, 0.0F);
 			ring.rings$setFastFlight(0.0F, 0.0F);
@@ -91,15 +94,25 @@ public abstract class AvatarRendererMixin implements SlimArms {
 			state.showLeftPants = true;
 			state.showRightPants = true;
 			state.showCape |= patch.cape().isPresent();
+			RingStyles.Emblem emblem = RingStyles.emblem(player);
+			ring.rings$setEmblem(emblem == RingStyles.Emblem.LANTERN ? null : emblem);
 		}
 		if (costume != null) {
-			state.outlineColor = ARGB.opaque(costume.color().energy());
+			// Glowing as the wearer likes: steady, pulsing, or not at all
+			int outline = ARGB.opaque(costume.color().energy());
+			state.outlineColor = switch (RingStyles.glow(player)) {
+				case STEADY -> outline;
+				case PULSE -> ARGB.scaleRGB(outline, 0.35F + 0.65F * (0.5F + 0.5F * Mth.sin(state.ageInTicks * 0.15F)));
+				case OFF -> 0;
+			};
 		}
 		// A ring-bearer's Corps rank shows under their name, in their ring's colour
 		RingColor worn = player.getAttached(RingAttachments.WORN_RING);
 		Integer level = player.getAttached(Mastery.RANK);
 		if (state.nameTag != null && state.scoreText == null && worn != null && level != null) {
-			state.scoreText = Component.translatable("rank.rings.shown", Component.translatable(Mastery.rank(level)), level).withColor(worn.ui());
+			Component rank = Component.translatable("rank.rings.shown", Component.translatable(Mastery.rank(level)), level);
+			String corps = player.getAttached(RingCorps.NAME);
+			state.scoreText = (corps != null ? Component.translatable("rank.rings.with_corps", corps, rank) : rank).copy().withColor(worn.ui());
 		}
 
 		// Cruising is real elytra flight, so vanilla tips the body along it; this adds the arms and legs

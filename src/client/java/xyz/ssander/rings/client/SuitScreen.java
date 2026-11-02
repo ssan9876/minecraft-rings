@@ -14,6 +14,7 @@ import net.minecraft.util.ARGB;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingItem;
+import xyz.ssander.rings.RingStyles;
 import xyz.ssander.rings.SuitStyle;
 import xyz.ssander.rings.network.ChooseSuitPayload;
 
@@ -72,6 +73,51 @@ public class SuitScreen extends Screen {
 				button.setTooltip(Tooltip.create(style.lockedReason()));
 			}
 			this.addRenderableWidget(button);
+		}
+
+		// How the ring's glow and constructs look (sent as /ring commands, which check what the player has earned)
+		if (minecraft.player != null) {
+			int y = this.listTop() + rows() * (BUTTON_HEIGHT + GAP) + 6;
+			RingStyles.Glow glow = RingStyles.glow(minecraft.player);
+			RingStyles.Glow nextGlow = RingStyles.Glow.values()[(glow.ordinal() + 1) % RingStyles.Glow.values().length];
+			this.addRenderableWidget(Button.builder(Component.translatable("screen.rings.glow", Component.translatable("style.rings.glow." + glow.getSerializedName())),
+					b -> {
+						minecraft.player.connection.sendCommand("ring glow " + nextGlow.getSerializedName());
+						this.rebuildLater();
+					}).bounds(this.listLeft(), y, BUTTON_WIDTH, BUTTON_HEIGHT)
+					.tooltip(Tooltip.create(Component.translatable("screen.rings.glow_tip"))).build());
+			RingStyles.ConstructStyle style = RingStyles.constructs(minecraft.player);
+			RingStyles.ConstructStyle nextStyle = RingStyles.ConstructStyle.values()[(style.ordinal() + 1) % RingStyles.ConstructStyle.values().length];
+			this.addRenderableWidget(Button.builder(Component.translatable("screen.rings.constructs",
+							Component.translatable("style.rings.constructs." + style.getSerializedName())),
+					b -> {
+						minecraft.player.connection.sendCommand("ring constructs " + nextStyle.getSerializedName());
+						this.rebuildLater();
+					}).bounds(this.listLeft() + BUTTON_WIDTH + GAP, y, BUTTON_WIDTH, BUTTON_HEIGHT)
+					.tooltip(Tooltip.create(Component.translatable("screen.rings.constructs_tip"))).build());
+			RingStyles.Emblem emblem = RingStyles.emblem(minecraft.player);
+			RingStyles.Emblem nextEmblem = RingStyles.Emblem.values()[(emblem.ordinal() + 1) % RingStyles.Emblem.values().length];
+			this.addRenderableWidget(Button.builder(Component.translatable("screen.rings.emblem",
+							Component.translatable("style.rings.emblem." + emblem.getSerializedName())),
+					b -> {
+						minecraft.player.connection.sendCommand("ring emblem " + nextEmblem.getSerializedName());
+						this.rebuildLater();
+					}).bounds(this.listLeft(), y + BUTTON_HEIGHT + GAP, BUTTON_WIDTH * 2 + GAP, BUTTON_HEIGHT)
+					.tooltip(Tooltip.create(Component.translatable("screen.rings.emblem_tip"))).build());
+		}
+	}
+
+	/** Redraws the buttons once the server has had a moment to change the style. */
+	private int rebuildIn = -1;
+
+	private void rebuildLater() {
+		this.rebuildIn = 4;
+	}
+
+	@Override
+	public void tick() {
+		if (this.rebuildIn > 0 && --this.rebuildIn == 0) {
+			this.rebuildWidgets();
 		}
 	}
 

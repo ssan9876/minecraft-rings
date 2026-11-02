@@ -148,7 +148,10 @@ public final class RingConstructs {
 		}
 
 		RingColor color = ring.color();
-		boolean made = switch (construct) {
+		HardLightBlock.making = RingStyles.constructs(player);
+		boolean made;
+		try {
+			made = switch (construct) {
 			case WALL -> wall(level, player, color);
 			case BRIDGE -> bridge(level, player, color);
 			case STAIRS -> stairs(level, player, color);
@@ -165,7 +168,10 @@ public final class RingConstructs {
 			case WOLF -> beast(level, player, Rings.CONSTRUCT_WOLF, color, Mastery.lifetime(player, WOLF_LIFETIME));
 			case GOLEM -> beast(level, player, Rings.CONSTRUCT_GOLEM, color, Mastery.lifetime(player, GOLEM_LIFETIME));
 			case JET -> jet(level, player, color);
-		};
+			};
+		} finally {
+			HardLightBlock.making = RingStyles.ConstructStyle.SOLID;
+		}
 		if (!made) {
 			return;
 		}

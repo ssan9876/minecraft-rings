@@ -70,8 +70,14 @@ public class OaGuardian extends PathfinderMob {
 		boolean hasRing = !RingAttachments.getRing(player).isEmpty() || player.getInventory().contains(stack -> stack.getItem() instanceof RingItem);
 		// Rings aren't given out: they come from the fallen. Ring-bearers can ask for lore, work, or to start over.
 		Missions.reply(serverPlayer, this, hasRing ? "start" : "no_ring");
+		Codex.discover(serverPlayer, "guardian");
 		this.playSound(SoundEvents.VILLAGER_AMBIENT, 0.6F, 0.6F);
 		return InteractionResult.SUCCESS;
+	}
+
+	/** The player asked what unmaking what they've learned would cost. */
+	void respecAsk(ServerPlayer player) {
+		Missions.reply(player, this, "respec_ask", Component.literal(String.valueOf(RingsConfig.get().respecShards)));
 	}
 
 	/** The player asked to unmake everything they've learned, for will shards: their skill points come back. */
@@ -81,11 +87,12 @@ public class OaGuardian extends PathfinderMob {
 			Missions.reply(player, this, "respec_nothing");
 			return;
 		}
-		if (shards < Dialogues.RESPEC_SHARDS) {
-			Missions.reply(player, this, "respec_poor", Component.literal(String.valueOf(Dialogues.RESPEC_SHARDS)));
+		int cost = RingsConfig.get().respecShards;
+		if (shards < cost) {
+			Missions.reply(player, this, "respec_poor", Component.literal(String.valueOf(cost)));
 			return;
 		}
-		Missions.take(player, PlanetBlocks.WILL_SHARD, Dialogues.RESPEC_SHARDS);
+		Missions.take(player, PlanetBlocks.WILL_SHARD, cost);
 		Mastery.unlearnAll(player);
 		if (this.level() instanceof ServerLevel level) {
 			level.sendParticles(RingColor.GREEN.dust(0.5F, 1.2F), player.getX(), player.getY() + 1.0, player.getZ(), 50, 0.4, 0.8, 0.4, 0.0);

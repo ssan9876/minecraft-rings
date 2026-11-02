@@ -40,7 +40,6 @@ public final class Crashes {
 	 */
 	private static final AttachmentType<Integer> EVERY = AttachmentRegistry.create(Rings.id("crash_every"),
 			builder -> builder.persistent(Codec.INT));
-	public static final int DEFAULT_EVERY = 150;
 	private static final int CHECK_TICKS = 60 * 20;
 	/** How far from the player it comes down. */
 	private static final double MIN_DISTANCE = 96.0;
@@ -113,7 +112,7 @@ public final class Crashes {
 
 	/** How often ships fall, on average, in minutes (0 for never). */
 	public static int every(MinecraftServer server) {
-		return server.overworld().getAttachedOrElse(EVERY, DEFAULT_EVERY);
+		return server.overworld().getAttachedOrElse(EVERY, RingsConfig.get().crashEveryMinutes);
 	}
 
 	public static void setEvery(MinecraftServer server, int minutes) {

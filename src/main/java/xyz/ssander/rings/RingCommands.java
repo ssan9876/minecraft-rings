@@ -72,6 +72,13 @@ public final class RingCommands {
 									context.getSource().sendSuccess(() -> Component.translatable("command.rings.crashes_every", minutes), true);
 									return minutes;
 								}))))
+				.then(Commands.literal("ruins").then(Commands.argument("planet", StringArgumentType.word())
+						.suggests((context, builder) -> SharedSuggestionProvider.suggest(java.util.stream.Stream.of("moon", "mars"), builder))
+						.then(Commands.argument("count", IntegerArgumentType.integer(1, 50))
+								.executes(context -> ruins(context, StringArgumentType.getString(context, "planet"), IntegerArgumentType.getInteger(context, "count"), 1500))
+								.then(Commands.argument("radius", IntegerArgumentType.integer(32, 10000))
+										.executes(context -> ruins(context, StringArgumentType.getString(context, "planet"),
+												IntegerArgumentType.getInteger(context, "count"), IntegerArgumentType.getInteger(context, "radius")))))))
 				.then(Commands.literal("devourer").executes(context -> {
 					ServerPlayer player = context.getSource().getPlayerOrException();
 					if (Bosses.summonDevourer(player.level(), player) == null) {
@@ -105,6 +112,35 @@ public final class RingCommands {
 		context.getSource().sendSuccess(() -> Component.translatable("command.rings.info", player.getDisplayName(), data.level(), data.xp(),
 				data.points(), String.join(", ", data.skills().stream().map(Skill::id).toList())), false);
 		return data.level();
+	}
+
+	/**
+	 * Puts shrines on the Moon or wrecks on Mars at random spots within the radius of the middle, for ground explored
+	 * before they existed (new ground gets them as it generates).
+	 */
+	private static int ruins(CommandContext<CommandSourceStack> context, String planet, int count, int radius) {
+		boolean moon = planet.equals("moon");
+		if (!moon && !planet.equals("mars")) {
+			context.getSource().sendFailure(Component.translatable("command.rings.ruins_planet"));
+			return 0;
+		}
+		ServerLevel level = context.getSource().getServer().getLevel((moon ? Space.Planet.MOON : Space.Planet.MARS).dimension());
+		if (level == null) {
+			return 0;
+		}
+		net.minecraft.world.level.levelgen.feature.Feature feature = moon ? new PlanetRuins.MoonShrine() : new PlanetRuins.MarsWreck();
+		java.util.List<String> placed = new java.util.ArrayList<>();
+		for (int i = 0; i < count; i++) {
+			int x = level.getRandom().nextInt(radius * 2 + 1) - radius;
+			int z = level.getRandom().nextInt(radius * 2 + 1) - radius;
+			level.getChunk(x >> 4, z >> 4);
+			BlockPos at = new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z);
+			if (feature.place(level, level.getChunkSource().getGenerator(), level.getRandom(), at)) {
+				placed.add(at.getX() + " " + at.getZ());
+			}
+		}
+		context.getSource().sendSuccess(() -> Component.translatable("command.rings.ruins", placed.size(), planet, String.join(", ", placed)), true);
+		return placed.size();
 	}
 
 	private static int crash(CommandContext<CommandSourceStack> context, String colorName, boolean here) throws CommandSyntaxException {

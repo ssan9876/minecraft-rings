@@ -32,6 +32,11 @@ public interface RingRenderState {
 
 	void rings$setWornRing(@Nullable RingColor color, boolean active);
 
+	/** The emblem to badge the suit's chest with, or null for the suit's own lantern (or no suit). */
+	xyz.ssander.rings.RingStyles.@Nullable Emblem rings$emblem();
+
+	void rings$setEmblem(xyz.ssander.rings.RingStyles.@Nullable Emblem emblem);
+
 	/** The player's own skin while they wear a costume (their head is drawn with it), otherwise null. */
 	@Nullable PlayerSkin rings$ownSkin();
 

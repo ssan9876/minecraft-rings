@@ -119,6 +119,7 @@ public class RingsClient implements ClientModInitializer {
 			if (entityType == EntityTypes.PLAYER && renderer instanceof AvatarRenderer<?> avatarRenderer) {
 				helper.register(new OwnHeadLayer(avatarRenderer, new PlayerModel(context.bakeLayer(ModelLayers.PLAYER), false)));
 				helper.register(new WornRing.Layer(avatarRenderer, ((SlimArms) avatarRenderer).rings$slim()));
+				helper.register(new EmblemLayer(avatarRenderer));
 			}
 		});
 
@@ -133,7 +134,8 @@ public class RingsClient implements ClientModInitializer {
 		EntityRendererRegistry.register(Rings.OA_GUARDIAN, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/oa_guardian.png"), 0.8F));
 		EntityRendererRegistry.register(Rings.PARALLAX, ParallaxRenderer::new);
 		EntityRendererRegistry.register(Rings.CRASH_PILOT, CrashPilotRenderer::new);
-		EntityRendererRegistry.register(Rings.DEVOURER, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/devourer.png"), 2.4F));
+		EntityRendererRegistry.register(Rings.DEVOURER, DevourerRenderer::new);
+		EntityRendererRegistry.register(Rings.STRANDED_EXPLORER, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/stranded_explorer.png"), 1.0F));
 
 		HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Rings.id("power_meter"), new RingHud());
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Rings.id("scan"), new RingScan());

@@ -1,5 +1,6 @@
 package xyz.ssander.rings;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.core.BlockPos;
@@ -54,7 +55,9 @@ public final class Space {
 	public enum Planet {
 		MOON("moon", new Vec3(0.0, 230.0, -650.0), 80.0, 1.0 / 6.0, false),
 		MARS("mars", new Vec3(760.0, 200.0, 300.0), 110.0, 0.38, false),
-		OA("oa", new Vec3(-720.0, 260.0, 420.0), 95.0, 1.0, true);
+		OA("oa", new Vec3(-720.0, 260.0, 420.0), 95.0, 1.0, true),
+		// Added after the first three, so their numbers stay the same
+		KORUGAR("korugar", new Vec3(180.0, 320.0, 840.0), 105.0, 0.85, true);
 
 		private final String name;
 		private final Vec3 centre;
@@ -178,7 +181,7 @@ public final class Space {
 
 	/** Out of air unless the ring is on: vanilla adds air back each tick, so this takes a little more. */
 	private static void breathe(ServerPlayer player) {
-		if (RingAttachments.isActive(player)) {
+		if (RingAttachments.isActive(player) || RingPowers.emergencyAir(player)) {
 			return;
 		}
 		int air = player.getAirSupply() - 5;
@@ -219,6 +222,12 @@ public final class Space {
 		arriving(level);
 		boolean flying = player.getAbilities().flying;
 		List<ForceBubble> bubbles = ForceBubble.carriedBy(player);
+		List<Entity> carried = new ArrayList<>();
+		for (ForceBubble bubble : bubbles) {
+			if (bubble.getFirstPassenger() != null) {
+				carried.add(bubble.getFirstPassenger());
+			}
+		}
 		player.teleport(new TeleportTransition(level, position, player.getDeltaMovement(), player.getYRot(), player.getXRot(), TeleportTransition.DO_NOTHING));
 		if (flying && player.getAbilities().mayfly) {
 			player.getAbilities().flying = true;
@@ -230,17 +239,25 @@ public final class Space {
 		}
 		player.sendOverlayMessage(Component.translatable(trip.message()));
 		level.playSound(null, position.x, position.y, position.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 0.6F);
-		arrived(player, trip.to());
+		arrived(player, trip.to(), carried);
 	}
 
 	/** The first time a player reaches space, and each planet, earns them ring experience. */
-	private static void arrived(ServerPlayer player, ResourceKey<Level> where) {
+	private static void arrived(ServerPlayer player, ResourceKey<Level> where, List<Entity> carried) {
+		Planet planet = Planet.of(where);
+		if (where == SPACE || planet != null) {
+			Codex.discover(player, where == SPACE ? "space" : planet.id());
+		}
+		Missions.arrived(player, where, carried);
 		if (where == SPACE) {
 			Mastery.first(player, Mastery.First.SPACE);
 		} else if (where == Planet.MOON.dimension()) {
 			Mastery.first(player, Mastery.First.MOON);
 		} else if (where == Planet.MARS.dimension()) {
 			Mastery.first(player, Mastery.First.MARS);
+		} else if (where == Planet.KORUGAR.dimension()) {
+			Mastery.first(player, Mastery.First.KORUGAR);
+			player.sendSystemMessage(Component.translatable("message.rings.korugar").withColor(RingColor.YELLOW.ui()));
 		} else if (where == Planet.OA.dimension()) {
 			Mastery.first(player, Mastery.First.OA);
 			player.sendSystemMessage(Component.translatable("message.rings.oa_light").withColor(RingColor.GREEN.ui()));
@@ -251,6 +268,9 @@ public final class Space {
 	private static void arriving(ServerLevel level) {
 		if (level.dimension() == Planet.OA.dimension()) {
 			OaCitadel.ensureBuilt(level);
+		}
+		if (level.dimension() == Planet.KORUGAR.dimension()) {
+			KorugarFortress.ensureBuilt(level);
 		}
 	}
 
@@ -267,7 +287,7 @@ public final class Space {
 					player.setAttached(RingAttachments.EARTH_RETURN, player.blockPosition());
 				}
 				player.sendOverlayMessage(Component.translatable(trip.message()));
-				arrived(player, trip.to());
+				arrived(player, trip.to(), List.of());
 			}
 		}
 		vehicle.teleport(new TeleportTransition(level, trip.position(), vehicle.getDeltaMovement(), vehicle.getYRot(), vehicle.getXRot(), TeleportTransition.DO_NOTHING));

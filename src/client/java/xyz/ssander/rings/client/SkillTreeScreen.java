@@ -62,6 +62,9 @@ public class SkillTreeScreen extends Screen {
 	protected void init() {
 		this.left = (this.width - Skill.COLUMNS * CELL_WIDTH) / 2;
 		this.top = Math.max(4, (this.height - HEADER - Skill.ROWS * CELL_HEIGHT - FOOTER) / 2);
+		int footer = this.top + HEADER + Skill.ROWS * CELL_HEIGHT + FOOTER - 18;
+		this.addRenderableWidget(net.minecraft.client.gui.components.Button.builder(Component.translatable("screen.rings.codex"),
+				button -> this.minecraft.gui.setScreen(new CodexScreen(this))).bounds(this.left + Skill.COLUMNS * CELL_WIDTH - 60, footer, 60, 16).build());
 		RingColor color = this.color();
 		for (Skill skill : Skill.values()) {
 			this.icons.put(skill, switch (skill) {
@@ -208,7 +211,7 @@ public class SkillTreeScreen extends Screen {
 
 		// What everyone starts with
 		Component base = Component.translatable("screen.rings.skills_base");
-		graphics.centeredText(this.font, base, this.width / 2, this.top + height - 14, 0xFF909090);
+		graphics.text(this.font, base, this.left, this.top + height - 14, 0xFF909090, false);
 
 		if (hovered != null) {
 			this.preview(graphics, hovered, mouseX, mouseY);

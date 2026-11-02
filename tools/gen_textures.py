@@ -1099,6 +1099,205 @@ def power_battery():
     return image
 
 
+def hard_light_frame(p):
+    """Hard light in the frame style: a bright frame and cross-bracing, and nothing between."""
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            edge = min(x, y, 15 - x, 15 - y)
+            if edge == 0:
+                image.putpixel((x, y), p.glow[:3] + (250,))
+            elif edge == 1:
+                image.putpixel((x, y), p.light[:3] + (200,))
+            elif x == y or x == 15 - y:
+                image.putpixel((x, y), p.light[:3] + (110,))
+    return image
+
+
+def hard_light_ghost(p):
+    """Hard light in the ghost style: barely there, a faint haze with a thin glowing edge."""
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            edge = min(x, y, 15 - x, 15 - y)
+            image.putpixel((x, y), p.light[:3] + (150,) if edge == 0 else p.mid[:3] + (35,))
+    return image
+
+
+def fear_battery():
+    """The Fear Battery's core: yellow light, brightest at the emblem in the middle."""
+    p = COLORS["yellow"]
+    rng = random.Random(13)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            ch = LANTERN_GLASS[y][x]
+            color = {"g": p.light, "d": p.dark, "l": p.glow, "w": (255, 255, 255, 255)}[ch]
+            if ch == "g" and rng.random() < 0.2:
+                color = p.glow
+            image.putpixel((x, y), color)
+    return image
+
+
+# Emblems for the suit's chest badge (see RingStyles.Emblem): white, 10x10, tinted when drawn
+EMBLEMS = {
+    "star": [
+        "....##....",
+        "....##....",
+        "...####...",
+        "##########",
+        ".########.",
+        "..######..",
+        "..######..",
+        ".###..###.",
+        ".##....##.",
+        "#........#",
+    ],
+    "flame": [
+        "....#.....",
+        "....##....",
+        "...###..#.",
+        "..####.##.",
+        "..#######.",
+        ".########.",
+        ".###..###.",
+        ".##....##.",
+        "..##..##..",
+        "...####...",
+    ],
+    "heart": [
+        "..........",
+        ".###..###.",
+        "##########",
+        "##########",
+        "##########",
+        ".########.",
+        "..######..",
+        "...####...",
+        "....##....",
+        "..........",
+    ],
+    "eye": [
+        "..........",
+        "..######..",
+        ".##....##.",
+        "##..##..##",
+        "#..####..#",
+        "#..####..#",
+        "##..##..##",
+        ".##....##.",
+        "..######..",
+        "..........",
+    ],
+    "drop": [
+        "....##....",
+        "....##....",
+        "...####...",
+        "...####...",
+        "..######..",
+        ".########.",
+        ".#####.##.",
+        ".####..##.",
+        "..######..",
+        "...####...",
+    ],
+    "skull": [
+        "..######..",
+        ".########.",
+        "##########",
+        "##..##..##",
+        "##..##..##",
+        "##########",
+        ".####.###.",
+        "..######..",
+        "..#.##.#..",
+        "..#.##.#..",
+    ],
+    "crown": [
+        "..........",
+        "#...##...#",
+        "##..##..##",
+        "###.##.###",
+        "##########",
+        "##########",
+        "##########",
+        ".########.",
+        "..........",
+        "..........",
+    ],
+    "bolt": [
+        "......###.",
+        ".....###..",
+        "....###...",
+        "...###....",
+        "..#######.",
+        "......##..",
+        ".....##...",
+        "....##....",
+        "...##.....",
+        "..##......",
+    ],
+}
+
+
+def emblem(pattern):
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y, row in enumerate(pattern):
+        for x, ch in enumerate(row):
+            if ch == "#":
+                image.putpixel((x + 3, y + 3), (255, 255, 255, 255))
+    return image
+
+
+def emblem_badge():
+    """The badge behind an emblem: a disc with a brighter rim, white so it takes the ring's colour."""
+    import math
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            d = math.hypot(x - 7.5, y - 7.5)
+            if d <= 7.6:
+                v = 255 if d > 6.4 else 200
+                image.putpixel((x, y), (v, v, v, 255))
+    return image
+
+
+def explorer_skin():
+    """A stranded explorer: a white spacesuit striped in orange, a gold visor, a pack on the back."""
+    rng = random.Random(61)
+    suit = lambda: textured((230, 232, 236, 255), (196, 198, 204, 255), (250, 250, 252, 255), rng)
+    orange = (240, 120, 30, 255)
+    grey = (120, 124, 132, 255)
+
+    def head(face, x, y, w, h):
+        if face == "front" and 2 <= y <= 5 and 1 <= x <= 6:
+            return (230, 180, 60, 255) if (x + y) % 5 else (255, 230, 140, 255)
+        if face == "top" and 3 <= x <= 4:
+            return orange
+        return suit()
+
+    def body(face, x, y, w, h):
+        if face == "front" and 1 <= y <= 3 and 2 <= x <= 5:
+            return (60, 140, 220, 255) if y == 2 and x in (3, 4) else grey
+        if face == "back" and 1 <= y <= 9 and 1 <= x <= 6:
+            return grey if (x + y) % 4 else (90, 94, 100, 255)
+        if y == 10:
+            return orange
+        return suit()
+
+    def arm(face, x, y, w, h):
+        if y == 4:
+            return orange
+        return grey if y >= 10 else suit()
+
+    def leg(face, x, y, w, h):
+        if y == 5:
+            return orange
+        return grey if y >= 10 else suit()
+
+    return creature_skin(head, body, arm, leg)
+
+
 def creature_skin(head, body, arm, leg):
     """A 64x64 skin in the zombie layout: the left arm and leg are drawn mirrored from the right ones."""
     image = Image.new("RGBA", (64, 64), CLEAR)
@@ -1564,9 +1763,12 @@ if __name__ == "__main__":
         core_meta.write_text('{"animation": {"frametime": 2, "interpolate": true}}\n', encoding="utf-8", newline="\n")
         save(lantern_metal(palette), f"textures/block/{LANTERN_IDS[name]}_metal.png")
         save(hard_light(palette), f"textures/block/hard_light_{name}.png")
+        save(hard_light_frame(palette), f"textures/block/hard_light_{name}_frame.png")
+        save(hard_light_ghost(palette), f"textures/block/hard_light_{name}_ghost.png")
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
     save(ring_band(), "textures/entity/ring_band.png")
     save(power_battery(), "textures/block/power_battery.png")
+    save(fear_battery(), "textures/block/fear_battery.png")
     save(ship_hull(), "textures/block/ship_hull.png")
     save(ship_plating(), "textures/block/ship_plating.png")
     save(ship_light(), "textures/block/ship_light.png")
@@ -1576,6 +1778,10 @@ if __name__ == "__main__":
     save(manhunter_skin(), "textures/entity/manhunter.png")
     save(nekron_skin(), "textures/entity/nekron.png")
     save(devourer_skin(), "textures/entity/devourer.png")
+    save(explorer_skin(), "textures/entity/stranded_explorer.png")
+    save(emblem_badge(), "textures/entity/emblem/badge.png")
+    for name, pattern in EMBLEMS.items():
+        save(emblem(pattern), f"textures/entity/emblem/{name}.png")
     save(oan_relic(), "textures/item/oan_relic.png")
     save(construct_tool(CONSTRUCT_SWORD), "textures/item/construct_sword.png")
     save(construct_tool(CONSTRUCT_PICKAXE), "textures/item/construct_pickaxe.png")

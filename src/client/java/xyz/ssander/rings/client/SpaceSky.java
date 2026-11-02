@@ -119,6 +119,9 @@ public final class SpaceSky {
 			bodies.add(sky(new Vec3(-0.6, 0.3, 0.55), 9000.0, 130.0, "mars", 0xD07040));
 		} else if (dimension == Space.Planet.MARS.dimension()) {
 			bodies.add(sky(new Vec3(0.2, 0.45, 0.85), 9000.0, 220.0, "earth", 0x5A8CFF));
+		} else if (dimension == Space.Planet.KORUGAR.dimension()) {
+			// Oa, far off, and a dim red sun low down
+			bodies.add(sky(new Vec3(0.55, 0.35, 0.7), 9000.0, 260.0, "oa", 0x50E070));
 		} else if (dimension == Space.Planet.OA.dimension()) {
 			bodies.add(sky(new Vec3(-0.45, 0.5, -0.6), 7000.0, 1100.0, "korugar", 0xB070D0));
 		}
@@ -135,6 +138,7 @@ public final class SpaceSky {
 			case MOON -> 0;
 			case MARS -> 0xD07040;
 			case OA -> 0x50E070;
+			case KORUGAR -> 0xB070D0;
 		};
 	}
 

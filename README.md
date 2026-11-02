@@ -25,8 +25,9 @@ Most of these powers have to be learned on the skill tree first. Below, each one
 ## Getting a ring
 
 **Crash sites.** Very rarely, a ring-bearer's ship lies crashed somewhere on the Earth: a scorched crater with a furrow
-ploughed in behind it, the wreck nosed into the middle (alien hull split open on one side, its canopy cracked, a wing
-torn off and lying in the furrow, the engine still glowing), and columns of smoke rising from its fires that can be
+ploughed in behind it, the wreck nosed into the middle (a long alien fuselage with a nose cone, split open on one
+side, its bubble canopy cracked, a swept wing on one side and the other torn off and lying in the furrow, a tail fin,
+and twin engines still glowing), and columns of smoke rising from its fires that can be
 seen from far off. They're generated with new ground, on dry land, about one in every 2,400 chunks.
 
 **Falling ships.** Worlds explored before crash sites existed get them too: every so often (about once in two or three
@@ -109,6 +110,27 @@ spend again, for 8 will shards.
 **Ranks:** a ring-bearer's Corps rank and level show under their name, in their ring's colour: Recruit, Lantern (level
 5), Veteran Lantern (10), Honor Guard (20), Alpha Lantern (30) and Guardians' Champion (40).
 
+**Corps:** ring-bearers can band together. `/corps create <name>` founds one (you need a ring), its leader `/corps
+invite <player>`s others, who `/corps join <name>`; `/corps leave`, `/corps kick <player>` (the leader) and `/corps
+info` do what they say, and `/corps chat <message>` (or `/cc <message>`) talks to every member online. A member's
+Corps shows in brackets with their rank under their name. Members' rings and ring creatures don't hurt each other
+(unless they're duelling), and a creature one of them defeats counts for every member on the same Guardian's hunt.
+
+**The Lantern Codex** (the Codex button on the skill screen) fills in as you find things: the worlds, the great foes,
+the wonders (a dying ring-bearer, the Central Power Battery, the Fear Battery, a Moon shrine, a Mars wreck and the
+Fortress of Fear's treasure), every colour of ring worn, and the Corps' own deeds (speaking with a Guardian, a mission,
+a bounty, a duel won, a Corps joined). Each page done earns ring experience (200 to 500).
+
+**Making the ring yours:** from ring level 5, `/ring engrave <words>` engraves the worn ring (its tooltip shows it;
+`/ring engrave` alone clears it). `/ring glow steady|pulse|off` sets how your outline glows (pulsing from level 10,
+off from level 20), and `/ring constructs solid|frame|ghost` how your hard light looks (a bright frame, or a faint
+ghost, once you've learned Shaper). From level 15, `/ring emblem star|flame|heart|eye|drop|skull|crown|bolt` puts
+another emblem on your suit's chest, as a badge of the ring's colour (`lantern` goes back to the suit's own). The suit
+screen has buttons for all three.
+
+**The ring's last light:** when a ring runs out with its bearer up in the air or off the Earth, it lets them down
+gently all the way and keeps them breathing for a minute, once each time it's been charged past half.
+
 **Duels:** `/duel <player>` challenges another ring-bearer; they `/duel accept` or `/duel decline` within a minute.
 Duellists can hurt each other even with PvP off, and a blow that would kill one ends the duel instead, leaving them
 standing: the other wins (60 ring experience, and 15 for the loser). A duel ends drawn after five minutes, or if the
@@ -188,7 +210,7 @@ attack, follow you about, and fade away when their time's up or they die, leavin
   left where nobody is (its chunk unloaded) is found where it was last seen: that spot wakes up for a few seconds
   while the ring answers.
 
-**Space:** fly up past Y 450 on a ring (once you've learned Spacefarer) and you're in space, over the curve of the Earth, with three planets hanging
+**Space:** fly up past Y 450 on a ring (once you've learned Spacefarer) and you're in space, over the curve of the Earth, with four planets hanging
 in the stars and the sun blazing beyond them (always out of reach; fly at it all you like). The sun shines in every
 planet's sky too, in place of the Overworld's sun and moon. Fly into a planet to land on it:
 
@@ -196,7 +218,8 @@ planet's sky too, in place of the Overworld's sun and moon. Fly into a planet to
 |---|---|
 | The Moon | Grey dust and stone under a black sky, the Earth hanging over it. A sixth of the Earth's gravity. No air. |
 | Mars | Red sand and rock under a butterscotch sky. 38% of the Earth's gravity. No air. |
-| Oa | Home of the Lantern Corps: green land under a green sky, with the violet giant Korugar overhead. Breathable. |
+| Oa | Home of the Lantern Corps: green land under a green sky, with violet Korugar huge overhead. Breathable. |
+| Korugar | Home of the yellow light: purple dust and black rock under a bruised violet sky, Oa far off in it. 85% of the Earth's gravity. Breathable. |
 
 Each planet is made of its own rock, with its own things to find:
 
@@ -220,14 +243,24 @@ Low gravity means higher jumps, slower falls and softer landings. Beds and respa
   **Central Power Battery** at its heart. Right-click its glowing core and any ring, of any colour, is charged full
   at once. In the Battery's light, everything you do on Oa earns **twice the ring experience**. The **Guardians of
   the Universe** walk the plaza: right-click one to talk. They stop and face you, tell you of Oa and the Corps, give
-  **missions** (bring 16 moonstone or 12 Mars crystals or 8 will shards, destroy 5 Manhunters, or defeat Nekron,
-  Parallax or the Devourer, the great foes only for higher levels), each paying ring experience and sometimes an Oan
-  relic (always for the great foes), and for 8 will shards **unmake what you've learned** so you can choose again.
-  One mission at a time; tell any Guardian when it's done.
+  **missions**, each paying ring experience and sometimes an Oan relic (always for the great foes): bring 16 moonstone,
+  12 Mars crystals or 8 will shards; destroy 5 Manhunters, or defeat Nekron, Parallax or the Devourer (the great foes
+  only for higher levels); scan Mars from three places at least 64 blocks apart; carry a living creature to the Moon in
+  a bubble (level 4); or find the explorer stranded on Mars (the Guardian says where) and bring them home to the Earth
+  in a bubble (level 8): a spacesuited explorer who calls out to anyone near. One mission at a time; tell any Guardian when it's done. Each day there's also a **bounty**,
+  the same task for everyone, paying double, once a day. They read out the **roll of honour** (the five greatest
+  ring-bearers by level and missions, and the three strongest Corps), and for will shards (8) they **unmake what
+  you've learned** so you can choose again.
 - **The Moon** has the **shrines of the first Lanterns**, about one in forty chunks: a ruined platform of moon rock
   bricks, broken pillars capped with glowing moonstone, an old lantern of a random colour on a pedestal (yours to
   take), and a chest of moonstone, will shards, diamonds, ender pearls and, three times in ten, an Oan relic. The
   Guardians want its moonstone, and Nekron sleeps there.
+- **Korugar**, the violet world, home of the yellow light (fly into it in space; breathable, 85% gravity): purple
+  dust over blackstone veined with gilded blackstone and glowstone, amethyst crystals on the surface and in caves, and
+  Manhunters on the hunt. At its middle, built the first time anyone lands, stands the **Fortress of Fear**: a black
+  plaza banded in gold, four jagged spires, chests of its treasure (gold, a yellow lantern, diamonds, amethyst and, a
+  quarter of the time, an Oan relic), and at its heart the **Fear Battery**, which fills a yellow ring at once and
+  turns on any other ring that touches it (draining a tenth of it, and filling its bearer with fear).
 - **Mars** has the **wrecks of Manhunter scouts**, about one in thirty-five chunks: a pod of alien hull nosed into the
   red sand, torn open, with a chest of salvage inside (iron, redstone, Mars crystals, gold, running lights and,
   two times in ten, an Oan relic). Its **Mars crystals attune lanterns** (below), and the Guardians want them too.
@@ -239,7 +272,8 @@ Low gravity means higher jumps, slower falls and softer landings. Beds and respa
   It drops a yellow lantern, diamonds and gold.
 - **The Devourer**, the thing out of the dark that brings ring-bearers' ships down, hunts the strong: about once
   every five minutes a ring-bearer of level 20 or more spends in space, it may come for them (not again for the same
-  one for twenty minutes). A towering shadow with a maw full of stars, it eats the light of every ring near it (healing
+  one for twenty minutes). A towering, hunched shadow cracked with violet light, long-armed and pale-clawed, its head
+  nearly all working maw under two burning eyes, a mass of tendrils swaying beneath it in place of legs, it eats the light of every ring near it (healing
   on what it eats), darkens their sight, hurls volleys of death and lunges. It drops two Oan relics, will shards and
   diamonds.
 - **Nekron**, lord of the dead, sleeps on the Moon. Charge a black ring full at a black lantern there and he
@@ -317,7 +351,14 @@ Power Lantern:   Iron Ingot  Side     Iron Ingot
 (every skill and suit), `/rings reset <players>` (back to a new bearer), `/rings info <player>`, `/rings crash
 [colour]` (a ship falls 40 to 70 blocks from you), `/rings crashsite [colour]` (a crash site built right where you
 stand, moving you out of it), `/rings crashes` (how often ships fall), `/rings crashes every <minutes>` and `/rings
-crashes off`, and `/rings devourer` (the Devourer comes for you).
+crashes off`, `/rings devourer` (the Devourer comes for you), and `/rings ruins moon|mars <count> [radius]`, which puts
+shrines on the Moon or wrecks on Mars at random within the radius (default 1500) of the middle, for ground explored
+before they existed.
+
+**Server settings** are in `config/rings.json`, written with the defaults the first time the server starts and read
+each time it starts: `xpMultiplier` (ring experience for everything), `missionXpMultiplier`, `devourerLevel`,
+`devourerChance` (one in this many each five seconds in space), `respecShards`, `duelWinXp`, `duelLoseXp`,
+`crashEveryMinutes` (until `/rings crashes` sets it) and `veteranLevel`.
 
 How it behaves:
 - Shift-click a ring to equip it, like armor. Taking it off switches it off.
@@ -360,6 +401,8 @@ Needs JDK 25.
 | `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
 | `RINGS_GEAR=1 ./gradlew runClientGameTest` | Only the construct sword's slash, the construct shield and a will shard |
 | `RINGS_SUITS=1 ./gradlew runClientGameTest` | Only choosing each suit, on the suit screen and from the front |
+| `RINGS_POLISH=1 ./gradlew runClientGameTest` | Only emblems, the crashed ship's shape from three sides, the Devourer and the stranded explorer, and `/rings ruins` |
+| `RINGS_SOCIAL=1 ./gradlew runClientGameTest` | Only the config file, Corps, ring styles, the ring's last light, the roll of honour and the bounty, the scan, escort and rescue missions, Korugar and its fortress, and the codex |
 | `RINGS_WORLDS=1 ./gradlew runClientGameTest` | Only crash colours and rates, skill previews, attuned lanterns and the oath's bar, ranks and duels, Oa's doubled experience and the Guardians' missions and respec, Oan relics, the Moon's shrines and Mars's wrecks, and the Devourer |
 | `RINGS_MASTERY=1 ./gradlew runClientGameTest` | Only ring levels, the skill tree, the earned suits, a crash site and its pilot's dialogue, the console, the lanterns and a falling ship |
 
@@ -428,6 +471,10 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
   changes), `Skill` (the tree), `SkillTreeScreen`. Each power checks its skill on the server (`Mastery.require`); the
   client checks too for what it decides itself (elytra mode and super flight in `SuperFlight`, the wheel, the scan's
   reach).
+- **Corps, codex, styles and settings:** `RingCorps` (Corps and the roll of honour, kept on the Overworld), `Codex`
+  (its pages; what's found is kept with the player's mastery) and `CodexScreen`, `RingStyles` (engraving, glow and
+  construct styles; hard light's `style` block state), `RingsConfig`, and `KorugarFortress` (built on the first
+  landing, like Oa's citadel).
 - **Reasons to go places:** `Missions` (the Guardians' tasks, an attachment per player), `OaGuardian` (their talk and
   the respec), `PlanetRuins` (the Moon's shrines and Mars's wrecks, worldgen features with loot-table chests),
   `Devourer` (spawned by `Bosses`), `OanRelicItem`, `Mastery.first` (one-off rewards) and `RingDuels` (with

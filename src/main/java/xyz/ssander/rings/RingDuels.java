@@ -34,8 +34,6 @@ public final class RingDuels {
 	private static final int CHALLENGE_TICKS = 60 * 20;
 	private static final int DUEL_TICKS = 5 * 60 * 20;
 	private static final double MAX_APART = 96.0;
-	private static final int WIN_XP = 60;
-	private static final int LOSE_XP = 15;
 
 	private record Challenge(UUID challenger, long expires) {
 	}
@@ -176,9 +174,10 @@ public final class RingDuels {
 		if (won == null || lost == null) {
 			return;
 		}
-		Mastery.addXp(won, WIN_XP);
-		Mastery.addXp(lost, LOSE_XP);
+		Mastery.addXp(won, RingsConfig.get().duelWinXp);
+		Mastery.addXp(lost, RingsConfig.get().duelLoseXp);
 		Mastery.first(won, Mastery.First.DUEL);
+		Codex.discover(won, "duel");
 		ServerLevel level = won.level();
 		level.playSound(null, won.getX(), won.getY(), won.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.8F, 1.0F);
 		Component message = Component.translatable("duel.rings.won", won.getDisplayName(), lost.getDisplayName()).withStyle(ChatFormatting.GOLD);

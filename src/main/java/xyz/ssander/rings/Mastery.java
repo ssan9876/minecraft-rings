@@ -37,8 +37,6 @@ import org.jspecify.annotations.Nullable;
  */
 public final class Mastery {
 	public static final int MAX_LEVEL = 40;
-	/** The level that players who already had a ring before levels came in start at. */
-	private static final int VETERAN_LEVEL = 10;
 
 	/**
 	 * A player's ring experience (all they've earned), the skills they've learned, the extra skill points Oan relics
@@ -154,6 +152,7 @@ public final class Mastery {
 		int level = data.level();
 		if (player.getAttachedOrElse(RANK, 0) != level) {
 			player.setAttached(RANK, level);
+			RingCorps.onRoll(player);
 		}
 	}
 
@@ -222,9 +221,10 @@ public final class Mastery {
 		}
 		boolean veteran = RingAttachments.getRing(player).getItem() instanceof RingItem
 				|| player.getInventory().contains(stack -> stack.getItem() instanceof RingItem);
-		store(player, new Data(veteran ? xpFor(VETERAN_LEVEL) : 0, List.of()));
+		int veteranLevel = RingsConfig.get().veteranLevel;
+		store(player, new Data(veteran ? xpFor(veteranLevel) : 0, List.of()));
 		if (veteran) {
-			player.sendSystemMessage(Component.translatable("message.rings.veteran", VETERAN_LEVEL).withStyle(ChatFormatting.GREEN));
+			player.sendSystemMessage(Component.translatable("message.rings.veteran", veteranLevel).withStyle(ChatFormatting.GREEN));
 		}
 	}
 
@@ -236,6 +236,7 @@ public final class Mastery {
 		if (player.level().dimension() == Space.Planet.OA.dimension()) {
 			amount *= 2;
 		}
+		amount = Math.max(1, (int) Math.round(amount * RingsConfig.get().xpMultiplier));
 		Data data = of(player);
 		int before = data.level();
 		Data after = data.withXp(Math.min(data.xp() + amount, xpFor(MAX_LEVEL)));
@@ -317,6 +318,7 @@ public final class Mastery {
 		MOON(150),
 		MARS(150),
 		OA(200),
+		KORUGAR(200),
 		BATTERY(50),
 		MISSION(100),
 		DUEL(50),
@@ -412,6 +414,15 @@ public final class Mastery {
 			return;
 		}
 		Missions.killed(killer, entity);
+		if (entity instanceof Manhunter) {
+			Codex.discover(killer, "manhunter");
+		} else if (entity instanceof Parallax) {
+			Codex.discover(killer, "parallax");
+		} else if (entity instanceof Nekron) {
+			Codex.discover(killer, "nekron");
+		} else if (entity instanceof Devourer) {
+			Codex.discover(killer, "devourer");
+		}
 		if (RingAttachments.activeColor(killer) == null) {
 			return;
 		}

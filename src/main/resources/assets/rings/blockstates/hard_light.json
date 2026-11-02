@@ -1,28 +1,76 @@
 {
   "variants": {
-    "color=green": {
+    "color=green,style=solid": {
       "model": "rings:block/hard_light_green"
     },
-    "color=blue": {
+    "color=green,style=frame": {
+      "model": "rings:block/hard_light_green_frame"
+    },
+    "color=green,style=ghost": {
+      "model": "rings:block/hard_light_green_ghost"
+    },
+    "color=blue,style=solid": {
       "model": "rings:block/hard_light_blue"
     },
-    "color=red": {
+    "color=blue,style=frame": {
+      "model": "rings:block/hard_light_blue_frame"
+    },
+    "color=blue,style=ghost": {
+      "model": "rings:block/hard_light_blue_ghost"
+    },
+    "color=red,style=solid": {
       "model": "rings:block/hard_light_red"
     },
-    "color=pink": {
+    "color=red,style=frame": {
+      "model": "rings:block/hard_light_red_frame"
+    },
+    "color=red,style=ghost": {
+      "model": "rings:block/hard_light_red_ghost"
+    },
+    "color=pink,style=solid": {
       "model": "rings:block/hard_light_pink"
     },
-    "color=orange": {
+    "color=pink,style=frame": {
+      "model": "rings:block/hard_light_pink_frame"
+    },
+    "color=pink,style=ghost": {
+      "model": "rings:block/hard_light_pink_ghost"
+    },
+    "color=orange,style=solid": {
       "model": "rings:block/hard_light_orange"
     },
-    "color=white": {
+    "color=orange,style=frame": {
+      "model": "rings:block/hard_light_orange_frame"
+    },
+    "color=orange,style=ghost": {
+      "model": "rings:block/hard_light_orange_ghost"
+    },
+    "color=white,style=solid": {
       "model": "rings:block/hard_light_white"
     },
-    "color=black": {
+    "color=white,style=frame": {
+      "model": "rings:block/hard_light_white_frame"
+    },
+    "color=white,style=ghost": {
+      "model": "rings:block/hard_light_white_ghost"
+    },
+    "color=black,style=solid": {
       "model": "rings:block/hard_light_black"
     },
-    "color=yellow": {
+    "color=black,style=frame": {
+      "model": "rings:block/hard_light_black_frame"
+    },
+    "color=black,style=ghost": {
+      "model": "rings:block/hard_light_black_ghost"
+    },
+    "color=yellow,style=solid": {
       "model": "rings:block/hard_light_yellow"
+    },
+    "color=yellow,style=frame": {
+      "model": "rings:block/hard_light_yellow_frame"
+    },
+    "color=yellow,style=ghost": {
+      "model": "rings:block/hard_light_yellow_ghost"
     }
   }
 }

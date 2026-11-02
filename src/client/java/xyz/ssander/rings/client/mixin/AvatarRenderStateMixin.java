@@ -27,6 +27,18 @@ public abstract class AvatarRenderStateMixin implements RingRenderState {
 	private @Nullable RingColor rings$wornRing;
 	@Unique
 	private boolean rings$ringActive;
+	@Unique
+	private xyz.ssander.rings.RingStyles.@Nullable Emblem rings$emblem;
+
+	@Override
+	public xyz.ssander.rings.RingStyles.@Nullable Emblem rings$emblem() {
+		return this.rings$emblem;
+	}
+
+	@Override
+	public void rings$setEmblem(xyz.ssander.rings.RingStyles.@Nullable Emblem emblem) {
+		this.rings$emblem = emblem;
+	}
 
 	@Override
 	public @Nullable RingColor rings$wornRing() {

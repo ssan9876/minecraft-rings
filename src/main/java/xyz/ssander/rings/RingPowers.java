@@ -2,6 +2,10 @@ package xyz.ssander.rings;
 
 import java.util.Objects;
 
+import com.mojang.serialization.Codec;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.BlockPos;
@@ -32,6 +36,32 @@ public final class RingPowers {
 
 	/** Slow falling after flight ends in mid-air, so survival players don't fall to their death. */
 	private static final int SAFE_LANDING_TICKS = 100;
+	/**
+	 * The ring's last light, once each time it's charged past half: when it runs out with its bearer up in the air or
+	 * off the Earth, it lowers them gently all the way down and keeps them breathing for a minute.
+	 */
+	public static final AttachmentType<Boolean> EMERGENCY_USED = AttachmentRegistry.create(Rings.id("emergency_used"),
+			builder -> builder.persistent(Codec.BOOL).copyOnDeath());
+	public static final AttachmentType<Long> EMERGENCY_AIR = AttachmentRegistry.create(Rings.id("emergency_air"),
+			builder -> builder.persistent(Codec.LONG));
+	private static final int EMERGENCY_TICKS = 60 * 20;
+
+	private static void emergency(ServerPlayer player) {
+		boolean offEarth = player.level().dimension() != net.minecraft.world.level.Level.OVERWORLD;
+		if (player.getAttachedOrElse(EMERGENCY_USED, false) || player.isCreative() || player.isSpectator() || player.onGround() && !offEarth) {
+			return;
+		}
+		player.setAttached(EMERGENCY_USED, true);
+		player.setAttached(EMERGENCY_AIR, player.level().getGameTime() + EMERGENCY_TICKS);
+		player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, EMERGENCY_TICKS, 0, false, false, true));
+		player.sendSystemMessage(Component.translatable("message.rings.emergency").withStyle(net.minecraft.ChatFormatting.YELLOW));
+	}
+
+	/** Whether the ring's last light is keeping the player breathing. */
+	public static boolean emergencyAir(ServerPlayer player) {
+		return player.level().getGameTime() < player.getAttachedOrElse(EMERGENCY_AIR, Long.MIN_VALUE);
+	}
+
 	/** Charge used each second while the ring is on, and while flying on it. */
 	private static final int DRAIN_ACTIVE = 1;
 	private static final int DRAIN_FLYING = 3;
@@ -54,6 +84,10 @@ public final class RingPowers {
 	private static final int XP_TICKS = 10 * 20;
 
 	private RingPowers() {
+	}
+
+	/** Loads the class, so its attachments register during mod init, before players' saved data loads. */
+	static void init() {
 	}
 
 	public static void toggle(ServerPlayer player) {
@@ -101,11 +135,15 @@ public final class RingPowers {
 					-Mastery.cost(player, drain(player))) == 0) {
 				player.removeAttached(RingAttachments.ACTIVE);
 				player.sendOverlayMessage(Component.translatable("message.rings.out_of_power", stack.getHoverName()));
+				emergency(player);
 				player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0F, 0.6F);
 			}
 		}
 
 		RingItem active = RingAttachments.isActive(player) ? ring : null;
+		if (active != null && player.tickCount % 100 == 0) {
+			Codex.discover(player, "ring_" + active.color().id());
+		}
 		if (active != null && player.tickCount % XP_TICKS == 0) {
 			boolean flying = player.getAbilities().flying || player.isFallFlying();
 			Mastery.addXp(player, Mastery.XP_WORN + (flying ? Mastery.XP_FLYING : 0));
@@ -169,6 +207,9 @@ public final class RingPowers {
 		int added = Mastery.has(player, Skill.LANTERN_BOND) ? CHARGE_PER_USE * 2 : CHARGE_PER_USE;
 		int charge = RingItem.addCharge(stack, ownColor ? added : added / 2);
 		boolean full = charge >= RingItem.MAX_CHARGE;
+		if (charge >= RingItem.MAX_CHARGE / 2) {
+			player.removeAttached(EMERGENCY_USED);
+		}
 		// Taking the oath earns the ring's experience, by how much it fills: XP_CHARGED for a ring charged from empty
 		if (player.getRandom().nextFloat() < (float) (charge - before) * Mastery.XP_CHARGED / RingItem.MAX_CHARGE) {
 			Mastery.addXp(player, 1);

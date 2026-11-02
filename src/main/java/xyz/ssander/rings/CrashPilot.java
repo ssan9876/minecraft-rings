@@ -142,6 +142,7 @@ public class CrashPilot extends PathfinderMob {
 			return InteractionResult.SUCCESS;
 		}
 		this.getLookControl().setLookAt(player);
+		Codex.discover(serverPlayer, "pilot");
 		ServerPlayNetworking.send(serverPlayer, new OpenDialoguePayload(Dialogues.Dialogue.PILOT,
 				hasRing(player) ? Dialogues.PILOT_HAS_RING : Dialogues.PILOT_START, this.color(), this.getId()));
 		this.playSound(SoundEvents.PLAYER_HURT, 0.4F, 0.6F);

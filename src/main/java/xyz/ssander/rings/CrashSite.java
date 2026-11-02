@@ -39,12 +39,14 @@ public final class CrashSite {
 	private static final int DEPTH = 3;
 	private static final int SCORCH = 13;
 	/** The ship: its half length, half width and half height, and how far its middle sits ahead of the crater's. */
-	private static final double HULL_LENGTH = 6.5;
+	private static final double HULL_LENGTH = 7.5;
+	/** Where along it the nose cone starts, and where the tail starts to taper. */
+	private static final double NOSE = 3.0;
+	private static final double TAIL = 4.0;
 	private static final double HULL_WIDTH = 2.8;
-	private static final double HULL_HEIGHT = 2.0;
 	private static final int HULL_AHEAD = 2;
 	/** How steeply it's nosed into the ground: the drop for each block along it. */
-	private static final double TILT = 0.22;
+	private static final double TILT = 0.16;
 	/** The steepest ground the world puts a crash on: the most the ground round the middle may differ from it. */
 	private static final int MAX_SLOPE = 6;
 
@@ -166,7 +168,7 @@ public final class CrashSite {
 			this.side = forward.getClockWise();
 			this.random = random;
 			this.flags = flags;
-			this.hullY = centre.getY() - DEPTH + 2;
+			this.hullY = centre.getY() - DEPTH + 3;
 		}
 
 		BlockPos at(int along, int across, int y) {
@@ -272,40 +274,79 @@ public final class CrashSite {
 			}
 		}
 
-		/** How far into the hull a point is: 1 at its skin, less inside. {@code a} is measured from the ship's middle. */
-		static double hullShape(double a, double across, double y, double length, double width, double height) {
-			double v = y + TILT * a;
-			return (a / length) * (a / length) + (across / width) * (across / width) + (v / height) * (v / height);
+		/** The fuselage's half-width at a place along it: a nose cone in front, tapering at the tail. */
+		static double fuselage(double a) {
+			if (a > NOSE) {
+				return Math.max(0.0, HULL_WIDTH * (1.0 - (a - NOSE) / (HULL_LENGTH - NOSE + 1.0)));
+			}
+			if (a < -TAIL) {
+				return Math.max(0.0, HULL_WIDTH * (1.0 - (-TAIL - a) / (HULL_LENGTH - TAIL + 1.5) * 0.7));
+			}
+			return HULL_WIDTH;
+		}
+
+		/** Inside the fuselage: 1 at its skin. Its section is wider than it's tall. {@code v} is measured level with it. */
+		static double fuselageShape(double a, double across, double v, double shrink) {
+			double r = fuselage(a) - shrink;
+			if (r <= 0.2 || a > HULL_LENGTH || a < -HULL_LENGTH - 1.0) {
+				return 2.0;
+			}
+			return (across / (r * 1.1)) * (across / (r * 1.1)) + (v / (r * 0.8)) * (v / (r * 0.8));
+		}
+
+		/** The cockpit's bubble, up on the fuselage near the front. */
+		static double cockpitShape(double a, double across, double v) {
+			return ((a - 3.0) / 2.6) * ((a - 3.0) / 2.6) + (across / 1.5) * (across / 1.5) + ((v - 1.7) / 1.3) * ((v - 1.7) / 1.3);
+		}
+
+		/** The engine nacelles, either side of the tail. */
+		static double nacelleShape(double a, double across, double v) {
+			if (a > -1.5 || a < -HULL_LENGTH - 1.5) {
+				return 2.0;
+			}
+			double side = Math.abs(across) - (HULL_WIDTH + 0.9);
+			return (side / 1.15) * (side / 1.15) + ((v + 0.4) / 1.0) * ((v + 0.4) / 1.0);
 		}
 
 		boolean breach(double a, double across, double v) {
 			return across > 0.5 && a > -2.5 && a < 1.5 && v > -0.9 && v < 1.6;
 		}
 
-		/** The hull: a shell nosed into the ground, split open on one side, its canopy cracked. */
+		/**
+		 * The ship: a long fuselage with a nose cone, nosed into the ground, a cockpit bubble on top (its canopy cracked),
+		 * engine nacelles either side of the tail, split open on one side.
+		 */
 		void hull() {
-			for (int along = -8; along <= 10; along++) {
-				for (int across = -4; across <= 4; across++) {
-					for (int dy = -4; dy <= 4; dy++) {
+			for (int along = -11; along <= 12; along++) {
+				for (int across = -5; across <= 5; across++) {
+					for (int dy = -5; dy <= 5; dy++) {
 						double a = along - HULL_AHEAD;
-						double outer = hullShape(a, across, dy, HULL_LENGTH, HULL_WIDTH, HULL_HEIGHT);
-						if (outer > 1.0) {
-							continue;
-						}
-						double inner = hullShape(a, across, dy, HULL_LENGTH - 1.1, HULL_WIDTH - 1.0, HULL_HEIGHT - 0.95);
 						double v = dy + TILT * a;
 						BlockPos pos = this.at(along, across, this.hullY + dy);
-						if (inner <= 1.0 || this.breach(a, across, v)) {
+						double body = fuselageShape(a, across, v, 0.0);
+						double cockpit = cockpitShape(a, across, v);
+						double nacelle = nacelleShape(a, across, v);
+						boolean inside = fuselageShape(a, across, v, 1.0) <= 1.0 || cockpitShape(a, across, v) <= 0.45;
+						if (body > 1.0 && cockpit > 1.0 && nacelle > 1.0) {
+							continue;
+						}
+						if (inside || this.breach(a, across, v)) {
 							this.set(pos, Blocks.AIR.defaultBlockState());
 							continue;
 						}
 						BlockState state;
-						if (a > 2.2 && v > 0.3) {
+						if (cockpit <= 1.0 && body > 1.0) {
 							// The canopy, cracked through in places
-							state = this.random.nextInt(6) == 0 ? Blocks.AIR.defaultBlockState() : Blocks.TINTED_GLASS.defaultBlockState();
-						} else if (Math.abs(across) >= 2 && Math.abs(v) < 0.5 && Math.floorMod(along, 2) == 0) {
+							state = this.random.nextInt(5) == 0 ? Blocks.AIR.defaultBlockState() : Blocks.TINTED_GLASS.defaultBlockState();
+						} else if (nacelle <= 1.0 && body > 1.0) {
+							// The engines: plating, their mouths still glowing
+							boolean mouth = a < -HULL_LENGTH - 0.5;
+							state = mouth ? (Math.abs(Math.abs(across) - (HULL_WIDTH + 0.9)) < 0.6 && Math.abs(v + 0.4) < 0.6
+									? Blocks.MAGMA_BLOCK.defaultBlockState() : ShipBlocks.SHIP_LIGHT.defaultBlockState())
+									: ShipBlocks.SHIP_PLATING.defaultBlockState();
+						} else if (Math.abs(v) < 0.5 && Math.abs(across) >= 2 && Math.floorMod(along, 3) == 0) {
 							state = ShipBlocks.SHIP_LIGHT.defaultBlockState();
-						} else if (v > 1.2 && Math.abs(across) <= 0) {
+						} else if (v > 1.0 && across == 0) {
 							state = ShipBlocks.SHIP_PLATING.defaultBlockState();
 						} else {
 							state = this.random.nextInt(9) == 0 ? ShipBlocks.SHIP_PLATING.defaultBlockState() : ShipBlocks.SHIP_HULL.defaultBlockState();
@@ -316,33 +357,35 @@ public final class CrashSite {
 			}
 		}
 
-		/** Swept-back wings: the one on the breached side torn off near the root. */
+		/** Swept-back wings low on the fuselage (the one on the breached side torn off), and a tail fin. */
 		void wings() {
 			for (int sign = -1; sign <= 1; sign += 2) {
-				int reach = sign > 0 ? 4 : 6;
+				int reach = sign > 0 ? 4 : 8;
 				for (int out = 3; out <= reach; out++) {
 					int sweep = out - 3;
-					for (int along = -3 - sweep; along <= -1 - sweep / 2; along++) {
+					for (int along = -3 - sweep; along <= -sweep; along++) {
 						double a = along - HULL_AHEAD;
-						int y = this.hullY + (int) Math.round(-0.4 - TILT * a);
+						int y = this.hullY + (int) Math.round(-0.6 - TILT * a);
 						boolean tip = out == reach && sign < 0;
 						this.set(this.at(along, sign * out, y), tip ? ShipBlocks.SHIP_LIGHT.defaultBlockState() : ShipBlocks.SHIP_PLATING.defaultBlockState());
 					}
 				}
 			}
-		}
-
-		/** The engine at the back, still glowing, and smoking. */
-		void engine() {
-			int along = (int) -Math.ceil(HULL_LENGTH) + HULL_AHEAD - 1;
-			double a = along - HULL_AHEAD;
-			int y = this.hullY + (int) Math.round(-TILT * a);
-			for (int across = -1; across <= 1; across++) {
-				for (int dy = -1; dy <= 1; dy++) {
-					boolean middle = across == 0 && dy == 0;
-					this.set(this.at(along, across, y + dy), middle ? Blocks.MAGMA_BLOCK.defaultBlockState() : ShipBlocks.SHIP_LIGHT.defaultBlockState());
+			// The tail fin, standing up over the back of the fuselage and swept back
+			for (int up = 1; up <= 3; up++) {
+				for (int along = -8 - up; along <= -6 - up / 2; along++) {
+					double a = along - HULL_AHEAD;
+					int y = this.hullY + (int) Math.round(fuselage(a) * 0.8 - TILT * a) + up;
+					this.set(this.at(along, 0, y), up == 3 && along == -8 - up ? ShipBlocks.SHIP_LIGHT.defaultBlockState() : ShipBlocks.SHIP_PLATING.defaultBlockState());
 				}
 			}
+		}
+
+		/** Smoke rising from the engines at the back. */
+		void engine() {
+			int along = (int) -Math.ceil(HULL_LENGTH) + HULL_AHEAD - 2;
+			double a = along - HULL_AHEAD;
+			int y = this.hullY + (int) Math.round(-TILT * a);
 			this.smoke(this.at(along, 0, y + 2));
 		}
 
@@ -398,7 +441,7 @@ public final class CrashSite {
 
 		/** The pilot, slumped against the hull outside the breach, with their lantern beside them. */
 		BlockPos pilot(RingColor color) {
-			int along = HULL_AHEAD - 1;
+			int along = HULL_AHEAD;
 			int across = (int) Math.ceil(HULL_WIDTH) + 1;
 			BlockPos seat = this.standing(along, across);
 			// Level ground round them, out from the hull, so the bowl's slope doesn't hide them

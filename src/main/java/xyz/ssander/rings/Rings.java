@@ -132,6 +132,21 @@ public class Rings implements ModInitializer {
 	/** The thing out of the dark that brings ring-bearers down: it hunts strong ones through space. */
 	public static final EntityType<Devourer> DEVOURER = registerEntity("devourer",
 			EntityType.Builder.of(Devourer::new, MobCategory.MONSTER).sized(1.5F, 4.6F).eyeHeight(4.0F).clientTrackingRange(16).fireImmune());
+	/** The Fear Battery's core, in the fortress on Korugar: fills a yellow ring, turns on any other. */
+	public static final KorugarFortress.FearBatteryBlock FEAR_BATTERY = registerBlock("fear_battery", KorugarFortress.FearBatteryBlock::new,
+			BlockBehaviour.Properties.of()
+					.mapColor(MapColor.GOLD)
+					.strength(-1.0F, 3600000.0F)
+					.sound(SoundType.GLASS)
+					.lightLevel(state -> 15)
+					.noLootTable()
+					.pushReaction(PushReaction.IMMOVEABLE)
+					.isValidSpawn((state, level, pos, type) -> false));
+	public static final Item FEAR_BATTERY_ITEM = register("fear_battery", props -> new BlockItem(FEAR_BATTERY, props),
+			new Item.Properties().useBlockDescriptionPrefix().rarity(Rarity.EPIC));
+	/** An explorer stranded on Mars, for a Guardian's rescue mission. */
+	public static final EntityType<StrandedExplorer> STRANDED_EXPLORER = registerEntity("stranded_explorer",
+			EntityType.Builder.of(StrandedExplorer::new, MobCategory.MISC).sized(0.6F, 1.95F).clientTrackingRange(10));
 	/** A relic of the first Lanterns: one more skill point. */
 	public static final Item OAN_RELIC = register("oan_relic", OanRelicItem::new, new Item.Properties().rarity(Rarity.EPIC).stacksTo(16));
 	/** A ring-bearer dying beside their crashed ship, who hands their ring on (see CrashSite). */
@@ -206,12 +221,15 @@ public class Rings implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		RingsConfig.init();
 		RingAttachments.init();
 		Mastery.init();
 		Missions.init();
 		ShipBlocks.init();
 		CrashSite.init();
 		PlanetRuins.init();
+		KorugarFortress.init();
+		Codex.init();
 		RingCommands.init();
 		// Crash sites, very rarely, on dry land anywhere on the Earth
 		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld().and(BiomeSelectors.tag(BiomeTags.IS_OCEAN).negate())
@@ -225,6 +243,9 @@ public class Rings implements ModInitializer {
 		RingCall.init();
 		// Before RingProtection, so a duel's last blow ends the duel rather than spending the ring's last save
 		RingDuels.init();
+		RingCorps.init();
+		RingStyles.init();
+		RingPowers.init();
 		RingProtection.init();
 		Thralls.init();
 		FabricDefaultAttributeRegistry.register(CONSTRUCT_WOLF, ConstructBeast.wolfAttributes());
@@ -235,12 +256,14 @@ public class Rings implements ModInitializer {
 		FabricDefaultAttributeRegistry.register(OA_GUARDIAN, OaGuardian.createAttributes());
 		FabricDefaultAttributeRegistry.register(CRASH_PILOT, CrashPilot.createAttributes());
 		FabricDefaultAttributeRegistry.register(DEVOURER, Devourer.createAttributes());
+		FabricDefaultAttributeRegistry.register(STRANDED_EXPLORER, StrandedExplorer.createAttributes());
 		ColorPowers.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {
 			RINGS.values().forEach(output::accept);
 			LANTERN_ITEMS.values().forEach(output::accept);
 			output.accept(POWER_BATTERY_ITEM);
+			output.accept(FEAR_BATTERY_ITEM);
 		});
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.BUILDING_BLOCKS).register(output -> ShipBlocks.items().forEach(output::accept));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.NATURAL_BLOCKS).register(output ->
@@ -294,6 +317,21 @@ public class Rings implements ModInitializer {
 				case RESPEC -> {
 					if (speaker instanceof OaGuardian guardian) {
 						guardian.respec(player);
+					}
+				}
+				case BOUNTY -> {
+					if (speaker instanceof OaGuardian guardian) {
+						Missions.bounty(player, guardian);
+					}
+				}
+				case ROLL -> {
+					if (speaker instanceof OaGuardian guardian) {
+						Missions.roll(player, guardian);
+					}
+				}
+				case RESPEC_ASK -> {
+					if (speaker instanceof OaGuardian guardian) {
+						guardian.respecAsk(player);
 					}
 				}
 				case NONE -> {

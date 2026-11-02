@@ -85,14 +85,18 @@ def main():
         lang[f"item.rings.{ring}"] = f"{name} Power Ring"
         lang[f"block.rings.{lantern}"] = f"{name} Power Lantern"
 
-    # Hard light, in every colour: see-through, so its texture is marked translucent
-    write(ASSETS / "blockstates/hard_light.json",
-          {"variants": {f"color={color}": {"model": f"rings:block/hard_light_{color}"} for color in COLORS}})
+    # Hard light, in every colour and each construct style (see RingStyles): see-through, so its texture is marked
+    # translucent. The solid style keeps its first names.
+    styles = {"solid": "", "frame": "_frame", "ghost": "_ghost"}
+    write(ASSETS / "blockstates/hard_light.json", {"variants": {
+        f"color={color},style={style}": {"model": f"rings:block/hard_light_{color}{suffix}"}
+        for color in COLORS for style, suffix in styles.items()}})
     for color in COLORS:
-        write(ASSETS / f"models/block/hard_light_{color}.json", {
-            "parent": "minecraft:block/cube_all",
-            "textures": {"all": {"force_translucent": True, "sprite": f"rings:block/hard_light_{color}"}},
-        })
+        for suffix in styles.values():
+            write(ASSETS / f"models/block/hard_light_{color}{suffix}.json", {
+                "parent": "minecraft:block/cube_all",
+                "textures": {"all": {"force_translucent": True, "sprite": f"rings:block/hard_light_{color}{suffix}"}},
+            })
 
     # Construct tools: white sprites tinted with the ring's colour, which is the item's dye
     for tool in ("construct_sword", "construct_axe", "construct_pickaxe", "construct_shovel"):
@@ -154,6 +158,10 @@ def main():
     write(ASSETS / "blockstates/power_battery.json", {"variants": {"": {"model": "rings:block/power_battery"}}})
     write(ASSETS / "models/block/power_battery.json", {"parent": "minecraft:block/cube_all", "textures": {"all": "rings:block/power_battery"}})
     write(ASSETS / "items/power_battery.json", {"model": {"type": "minecraft:model", "model": "rings:block/power_battery"}})
+    # The Fear Battery, on Korugar (see KorugarFortress)
+    write(ASSETS / "blockstates/fear_battery.json", {"variants": {"": {"model": "rings:block/fear_battery"}}})
+    write(ASSETS / "models/block/fear_battery.json", {"parent": "minecraft:block/cube_all", "textures": {"all": "rings:block/fear_battery"}})
+    write(ASSETS / "items/fear_battery.json", {"model": {"type": "minecraft:model", "model": "rings:block/fear_battery"}})
 
     # What the creatures of space drop
     def drops(name, *pools):
@@ -183,6 +191,10 @@ def main():
           chance("rings:oan_relic", 1, 1, 0.3), chance("minecraft:ender_pearl", 1, 4, 0.5), chance("minecraft:experience_bottle", 2, 6, 0.5))
     chest("mars_wreck", pool("minecraft:iron_ingot", 3, 9), pool("minecraft:redstone", 4, 12), pool("rings:mars_crystal", 2, 6),
           chance("minecraft:gold_ingot", 1, 4, 0.5), chance("rings:ship_light", 1, 3, 0.4), chance("rings:oan_relic", 1, 1, 0.2))
+
+    chest("korugar_fortress", pool("minecraft:gold_ingot", 4, 10), pool("rings:yellow_power_lantern", 1, 1),
+          chance("minecraft:diamond", 2, 5, 0.6), chance("minecraft:amethyst_shard", 4, 12, 0.6), chance("rings:oan_relic", 1, 1, 0.25),
+          chance("minecraft:glowstone", 4, 10, 0.5))
 
     # The Oan relic
     write(ASSETS / "items/oan_relic.json", {"model": {"type": "minecraft:model", "model": "rings:item/oan_relic"}})

@@ -87,7 +87,7 @@ final class WorldsTest {
 				"black bearers fall in dark forests");
 		check(server, p -> CrashSite.special(p.level().registryAccess().lookupOrThrow(Registries.BIOME).getOrThrow(Biomes.PLAINS)) == null,
 				"plains get only the common colours");
-		check(server, p -> Crashes.every(p.level().getServer()) == Crashes.DEFAULT_EVERY, "ships fall every 150 minutes by default");
+		check(server, p -> Crashes.every(p.level().getServer()) == xyz.ssander.rings.RingsConfig.get().crashEveryMinutes, "ships fall every 150 minutes by default");
 		server.runCommand("rings crashes every 30");
 		check(server, p -> Crashes.every(p.level().getServer()) == 30, "/rings crashes every sets how often ships fall");
 		server.runCommand("rings crashes off");
@@ -220,7 +220,7 @@ final class WorldsTest {
 		server.runOnServer(s -> {
 			ServerPlayer p = player(s);
 			Mastery.learn(p, Skill.SCAN);
-			p.getInventory().add(new ItemStack(PlanetBlocks.WILL_SHARD, Dialogues.RESPEC_SHARDS));
+			p.getInventory().add(new ItemStack(PlanetBlocks.WILL_SHARD, xyz.ssander.rings.RingsConfig.get().respecShards));
 		});
 		check(server, p -> Mastery.has(p, Skill.SCAN), "a skill to unlearn");
 		talk(context, connection, server);

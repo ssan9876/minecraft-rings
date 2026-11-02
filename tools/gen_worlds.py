@@ -32,6 +32,12 @@ PLANETS = {
         "sky": "#3e9a5e", "fog": "#2f7d4b", "stars": 0.3, "ambient": 0.1, "clouds": True,
         "carvers": ["minecraft:cave"],
     },
+    # The violet world, home of the yellow light: purple dust over black rock, under a bruised sky
+    "korugar": {
+        "blocks": ("minecraft:purple_concrete_powder", "minecraft:purple_terracotta", "minecraft:blackstone"),
+        "sky": "#6a3a8a", "fog": "#4a2660", "stars": 0.5, "ambient": 0.08, "clouds": False,
+        "carvers": ["minecraft:cave", "minecraft:canyon"],
+    },
 }
 
 # Nowhere to sleep or set a spawn away from Earth (beds blow up, as in the End)
@@ -239,6 +245,17 @@ def planet_features(name, rock):
             "vegetal_decoration": [
                 on_surface("mars_spire", {"type": "rings:spire"}, 2),
                 in_caves("mars_cave_crystals", crystals("rings:mars_crystal", 10, 3), 6, -60, 60),
+            ],
+        }
+    if name == "korugar":
+        return {
+            "underground_ores": [
+                ore("korugar_ore_gold", "minecraft:gilded_blackstone", rock, 8, 10, -60, 120),
+                ore("korugar_ore_glowstone", "minecraft:glowstone", rock, 6, 4, -60, 40),
+            ],
+            "vegetal_decoration": [
+                on_surface("korugar_crystals", crystals("minecraft:amethyst_cluster", 8, 4), 3),
+                in_caves("korugar_cave_crystals", crystals("minecraft:amethyst_cluster", 10, 3), 6, -60, 60),
             ],
         }
     return {

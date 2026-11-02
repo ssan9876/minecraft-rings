@@ -111,6 +111,7 @@ public final class RingAbilities {
 		}
 		RingItem.addCharge(ring, -Mastery.cost(player, SCAN_COST));
 		Mastery.addXp(player, Mastery.XP_ABILITY);
+		Missions.scanned(player);
 		RingPowers.playAnimation(player, RingAnimationPayload.Kind.SCAN, color);
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.5F, 0.5F);
 	}

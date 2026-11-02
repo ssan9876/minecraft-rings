@@ -32,6 +32,7 @@ public class PowerBatteryBlock extends Block {
 			charge(serverLevel, pos, serverPlayer);
 			if (RingAttachments.getRing(serverPlayer).getItem() instanceof RingItem) {
 				Mastery.first(serverPlayer, Mastery.First.BATTERY);
+				Codex.discover(serverPlayer, "battery");
 			}
 		}
 		return InteractionResult.SUCCESS;

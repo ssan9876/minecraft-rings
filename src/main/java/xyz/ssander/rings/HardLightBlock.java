@@ -17,15 +17,19 @@ import net.minecraft.world.level.block.state.properties.EnumProperty;
  */
 public class HardLightBlock extends Block {
 	public static final EnumProperty<RingColor> COLOR = EnumProperty.create("color", RingColor.class);
+	public static final EnumProperty<RingStyles.ConstructStyle> STYLE = EnumProperty.create("style", RingStyles.ConstructStyle.class);
+
+	/** The style hard light is being made in right now: the maker's, while a construct is made (see RingConstructs). */
+	static RingStyles.ConstructStyle making = RingStyles.ConstructStyle.SOLID;
 
 	public HardLightBlock(Properties properties) {
 		super(properties);
-		this.registerDefaultState(this.stateDefinition.any().setValue(COLOR, RingColor.GREEN));
+		this.registerDefaultState(this.stateDefinition.any().setValue(COLOR, RingColor.GREEN).setValue(STYLE, RingStyles.ConstructStyle.SOLID));
 	}
 
 	@Override
 	protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-		builder.add(COLOR);
+		builder.add(COLOR, STYLE);
 	}
 
 	/** Puts a block of hard light at the position if it's free, set to fade after the given ticks. */
@@ -35,7 +39,7 @@ public class HardLightBlock extends Block {
 			return false;
 		}
 		Block block = Rings.HARD_LIGHT;
-		level.setBlock(pos, block.defaultBlockState().setValue(COLOR, color), Block.UPDATE_ALL);
+		level.setBlock(pos, block.defaultBlockState().setValue(COLOR, color).setValue(STYLE, making), Block.UPDATE_ALL);
 		// Staggered a little so a construct crumbles away rather than vanishing all at once
 		level.scheduleTick(pos, block, lifetime + level.getRandom().nextInt(10));
 		return true;

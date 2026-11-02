@@ -157,6 +157,20 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			}
 			return;
 		}
+		if (System.getenv("RINGS_POLISH") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				PolishTest.run(context, world.getConnection(), world.getServer());
+			}
+			return;
+		}
+		if (System.getenv("RINGS_SOCIAL") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				SocialTest.run(context, world.getConnection(), world.getServer());
+			}
+			return;
+		}
 		if (System.getenv("RINGS_WORLDS") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
@@ -866,6 +880,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			case MOON -> List.of(PlanetBlocks.MOON_DUST, PlanetBlocks.MOON_ROCK, PlanetBlocks.MOON_IRON_ORE);
 			case MARS -> List.of(PlanetBlocks.MARS_ROCK, PlanetBlocks.MARS_IRON_ORE);
 			case OA -> List.of(PlanetBlocks.OAN_STONE, PlanetBlocks.OAN_EMERALD_ORE);
+			case KORUGAR -> List.of(net.minecraft.world.level.block.Blocks.BLACKSTONE, net.minecraft.world.level.block.Blocks.GILDED_BLACKSTONE);
 		};
 		for (Block block : expected) {
 			check(server, p -> {
