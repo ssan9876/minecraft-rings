@@ -1,4 +1,5 @@
-"""Writes each ring colour's models, recipes, loot tables and names. Run from the repo root: python tools/gen_resources.py"""
+"""Writes each ring colour's models, recipes, loot tables and names, the crash sites' blocks and their worldgen.
+Run from the repo root: python tools/gen_resources.py"""
 import json
 from pathlib import Path
 
@@ -6,7 +7,8 @@ RESOURCES = Path("src/main/resources")
 ASSETS = RESOURCES / "assets/rings"
 DATA = RESOURCES / "data/rings"
 
-# name: (display name, ring core, lantern sides). Same names and order as RingColor.
+# name: (display name, ring core, lantern sides). Same names and order as RingColor. Rings aren't crafted: they only
+# come from crashed ring-bearers (see CrashSite.java). The core is kept for the record.
 COLORS = {
     "green": ("Green", "minecraft:diamond", "minecraft:emerald"),
     "blue": ("Blue", "minecraft:lapis_block", "minecraft:lapis_lazuli"),
@@ -46,19 +48,21 @@ def main():
         write(ASSETS / f"models/item/{ring}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"rings:item/{ring}"}})
 
         write(ASSETS / f"blockstates/{lantern}.json", {"variants": {"": {"model": f"rings:block/{lantern}"}}})
+        # The glass shows the glowing core inside it (the core's texture is animated, see gen_textures.py)
         write(ASSETS / f"models/block/{lantern}.json", {
             "parent": "rings:block/template_power_lantern",
-            "textures": {"metal": f"rings:block/{lantern}_metal", "glass": f"rings:block/{lantern}_glass"},
+            "textures": {
+                "metal": f"rings:block/{lantern}_metal",
+                "glass": {"sprite": f"rings:block/{lantern}_glass", "force_translucent": True},
+                "core": f"rings:block/{lantern}_core",
+            },
         })
         write(ASSETS / f"items/{lantern}.json", {"model": {"type": "minecraft:model", "model": f"rings:block/{lantern}"}})
 
-        write(DATA / f"recipe/{ring}.json", {
-            "type": "minecraft:crafting_shaped",
-            "category": "equipment",
-            "key": {"C": core, "F": "minecraft:phantom_membrane", "G": "minecraft:gold_ingot"},
-            "pattern": ["FCF", "G G", " G "],
-            "result": {"id": f"rings:{ring}"},
-        })
+        old_recipe = DATA / f"recipe/{ring}.json"
+        if old_recipe.exists():
+            old_recipe.unlink()
+            print("removed", old_recipe)
         write(DATA / f"recipe/{lantern}.json", {
             "type": "minecraft:crafting_shaped",
             "category": "misc",
@@ -160,11 +164,66 @@ def main():
 
     drops("manhunter", pool("minecraft:iron_ingot", 1, 3), pool("minecraft:redstone", 0, 3))
     drops("parallax", pool("rings:yellow_power_lantern", 1, 1), pool("minecraft:diamond", 3, 6), pool("minecraft:gold_block", 2, 4))
-    drops("nekron", pool("rings:white_ring", 1, 1), pool("rings:white_power_lantern", 1, 1), pool("minecraft:diamond", 3, 6))
+    drops("nekron", pool("rings:white_power_lantern", 1, 1), pool("rings:will_shard", 3, 5), pool("minecraft:diamond", 3, 6))
 
     # The planets' blocks (see PlanetBlocks)
     planet_blocks(lang)
+    crash_sites(lang)
     write(lang_path, lang)
+
+
+# The crashed ships' blocks (see ShipBlocks): id -> name
+SHIP_BLOCKS = {
+    "ship_hull": "Alien Hull",
+    "ship_plating": "Alien Plating",
+    "ship_light": "Ship Running Light",
+    "ship_console": "Ship's Console",
+}
+# Each colour's crashed ring-bearer. Green's is Abin Sur; the rest are the mod's own.
+PILOTS = {
+    "green": "Abin Sur",
+    "blue": "Saelin Ivo",
+    "red": "Ragh Torvald",
+    "pink": "Merin Ashe",
+    "orange": "Grubb Natch",
+    "white": "Ilya Dawnstar",
+    "black": "Morrow the Hollow",
+    "yellow": "Kreth Vol",
+}
+
+
+def crash_sites(lang):
+    for block, name in SHIP_BLOCKS.items():
+        lang[f"block.rings.{block}"] = name
+        write(ASSETS / f"items/{block}.json", {"model": {"type": "minecraft:model", "model": f"rings:block/{block}"}})
+        write(DATA / f"loot_table/blocks/{block}.json", {
+            "type": "minecraft:block",
+            "pools": [{"rolls": 1, "bonus_rolls": 0.0, "entries": [{"type": "minecraft:item", "name": f"rings:{block}"}],
+                       "conditions": [{"condition": "minecraft:survives_explosion"}]}],
+            "random_sequence": f"rings:blocks/{block}",
+        })
+        if block == "ship_console":
+            # Faces where it was placed from; its colour doesn't change how it looks
+            write(ASSETS / f"blockstates/{block}.json", {"multipart": [
+                {"when": {"facing": facing}, "apply": {"model": f"rings:block/{block}", **({"y": y} if y else {})}}
+                for facing, y in (("north", 0), ("east", 90), ("south", 180), ("west", 270))]})
+            write(ASSETS / f"models/block/{block}.json", {"parent": "minecraft:block/orientable", "textures": {
+                "top": "rings:block/ship_console_top", "front": "rings:block/ship_console_front", "side": "rings:block/ship_hull"}})
+        else:
+            write(ASSETS / f"blockstates/{block}.json", {"variants": {"": {"model": f"rings:block/{block}"}}})
+            write(ASSETS / f"models/block/{block}.json", {"parent": "minecraft:block/cube_all", "textures": {"all": f"rings:block/{block}"}})
+    lang["entity.rings.crash_pilot"] = "Dying Ring-Bearer"
+    for color, pilot in PILOTS.items():
+        lang[f"pilot.rings.{color}"] = pilot
+
+    # Very rare: on average one in this many chunks of dry land (and some of those are too steep or wet)
+    write(DATA / "worldgen/feature/crash_site.json", {"type": "rings:crash_site"})
+    write(DATA / "worldgen/placed_feature/crash_site.json", {"feature": "rings:crash_site", "placement": [
+        {"type": "minecraft:rarity_filter", "chance": 2400},
+        {"type": "minecraft:in_square"},
+        {"type": "minecraft:heightmap", "heightmap": "WORLD_SURFACE_WG"},
+        {"type": "minecraft:biome"},
+    ]})
 
 
 # What each planet block drops: None for itself, else (item, least, most, with fortune). Silk touch always gives the
@@ -240,10 +299,13 @@ def planet_blocks(lang):
     for tool in ("pickaxe", "shovel"):
         values = [f"rings:{block}" for block, entry in PLANET_BLOCKS.items() if entry[2] == tool]
         if tool == "pickaxe":
-            values = [f"rings:{lantern_id(color)}" for color in COLORS] + values
+            values = [f"rings:{lantern_id(color)}" for color in COLORS] + values + [f"rings:{block}" for block in SHIP_BLOCKS]
         tag(f"mineable/{tool}", values)
     for tier in ("stone", "iron"):
-        tag(f"needs_{tier}_tool", [f"rings:{block}" for block, entry in PLANET_BLOCKS.items() if entry[3] == tier])
+        values = [f"rings:{block}" for block, entry in PLANET_BLOCKS.items() if entry[3] == tier]
+        if tier == "iron":
+            values += [f"rings:{block}" for block in SHIP_BLOCKS]
+        tag(f"needs_{tier}_tool", values)
     # So ring scans and other mods see the ores for what they are
     tag("iron_ores", ["rings:moon_iron_ore", "rings:mars_iron_ore"])
     tag("gold_ores", ["rings:mars_gold_ore"])

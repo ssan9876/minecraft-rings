@@ -1,9 +1,11 @@
 package xyz.ssander.rings.client;
 
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
@@ -17,11 +19,15 @@ import xyz.ssander.rings.network.ChooseSuitPayload;
 
 /**
  * Pick which suit your rings dress you in. The player stands beside the list, so with the ring on you see each suit
- * as you pick it; the choice is kept, and every ring you wear after uses it.
+ * as you pick it; the choice is kept, and every ring you wear after uses it. The first suits are everyone's; the rest
+ * are earned (by the ring's level, or the pilot's uniform by taking a ring from a dying bearer), and show what they
+ * need until then.
  */
 public class SuitScreen extends Screen {
-	private static final int BUTTON_WIDTH = 150;
+	private static final int BUTTON_WIDTH = 124;
 	private static final int BUTTON_HEIGHT = 20;
+	private static final int GAP = 4;
+	private static final int COLUMNS = 2;
 	private static final int PREVIEW_WIDTH = 90;
 	private static final int PREVIEW_HEIGHT = 120;
 
@@ -29,16 +35,43 @@ public class SuitScreen extends Screen {
 		super(Component.translatable("screen.rings.suits"));
 	}
 
+	private static int rows() {
+		return (SuitStyle.values().length + COLUMNS - 1) / COLUMNS;
+	}
+
+	private int listLeft() {
+		int total = PREVIEW_WIDTH + 12 + COLUMNS * BUTTON_WIDTH + (COLUMNS - 1) * GAP;
+		return this.width / 2 - total / 2 + PREVIEW_WIDTH + 12;
+	}
+
+	private int listTop() {
+		return this.height / 2 - rows() * (BUTTON_HEIGHT + GAP) / 2;
+	}
+
+	private int buttonX(int index) {
+		return this.listLeft() + (index / rows()) * (BUTTON_WIDTH + GAP);
+	}
+
+	private int buttonY(int index) {
+		return this.listTop() + (index % rows()) * (BUTTON_HEIGHT + GAP);
+	}
+
 	@Override
 	protected void init() {
+		Minecraft minecraft = Minecraft.getInstance();
 		SuitStyle[] styles = SuitStyle.values();
-		int left = this.width / 2 - (PREVIEW_WIDTH + BUTTON_WIDTH + 12) / 2 + PREVIEW_WIDTH + 12;
-		int top = this.height / 2 - styles.length * (BUTTON_HEIGHT + 4) / 2;
 		for (int i = 0; i < styles.length; i++) {
 			SuitStyle style = styles[i];
-			this.addRenderableWidget(Button.builder(Component.translatable(style.translationKey()), button -> {
-				ClientPlayNetworking.send(new ChooseSuitPayload(style));
-			}).bounds(left, top + i * (BUTTON_HEIGHT + 4), BUTTON_WIDTH, BUTTON_HEIGHT).build());
+			boolean unlocked = minecraft.player != null && style.unlocked(minecraft.player);
+			Component label = unlocked ? Component.translatable(style.translationKey())
+					: Component.translatable(style.translationKey()).withStyle(ChatFormatting.DARK_GRAY);
+			Button button = Button.builder(label, b -> ClientPlayNetworking.send(new ChooseSuitPayload(style)))
+					.bounds(this.buttonX(i), this.buttonY(i), BUTTON_WIDTH, BUTTON_HEIGHT).build();
+			if (!unlocked) {
+				button.active = false;
+				button.setTooltip(Tooltip.create(style.lockedReason()));
+			}
+			this.addRenderableWidget(button);
 		}
 	}
 
@@ -53,19 +86,17 @@ public class SuitScreen extends Screen {
 		Minecraft minecraft = Minecraft.getInstance();
 		int energy = ARGB.opaque(this.color().ui());
 		int bright = ARGB.srgbLerp(0.5F, energy, 0xFFFFFFFF);
-		SuitStyle[] styles = SuitStyle.values();
-		int top = this.height / 2 - styles.length * (BUTTON_HEIGHT + 4) / 2;
+		int top = this.listTop();
 		graphics.centeredText(this.font, this.title, this.width / 2, top - 30, bright);
 		graphics.centeredText(this.font, Component.translatable("screen.rings.suits_note"), this.width / 2, top - 17, 0xFFC0C0C0);
 
-		// The chosen one, marked beside its button
 		if (minecraft.player != null) {
+			// The chosen one, marked round its button
 			SuitStyle chosen = RingAttachments.suit(minecraft.player);
-			int left = this.width / 2 - (PREVIEW_WIDTH + BUTTON_WIDTH + 12) / 2 + PREVIEW_WIDTH + 12;
-			int y = top + chosen.ordinal() * (BUTTON_HEIGHT + 4);
-			graphics.outline(left - 2, y - 2, BUTTON_WIDTH + 4, BUTTON_HEIGHT + 4, bright);
+			int index = chosen.ordinal();
+			graphics.outline(this.buttonX(index) - 2, this.buttonY(index) - 2, BUTTON_WIDTH + 4, BUTTON_HEIGHT + 4, bright);
 
-			int x0 = this.width / 2 - (PREVIEW_WIDTH + BUTTON_WIDTH + 12) / 2;
+			int x0 = this.listLeft() - 12 - PREVIEW_WIDTH;
 			int y0 = this.height / 2 - PREVIEW_HEIGHT / 2;
 			graphics.fill(x0, y0, x0 + PREVIEW_WIDTH, y0 + PREVIEW_HEIGHT, 0x80101010);
 			graphics.outline(x0, y0, PREVIEW_WIDTH, PREVIEW_HEIGHT, ARGB.scaleRGB(energy, 0.6F));

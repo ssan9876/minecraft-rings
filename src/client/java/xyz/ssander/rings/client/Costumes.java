@@ -29,7 +29,7 @@ public final class Costumes {
 		for (RingColor color : RingColor.values()) {
 			for (SuitStyle style : SuitStyle.values()) {
 				Identifier id = color.costume(style);
-				COSTUMES.put(id, new Costume(style.hasSuit() ? skin(id.getPath(), false, PlayerModelType.WIDE) : null, color));
+				COSTUMES.put(id, new Costume(style.hasSuit() ? skin(id.getPath(), style.hasCape(), PlayerModelType.WIDE) : null, color));
 			}
 		}
 	}

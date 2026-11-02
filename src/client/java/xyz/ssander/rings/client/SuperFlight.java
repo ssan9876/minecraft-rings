@@ -7,7 +7,9 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.phys.Vec3;
 
+import xyz.ssander.rings.Mastery;
 import xyz.ssander.rings.RingAttachments;
+import xyz.ssander.rings.Skill;
 
 /**
  * The ring's elytra mode, for the local player. While flying on the ring, sprint forward to switch from hovering into
@@ -20,6 +22,8 @@ import xyz.ssander.rings.RingAttachments;
 public final class SuperFlight {
 	/** Super flight's top speed, in blocks per tick (80 blocks a second, more than twice elytra-with-rockets). */
 	public static final double MAX_SPEED = 4.0;
+	/** Its top speed before the wearer learns to go sonic (50 blocks a second). */
+	public static final double SUBSONIC_SPEED = 2.5;
 	/** Elytra mode's cruising speed without sneak, in blocks per tick. */
 	public static final double CRUISE_SPEED = 1.5;
 	/** Speed gained each tick while building up: about a second and a half from cruising to top speed. */
@@ -63,6 +67,7 @@ public final class SuperFlight {
 		}
 		if (!gliding) {
 			boolean start = forward && (sprint || boost)
+					&& Mastery.has(player, Skill.SOARING)
 					&& player.getAbilities().flying
 					&& player.getAttachedOrElse(RingAttachments.FLYING, false)
 					&& !player.onGround()
@@ -88,8 +93,8 @@ public final class SuperFlight {
 			return false;
 		}
 
-		boosting = boost;
-		double target = boost ? MAX_SPEED : CRUISE_SPEED;
+		boosting = boost && Mastery.has(player, Skill.SUPER_FLIGHT);
+		double target = boosting ? Mastery.has(player, Skill.SONIC) ? MAX_SPEED : SUBSONIC_SPEED : CRUISE_SPEED;
 		speed = speed < target ? Math.min(speed + ACCELERATION, target) : Math.max(speed - ACCELERATION, target);
 		velocity = velocity.lerp(player.getViewVector(1.0F).scale(speed), STEERING);
 		player.setDeltaMovement(velocity);

@@ -55,6 +55,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import xyz.ssander.rings.ColorPowers;
+import xyz.ssander.rings.Mastery;
+import xyz.ssander.rings.Skill;
 import xyz.ssander.rings.ConstructBeast;
 import xyz.ssander.rings.ConstructJet;
 import xyz.ssander.rings.EnergyBolt;
@@ -108,6 +110,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		if (System.getenv("RINGS_OA") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
+				grantSkills(world.getServer(), false);
 				oaAndFoes(context, world.getConnection(), world.getServer());
 			}
 			return;
@@ -115,6 +118,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		if (System.getenv("RINGS_CREATURES") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
+				grantSkills(world.getServer(), false);
 				constructCreatures(context, world.getConnection(), world.getServer());
 			}
 			return;
@@ -122,6 +126,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		if (System.getenv("RINGS_COLORS") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
+				grantSkills(world.getServer(), false);
 				colorPowers(context, world.getConnection(), world.getServer());
 			}
 			return;
@@ -129,6 +134,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		if (System.getenv("RINGS_POWERS") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
+				grantSkills(world.getServer(), false);
 				ringPowers(context, world.getConnection(), world.getServer());
 			}
 			return;
@@ -136,6 +142,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		if (System.getenv("RINGS_SUITS") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
+				grantSkills(world.getServer(), true);
 				world.getServer().runCommand("gamemode survival @a");
 				world.getServer().runCommand("time set noon");
 				world.getServer().runCommand("tp @a 0 -60 0 180 0");
@@ -143,9 +150,17 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			}
 			return;
 		}
+		if (System.getenv("RINGS_MASTERY") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				MasteryTest.run(context, world.getConnection(), world.getServer());
+			}
+			return;
+		}
 		if (System.getenv("RINGS_GEAR") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
+				grantSkills(world.getServer(), false);
 				constructGear(context, world.getConnection(), world.getServer());
 			}
 			return;
@@ -157,6 +172,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		if (System.getenv("RINGS_SPACE") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
+				grantSkills(world.getServer(), false);
 				exploreSpace(context, world.getConnection(), world.getServer());
 			}
 			return;
@@ -166,6 +182,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			TestServerConnection connection = world.getConnection();
 			TestServerContext server = world.getServer();
 			connection.waitForChunksRender();
+			grantSkills(server, false);
 			server.runCommand("gamemode survival @a");
 			server.runCommand("time set noon");
 			server.runCommand("weather clear");
@@ -866,6 +883,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			TestServerConnection connection = world.getConnection();
 			TestServerContext server = world.getServer();
 			connection.waitForChunksRender();
+			grantSkills(server, false);
 			server.runCommand("time set noon");
 			server.runCommand("weather clear");
 			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
@@ -1472,7 +1490,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		context.takeScreenshot("oa-2-battery");
 		context.runOnClient(mc -> mc.gui.hud.toggle());
 
-		// A Guardian gives a ring to a visitor who has none
+		// The Guardians give no rings, even to a visitor who has none (rings only pass from dying bearers)
 		server.runOnServer(s -> {
 			ServerPlayer p = player(s);
 			p.removeAttached(RingAttachments.ACTIVE);
@@ -1480,7 +1498,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			OaGuardian guardian = p.level().getEntitiesOfClass(OaGuardian.class, p.getBoundingBox().inflate(48)).getFirst();
 			guardian.interact(p, InteractionHand.MAIN_HAND, guardian.position());
 		});
-		check(server, p -> p.getInventory().contains(stack -> stack.is(GREEN_RING)), "a Guardian gives a ring to a visitor without one");
+		check(server, p -> !p.getInventory().contains(stack -> stack.getItem() instanceof RingItem), "a Guardian gives no ring to a visitor without one");
+		// Carry on as the test did when they still gave one
+		server.runOnServer(s -> player(s).getInventory().add(new ItemStack(GREEN_RING)));
 		context.runOnClient(mc -> mc.gui.hud.toggle());
 		server.runOnServer(s -> {
 			ServerPlayer p = player(s);
@@ -1628,8 +1648,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		context.runOnClient(mc -> mc.gui.hud.toggle());
 		server.runCommand("execute in rings:moon run kill @e[type=rings:nekron]");
 		context.waitTicks(30);
-		check(server, p -> !p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(64), e -> e.getItem().is(Rings.ring(RingColor.WHITE))).isEmpty(),
-				"Nekron drops a white ring");
+		check(server, p -> !p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(64), e -> e.getItem().is(Rings.lantern(RingColor.WHITE).asItem())).isEmpty()
+				&& p.level().getEntitiesOfClass(ItemEntity.class, p.getBoundingBox().inflate(64), e -> e.getItem().getItem() instanceof RingItem).isEmpty(),
+				"Nekron drops a white lantern, and no ring");
 		server.runCommand("execute in rings:moon run kill @e[type=!minecraft:player]");
 		server.runCommand("execute in minecraft:overworld run tp @a 0.5 -60 0.5");
 		context.waitTicks(5);
@@ -1806,6 +1827,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			TestServerConnection connection = world.getConnection();
 			TestServerContext server = world.getServer();
 			connection.waitForChunksRender();
+			grantSkills(server, false);
 			server.runCommand("time set noon");
 			server.runCommand("weather clear");
 			server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(GREEN_RING)));
@@ -1855,6 +1877,8 @@ public class RingsClientGameTest implements FabricClientGameTest {
 
 	/** Every suit style, picked on the suit screen with a red ring on, and filmed from the front. Run on its own with RINGS_SUITS=1. */
 	private static void chooseSuits(ClientGameTestContext context, TestServerConnection connection, TestServerContext server) {
+		// Every suit, the earned ones too
+		grantSkills(server, true);
 		server.runOnServer(s -> RingAttachments.setRing(player(s), new ItemStack(Rings.ring(RingColor.RED))));
 		activate(context, connection);
 		check(server, p -> RingColor.RED.costume().equals(p.getAttached(RingAttachments.COSTUME)), "with no choice made, a ring wears the classic suit");
@@ -1889,13 +1913,36 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		connection.waitForServerboundPackets();
 		activate(context, connection);
 		server.runCommand("clear @a");
+		// Back to level 1, so flight keeps vanilla's speed for the rest
+		grantSkills(server, false);
 	}
 
 	/** Which way to look to face the sun in space and on the planets (SpaceSky.SUN). */
 	private static final float SUN_YAW = -38.2F;
 	private static final float SUN_PITCH = -26.8F;
 
-	private static ServerPlayer player(MinecraftServer server) {
+	/**
+	 * The skills the tests use: every power, without the upgrades that change the numbers they check (armor, costs,
+	 * reaches, lifetimes, the beam's damage). At level 1, so flight keeps vanilla's speed; with {@code everything}, at
+	 * the top level and an heir, so every suit can be worn.
+	 */
+	private static final List<Skill> TEST_SKILLS = java.util.Arrays.stream(Skill.values())
+			.filter(skill -> !java.util.EnumSet.of(Skill.ENDURING, Skill.FORTRESS, Skill.AEGIS, Skill.EFFICIENCY, Skill.WILLPOWER, Skill.LANTERN_BOND,
+					Skill.SPECTRUM_MASTERY, Skill.FOCUSED_BEAM, Skill.LANCE, Skill.ANNIHILATOR, Skill.DEEP_SCAN).contains(skill))
+			.toList();
+
+	static void grantSkills(TestServerContext server, boolean everything) {
+		server.runOnServer(s -> {
+			for (ServerPlayer p : s.getPlayerList().getPlayers()) {
+				p.setAttached(Mastery.MASTERY, new Mastery.Data(everything ? Mastery.xpFor(Mastery.MAX_LEVEL) : 0, TEST_SKILLS));
+				if (everything) {
+					p.setAttached(Mastery.HEIR, true);
+				}
+			}
+		});
+	}
+
+	static ServerPlayer player(MinecraftServer server) {
 		return server.getPlayerList().getPlayers().getFirst();
 	}
 
@@ -1946,24 +1993,24 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		context.runOnClient(mc -> mc.gameMode.handleContainerInput(mc.player.inventoryMenu.containerId, slot, 0, ContainerInput.QUICK_MOVE, mc.player));
 	}
 
-	private static void activate(ClientGameTestContext context, TestServerConnection connection) {
+	static void activate(ClientGameTestContext context, TestServerConnection connection) {
 		context.getInput().pressKey(RingsClient.activateKey);
 		connection.waitForServerboundPackets();
 		context.waitTick();
 	}
 
-	private static void camera(ClientGameTestContext context, CameraType type) {
+	static void camera(ClientGameTestContext context, CameraType type) {
 		context.runOnClient(mc -> mc.options.setCameraType(type));
 		context.waitTicks(3);
 	}
 
-	private static void check(TestServerContext server, Function<ServerPlayer, Boolean> condition, String what) {
+	static void check(TestServerContext server, Function<ServerPlayer, Boolean> condition, String what) {
 		if (!server.computeOnServer(s -> condition.apply(player(s)))) {
 			throw new AssertionError("Expected: " + what);
 		}
 	}
 
-	private static void checkClient(ClientGameTestContext context, Function<Minecraft, Boolean> condition, String what) {
+	static void checkClient(ClientGameTestContext context, Function<Minecraft, Boolean> condition, String what) {
 		if (!context.computeOnClient(condition::apply)) {
 			throw new AssertionError("Expected: " + what);
 		}

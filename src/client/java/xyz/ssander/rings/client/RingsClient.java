@@ -23,6 +23,7 @@ import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingItem;
 import xyz.ssander.rings.Rings;
 import xyz.ssander.rings.network.ActivateRingPayload;
+import xyz.ssander.rings.network.OpenDialoguePayload;
 import xyz.ssander.rings.network.RingActionPayload;
 
 public class RingsClient implements ClientModInitializer {
@@ -34,6 +35,7 @@ public class RingsClient implements ClientModInitializer {
 	public static KeyMapping powerKey;
 	public static KeyMapping callKey;
 	public static KeyMapping suitKey;
+	public static KeyMapping skillsKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -54,6 +56,8 @@ public class RingsClient implements ClientModInitializer {
 				new KeyMapping("key.rings.call", InputConstants.KEY_H, category));
 		suitKey = KeyMappingHelper.registerKeyMapping(
 				new KeyMapping("key.rings.suit", InputConstants.KEY_J, category));
+		skillsKey = KeyMappingHelper.registerKeyMapping(
+				new KeyMapping("key.rings.skills", InputConstants.KEY_K, category));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (activateKey.consumeClick()) {
@@ -78,6 +82,11 @@ public class RingsClient implements ClientModInitializer {
 					client.gui.setScreen(new SuitScreen());
 				}
 			}
+			while (skillsKey.consumeClick()) {
+				if (client.player != null && client.gui.screen() == null) {
+					client.gui.setScreen(new SkillTreeScreen());
+				}
+			}
 			while (callKey.consumeClick()) {
 				if (client.player != null) {
 					ClientPlayNetworking.send(new RingActionPayload(RingActionPayload.Action.CALL));
@@ -98,6 +107,9 @@ public class RingsClient implements ClientModInitializer {
 		LevelRenderEvents.COLLECT_SUBMITS.register(SpaceSky::render);
 		LevelRenderEvents.COLLECT_SUBMITS.register(ForceFields::render);
 		LevelRenderEvents.COLLECT_SUBMITS.register(RingScan::render);
+
+		ClientPlayNetworking.registerGlobalReceiver(OpenDialoguePayload.TYPE, (payload, context) ->
+				context.client().gui.setScreen(new DialogueScreen(payload)));
 
 		RingAnimations.init();
 		EnergyParticle.register();
@@ -120,6 +132,7 @@ public class RingsClient implements ClientModInitializer {
 		EntityRendererRegistry.register(Rings.NEKRON, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/nekron.png"), 2.0F));
 		EntityRendererRegistry.register(Rings.OA_GUARDIAN, context -> new HumanoidCreatureRenderer<>(context, Rings.id("textures/entity/oa_guardian.png"), 0.8F));
 		EntityRendererRegistry.register(Rings.PARALLAX, ParallaxRenderer::new);
+		EntityRendererRegistry.register(Rings.CRASH_PILOT, CrashPilotRenderer::new);
 
 		HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Rings.id("power_meter"), new RingHud());
 		HudElementRegistry.attachElementAfter(VanillaHudElements.CROSSHAIR, Rings.id("scan"), new RingScan());

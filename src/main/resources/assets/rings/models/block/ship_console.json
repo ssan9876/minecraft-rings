@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/orientable",
+  "textures": {
+    "top": "rings:block/ship_console_top",
+    "front": "rings:block/ship_console_front",
+    "side": "rings:block/ship_hull"
+  }
+}

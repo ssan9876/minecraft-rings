@@ -44,9 +44,14 @@ public final class RingPowers {
 	private static final int CHARGE_PER_USE = RingItem.MAX_CHARGE / 30;
 	/** Particles in each pulse of the stream from the lantern to the ring. */
 	private static final int STREAM_PARTICLES = 24;
-	/** The ring's energy shields its wearer: about a full set of iron armor, on top of what they wear. */
+	/** The ring's energy shields its wearer, more as they learn its defences (see Mastery#armor). */
 	private static final Identifier RING_ARMOR = Rings.id("ring_armor");
-	private static final AttributeModifier RING_TOUGHNESS = new AttributeModifier(Rings.id("ring_toughness"), 2.0, AttributeModifier.Operation.ADD_VALUE);
+	private static final Identifier RING_TOUGHNESS = Rings.id("ring_toughness");
+	private static final Identifier RING_STEADY = Rings.id("ring_knockback_resistance");
+	/** Vanilla's flying speed, which the ring's own replaces while it grants flight. */
+	private static final float VANILLA_FLYING_SPEED = 0.05F;
+	/** Ticks between the ring experience earned for wearing it switched on (and flying on it). */
+	private static final int XP_TICKS = 10 * 20;
 
 	private RingPowers() {
 	}
@@ -93,7 +98,7 @@ public final class RingPowers {
 				// Taking the ring off switches it off
 				player.removeAttached(RingAttachments.ACTIVE);
 			} else if (player.tickCount % 20 == 0 && RingItem.addCharge(stack,
-					-drain(player)) == 0) {
+					-Mastery.cost(player, drain(player))) == 0) {
 				player.removeAttached(RingAttachments.ACTIVE);
 				player.sendOverlayMessage(Component.translatable("message.rings.out_of_power", stack.getHoverName()));
 				player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 1.0F, 0.6F);
@@ -101,6 +106,10 @@ public final class RingPowers {
 		}
 
 		RingItem active = RingAttachments.isActive(player) ? ring : null;
+		if (active != null && player.tickCount % XP_TICKS == 0) {
+			boolean flying = player.getAbilities().flying || player.isFallFlying();
+			Mastery.addXp(player, Mastery.XP_WORN + (flying ? Mastery.XP_FLYING : 0));
+		}
 		if (active == null) {
 			if (RingBeam.isFiring(player)) {
 				player.removeAttached(RingAttachments.FIRING);
@@ -113,10 +122,11 @@ public final class RingPowers {
 		}
 		updateFlight(player, active != null && active.grantsFlight());
 		updateArmor(player, active != null ? active.color() : null);
+		updateFlyingSpeed(player, active != null && active.grantsFlight());
 		if (active != null) {
 			ColorPowers.tick(player, active.color());
 		}
-		updateCostume(player, active != null ? active.color().costume(RingAttachments.suit(player)) : null);
+		updateCostume(player, active != null ? active.color().costume(RingAttachments.wornSuit(player)) : null);
 		RingColor worn = ring != null ? ring.color() : null;
 		if (worn != player.getAttached(RingAttachments.WORN_RING)) {
 			player.setAttached(RingAttachments.WORN_RING, worn);
@@ -153,8 +163,13 @@ public final class RingPowers {
 			return;
 		}
 
-		int charge = RingItem.addCharge(stack, CHARGE_PER_USE);
+		int before = RingItem.charge(stack);
+		int charge = RingItem.addCharge(stack, Mastery.has(player, Skill.LANTERN_BOND) ? CHARGE_PER_USE * 2 : CHARGE_PER_USE);
 		boolean full = charge >= RingItem.MAX_CHARGE;
+		// Taking the oath earns the ring's experience, by how much it fills: XP_CHARGED for a ring charged from empty
+		if (player.getRandom().nextFloat() < (float) (charge - before) * Mastery.XP_CHARGED / RingItem.MAX_CHARGE) {
+			Mastery.addXp(player, 1);
+		}
 
 		// A stream of energy pouring from the lantern into the ring fist, held out to it in the charging pose: a
 		// bright core with the lantern's energy swirling around it, thickest at the lantern
@@ -245,29 +260,37 @@ public final class RingPowers {
 		}
 	}
 
-	/** The ring's armor, for a ring of the colour (or none for no ring on). */
+	/** The ring's armor, for a ring of the colour (or none for no ring on), as strong as the wearer has learned. */
 	private static void updateArmor(ServerPlayer player, @Nullable RingColor color) {
-		AttributeInstance armor = player.getAttribute(Attributes.ARMOR);
-		double wanted = color != null ? ColorPowers.armor(color) : 0.0;
-		AttributeModifier current = armor == null ? null : armor.getModifier(RING_ARMOR);
-		if (armor != null && (current == null ? wanted != 0.0 : current.amount() != wanted)) {
-			armor.removeModifier(RING_ARMOR);
-			if (wanted != 0.0) {
-				armor.addTransientModifier(new AttributeModifier(RING_ARMOR, wanted, AttributeModifier.Operation.ADD_VALUE));
-			}
-		}
-		updateModifier(player.getAttribute(Attributes.ARMOR_TOUGHNESS), RING_TOUGHNESS, color != null);
+		updateModifier(player.getAttribute(Attributes.ARMOR), RING_ARMOR, color != null ? ColorPowers.armor(color, player) : 0.0);
+		updateModifier(player.getAttribute(Attributes.ARMOR_TOUGHNESS), RING_TOUGHNESS, color != null ? Mastery.toughness(player) : 0.0);
+		updateModifier(player.getAttribute(Attributes.KNOCKBACK_RESISTANCE), RING_STEADY,
+				color != null && Mastery.has(player, Skill.FORTRESS) ? 0.5 : 0.0);
 	}
 
 	/** Transient, so it isn't saved: the next tick after loading puts it back if the ring is still on. */
-	private static void updateModifier(@Nullable AttributeInstance attribute, AttributeModifier modifier, boolean wanted) {
-		if (attribute == null || attribute.hasModifier(modifier.id()) == wanted) {
+	private static void updateModifier(@Nullable AttributeInstance attribute, Identifier id, double wanted) {
+		if (attribute == null) {
 			return;
 		}
-		if (wanted) {
-			attribute.addTransientModifier(modifier);
-		} else {
-			attribute.removeModifier(modifier.id());
+		AttributeModifier current = attribute.getModifier(id);
+		if (current == null ? wanted == 0.0 : current.amount() == wanted) {
+			return;
+		}
+		attribute.removeModifier(id);
+		if (wanted != 0.0) {
+			attribute.addTransientModifier(new AttributeModifier(id, wanted, AttributeModifier.Operation.ADD_VALUE));
+		}
+	}
+
+	/** The ring's flight gets a little faster with each level; vanilla's comes back when the ring's flight goes. */
+	private static void updateFlyingSpeed(ServerPlayer player, boolean ringFlight) {
+		Abilities abilities = player.getAbilities();
+		// The speed is saved with the player, so a ring switched off while they were away is caught here too
+		float wanted = ringFlight ? Mastery.flyingSpeed(player) : VANILLA_FLYING_SPEED;
+		if (abilities.getFlyingSpeed() != wanted) {
+			abilities.setFlyingSpeed(wanted);
+			player.onUpdateAbilities();
 		}
 	}
 

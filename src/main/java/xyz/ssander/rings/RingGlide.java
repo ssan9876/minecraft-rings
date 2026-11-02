@@ -19,6 +19,7 @@ public final class RingGlide {
 	public static boolean canGlide(Player player) {
 		return RingAttachments.isActive(player)
 				&& RingAttachments.getRing(player).getItem() instanceof RingItem ring && ring.grantsFlight()
+				&& Mastery.has(player, Skill.SOARING)
 				&& player.getAbilities().mayfly
 				&& !player.getAbilities().flying
 				&& !player.onGround()

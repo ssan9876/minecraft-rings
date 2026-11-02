@@ -4,6 +4,10 @@
     "rings:moonstone_block",
     "rings:mars_gold_ore",
     "rings:oan_emerald_ore",
-    "rings:will_crystal_ore"
+    "rings:will_crystal_ore",
+    "rings:ship_hull",
+    "rings:ship_plating",
+    "rings:ship_light",
+    "rings:ship_console"
   ]
 }

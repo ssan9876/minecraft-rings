@@ -29,6 +29,8 @@ import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import org.jspecify.annotations.Nullable;
+
 import xyz.ssander.rings.network.RingAnimationPayload;
 
 /**
@@ -83,6 +85,17 @@ public final class RingConstructs {
 			return this.cost;
 		}
 
+		/** The skill it takes to make it, or null for the constructs every ring-bearer starts with. */
+		public @Nullable Skill skill() {
+			return switch (this) {
+				case WALL, BRIDGE, STAIRS, FIST, GRAB -> null;
+				case DOME, CAGE, HAMMER, AXE, PICKAXE, SHOVEL -> Skill.SHAPER;
+				case SWORD, SHIELD -> Skill.ARMORY;
+				case WOLF, GOLEM -> Skill.LIVING_LIGHT;
+				case JET -> Skill.STARSHIP;
+			};
+		}
+
 		public String translationKey() {
 			return "construct.rings." + this.name;
 		}
@@ -120,6 +133,9 @@ public final class RingConstructs {
 			player.sendOverlayMessage(Component.translatable("message.rings.construct_inactive"));
 			return;
 		}
+		if (construct.skill() != null && !Mastery.require(player, construct.skill())) {
+			return;
+		}
 		ServerLevel level = player.level();
 		long now = level.getGameTime();
 		if (now - LAST_MADE.getOrDefault(player, Long.MIN_VALUE / 2) < COOLDOWN) {
@@ -146,8 +162,8 @@ public final class RingConstructs {
 			case AXE -> tool(player, Rings.CONSTRUCT_AXE, color, now);
 			case PICKAXE -> tool(player, Rings.CONSTRUCT_PICKAXE, color, now);
 			case SHOVEL -> tool(player, Rings.CONSTRUCT_SHOVEL, color, now);
-			case WOLF -> beast(level, player, Rings.CONSTRUCT_WOLF, color, WOLF_LIFETIME);
-			case GOLEM -> beast(level, player, Rings.CONSTRUCT_GOLEM, color, GOLEM_LIFETIME);
+			case WOLF -> beast(level, player, Rings.CONSTRUCT_WOLF, color, Mastery.lifetime(player, WOLF_LIFETIME));
+			case GOLEM -> beast(level, player, Rings.CONSTRUCT_GOLEM, color, Mastery.lifetime(player, GOLEM_LIFETIME));
 			case JET -> jet(level, player, color);
 		};
 		if (!made) {
@@ -155,7 +171,8 @@ public final class RingConstructs {
 		}
 
 		LAST_MADE.put(player, now);
-		RingItem.addCharge(stack, -cost);
+		RingItem.addCharge(stack, -Mastery.cost(player, cost));
+		Mastery.addXp(player, Mastery.XP_CONSTRUCT);
 		RingPowers.playAnimation(player, RingAnimationPayload.Kind.CONSTRUCT, color);
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.2F, 1.4F);
 		level.sendParticles(color.dust(0.5F, 1.0F), player.getX(), player.getY() + 1.2, player.getZ(), 20, 0.4, 0.4, 0.4, 0.0);
@@ -192,6 +209,9 @@ public final class RingConstructs {
 			player.sendOverlayMessage(Component.translatable("message.rings.construct_inactive"));
 			return;
 		}
+		if (!Mastery.require(player, Skill.MATTER)) {
+			return;
+		}
 		ServerLevel level = player.level();
 		ItemStack made = new ItemStack(item);
 		if (!canConstruct(made, level.enabledFeatures())) {
@@ -205,7 +225,8 @@ public final class RingConstructs {
 			return;
 		}
 
-		RingItem.addCharge(ring, -cost);
+		RingItem.addCharge(ring, -Mastery.cost(player, cost));
+		Mastery.addXp(player, Mastery.XP_ITEM);
 		Component name = made.getHoverName();
 		int count = made.getCount();
 		// Into their inventory, and dropped at their feet if it's full
@@ -224,7 +245,7 @@ public final class RingConstructs {
 		int placed = 0;
 		for (int across = -2; across <= 2; across++) {
 			for (int up = 0; up < 4; up++) {
-				if (HardLightBlock.place(level, centre.relative(side, across).above(up), color, WALL_LIFETIME)) {
+				if (HardLightBlock.place(level, centre.relative(side, across).above(up), color, Mastery.lifetime(player, WALL_LIFETIME))) {
 					placed++;
 				}
 			}
@@ -239,7 +260,7 @@ public final class RingConstructs {
 		int placed = 0;
 		for (int along = 0; along < 16; along++) {
 			for (int across = -1; across <= 1; across++) {
-				if (HardLightBlock.place(level, start.relative(facing, along).relative(side, across), color, BRIDGE_LIFETIME)) {
+				if (HardLightBlock.place(level, start.relative(facing, along).relative(side, across), color, Mastery.lifetime(player, BRIDGE_LIFETIME))) {
 					placed++;
 				}
 			}
@@ -254,7 +275,7 @@ public final class RingConstructs {
 		int placed = 0;
 		for (int step = 0; step < 12; step++) {
 			for (int across = -1; across <= 1; across++) {
-				if (HardLightBlock.place(level, start.relative(facing, step).above(step).relative(side, across), color, STAIRS_LIFETIME)) {
+				if (HardLightBlock.place(level, start.relative(facing, step).above(step).relative(side, across), color, Mastery.lifetime(player, STAIRS_LIFETIME))) {
 					placed++;
 				}
 			}
@@ -272,7 +293,7 @@ public final class RingConstructs {
 				for (int z = -reach; z <= reach; z++) {
 					double distance = Math.sqrt(x * x + y * y + z * z);
 					if (distance > DOME_RADIUS - 0.5 && distance <= DOME_RADIUS + 0.5
-							&& HardLightBlock.place(level, centre.offset(x, y, z), color, DOME_LIFETIME)) {
+							&& HardLightBlock.place(level, centre.offset(x, y, z), color, Mastery.lifetime(player, DOME_LIFETIME))) {
 						placed++;
 					}
 				}
@@ -319,7 +340,7 @@ public final class RingConstructs {
 			player.sendOverlayMessage(Component.translatable("message.rings.cage_no_target"));
 			return false;
 		}
-		if (!boxIn(level, target, color, CAGE_LIFETIME)) {
+		if (!boxIn(level, target, color, Mastery.lifetime(player, CAGE_LIFETIME))) {
 			player.sendOverlayMessage(Component.translatable("message.rings.cage_too_big", target.getDisplayName()));
 			return false;
 		}

@@ -23,6 +23,10 @@
     "rings:oan_stone_bricks",
     "rings:oan_emerald_ore",
     "rings:will_crystal_ore",
-    "rings:oan_crystal"
+    "rings:oan_crystal",
+    "rings:ship_hull",
+    "rings:ship_plating",
+    "rings:ship_light",
+    "rings:ship_console"
   ]
 }

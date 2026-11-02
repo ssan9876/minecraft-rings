@@ -79,7 +79,17 @@ public final class RingAttachments {
 
 	/** The player picked a suit. It goes on straight away if their ring is on. */
 	public static void chooseSuit(ServerPlayer player, SuitStyle style) {
+		if (!style.unlocked(player)) {
+			player.sendOverlayMessage(style.lockedReason());
+			return;
+		}
 		player.setAttached(SUIT, style == SuitStyle.CLASSIC ? null : style);
+	}
+
+	/** The suit the player wears: their choice, or the classic one if they no longer have what it takes. */
+	public static SuitStyle wornSuit(Player player) {
+		SuitStyle suit = suit(player);
+		return suit.unlocked(player) ? suit : SuitStyle.CLASSIC;
 	}
 
 	/** The colour of the worn ring while it's switched on, otherwise null. */

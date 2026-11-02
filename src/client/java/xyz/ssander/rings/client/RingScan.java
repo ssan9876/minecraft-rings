@@ -34,6 +34,8 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
+import xyz.ssander.rings.Mastery;
+import xyz.ssander.rings.Skill;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingBeam;
 import xyz.ssander.rings.RingColor;
@@ -48,6 +50,9 @@ public final class RingScan implements HudElement {
 	private static final int DURATION = 15 * 20;
 	private static final double CREATURE_RANGE = 48.0;
 	private static final int ORE_RADIUS = 16;
+	/** How far a deep scan reaches. */
+	private static final double DEEP_CREATURE_RANGE = 80.0;
+	private static final int DEEP_ORE_RADIUS = 28;
 	/** The nearest ores are drawn, up to this many. */
 	private static final int MAX_ORES = 400;
 
@@ -84,7 +89,7 @@ public final class RingScan implements HudElement {
 		if (scanner == minecraft.player) {
 			scanStart = level.getGameTime();
 			scanUntil = scanStart + DURATION;
-			findOres(level, scanner.blockPosition());
+			findOres(level, scanner.blockPosition(), Mastery.has(scanner, Skill.DEEP_SCAN) ? DEEP_ORE_RADIUS : ORE_RADIUS);
 		}
 	}
 
@@ -105,16 +110,16 @@ public final class RingScan implements HudElement {
 			return;
 		}
 		if ((minecraft.level.getGameTime() - scanStart) % 20 == 0) {
-			findOres(minecraft.level, minecraft.player.blockPosition());
+			findOres(minecraft.level, minecraft.player.blockPosition(), Mastery.has(minecraft.player, Skill.DEEP_SCAN) ? DEEP_ORE_RADIUS : ORE_RADIUS);
 		}
 	}
 
-	private static void findOres(ClientLevel level, BlockPos centre) {
+	private static void findOres(ClientLevel level, BlockPos centre, int radius) {
 		List<Ore> found = new ArrayList<>();
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-		for (int x = -ORE_RADIUS; x <= ORE_RADIUS; x++) {
-			for (int y = -ORE_RADIUS; y <= ORE_RADIUS; y++) {
-				for (int z = -ORE_RADIUS; z <= ORE_RADIUS; z++) {
+		for (int x = -radius; x <= radius; x++) {
+			for (int y = -radius; y <= radius; y++) {
+				for (int z = -radius; z <= radius; z++) {
 					pos.set(centre.getX() + x, centre.getY() + y, centre.getZ() + z);
 					int color = oreColor(level.getBlockState(pos));
 					if (color != 0) {
@@ -169,7 +174,7 @@ public final class RingScan implements HudElement {
 	public static int outline(Entity entity) {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (!isScanning() || !(entity instanceof LivingEntity) || entity == minecraft.player || minecraft.player == null
-				|| entity.distanceTo(minecraft.player) > CREATURE_RANGE) {
+				|| entity.distanceTo(minecraft.player) > (Mastery.has(minecraft.player, Skill.DEEP_SCAN) ? DEEP_CREATURE_RANGE : CREATURE_RANGE)) {
 			return 0;
 		}
 		return entity instanceof Enemy ? 0xFF4040 : entity instanceof Player ? 0xFFFFFF : 0x60FF70;

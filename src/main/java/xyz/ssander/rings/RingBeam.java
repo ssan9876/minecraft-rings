@@ -27,8 +27,7 @@ import org.jspecify.annotations.Nullable;
 public final class RingBeam {
 	/** How far the beam reaches, in blocks. */
 	public static final double RANGE = 40.0;
-	/** Damage per hit, and the ticks between hits (vanilla's hurt cooldown lets a hit land every 10 ticks). */
-	private static final float DAMAGE = 4.0F;
+	/** The ticks between hits (vanilla's hurt cooldown lets a hit land every 10 ticks). The damage is the wearer's (Mastery#beamDamage). */
 	private static final int HIT_TICKS = 10;
 	public static final ResourceKey<DamageType> DAMAGE_TYPE = ResourceKey.create(Registries.DAMAGE_TYPE, Rings.id("ring_beam"));
 
@@ -84,7 +83,13 @@ public final class RingBeam {
 		Hit hit = trace(player, 1.0F);
 		if (hit.entity() instanceof LivingEntity target && target.isAlive()) {
 			DamageSource source = new DamageSource(level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(DAMAGE_TYPE), player);
-			if (target.hurtServer(level, source, DAMAGE)) {
+			if (target.hurtServer(level, source, Mastery.beamDamage(player))) {
+				if (Mastery.has(player, Skill.ANNIHILATOR)) {
+					target.igniteForSeconds(4.0F);
+				}
+				if (target instanceof net.minecraft.world.entity.monster.Enemy) {
+					Mastery.addXp(player, Mastery.XP_BEAM_HIT);
+				}
 				level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.FIREWORK_ROCKET_BLAST, SoundSource.PLAYERS, 0.6F, 1.6F);
 			}
 		}

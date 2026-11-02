@@ -62,7 +62,7 @@ public final class RingAbilities {
 
 		RingBeam.Hit hit = RingBeam.trace(player, 1.0F);
 		if (hit.entity() instanceof LivingEntity target && player.distanceTo(target) <= CARRY_RANGE && !target.isPassenger()
-				&& target.getBbWidth() <= CARRY_MAX_SIZE && target.getBbHeight() <= CARRY_MAX_SIZE) {
+				&& target.getBbWidth() <= CARRY_MAX_SIZE && target.getBbHeight() <= CARRY_MAX_SIZE && Mastery.has(player, Skill.BUBBLES)) {
 			if (RingItem.charge(ring) < BUBBLE_COST) {
 				player.sendOverlayMessage(Component.translatable("message.rings.construct_no_power", ring.getHoverName()));
 				return;
@@ -73,7 +73,8 @@ public final class RingAbilities {
 				bubble.discard();
 				return;
 			}
-			RingItem.addCharge(ring, -BUBBLE_COST);
+			RingItem.addCharge(ring, -Mastery.cost(player, BUBBLE_COST));
+			Mastery.addXp(player, Mastery.XP_ABILITY);
 			RingPowers.playAnimation(player, RingAnimationPayload.Kind.CONSTRUCT, color);
 			level.playSound(null, target.getX(), target.getY(), target.getZ(), SoundEvents.BUBBLE_COLUMN_UPWARDS_INSIDE, SoundSource.PLAYERS, 1.5F, 1.2F);
 			player.sendOverlayMessage(Component.translatable("message.rings.bubble_carry", target.getDisplayName()));
@@ -81,6 +82,9 @@ public final class RingAbilities {
 		}
 
 		boolean up = !player.getAttachedOrElse(RingAttachments.SHIELD, false);
+		if (up && !Mastery.require(player, Skill.FORCE_FIELD)) {
+			return;
+		}
 		player.setAttached(RingAttachments.SHIELD, up ? true : null);
 		if (up) {
 			RingPowers.playAnimation(player, RingAnimationPayload.Kind.FIELD, color);
@@ -97,12 +101,16 @@ public final class RingAbilities {
 			player.sendOverlayMessage(Component.translatable("message.rings.power_inactive"));
 			return;
 		}
+		if (!Mastery.require(player, Skill.SCAN)) {
+			return;
+		}
 		ItemStack ring = RingAttachments.getRing(player);
 		if (RingItem.charge(ring) < SCAN_COST) {
 			player.sendOverlayMessage(Component.translatable("message.rings.construct_no_power", ring.getHoverName()));
 			return;
 		}
-		RingItem.addCharge(ring, -SCAN_COST);
+		RingItem.addCharge(ring, -Mastery.cost(player, SCAN_COST));
+		Mastery.addXp(player, Mastery.XP_ABILITY);
 		RingPowers.playAnimation(player, RingAnimationPayload.Kind.SCAN, color);
 		player.level().playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.5F, 0.5F);
 	}

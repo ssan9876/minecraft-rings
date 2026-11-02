@@ -34,8 +34,11 @@ import xyz.ssander.rings.RingColor;
 public final class RingFlight {
 	/** Rising faster than this (blocks per tick) raises the fist to the sky. Normal flying rises at about 0.4. */
 	private static final double RISE_SPEED = 0.55;
-	/** Sonic from this speed (past elytra mode's cruising speed), and ready for another sonic boom below the second. */
-	private static final double SONIC_SPEED = 1.8;
+	/**
+	 * Sonic from this speed (past super flight's top speed before the Sonic Flight skill, so only those who've learned
+	 * it break the sound barrier), and ready for another sonic boom below the second.
+	 */
+	private static final double SONIC_SPEED = SuperFlight.SUBSONIC_SPEED + 0.1;
 	private static final double SONIC_REARM_SPEED = 1.0;
 	/** Ticks to ease fully into or out of a pose. */
 	private static final float EASE_TICKS = 6.0F;

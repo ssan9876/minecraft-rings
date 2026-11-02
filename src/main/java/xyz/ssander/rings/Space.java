@@ -152,6 +152,13 @@ public final class Space {
 
 		// Only the ring's power gets anyone off the Earth
 		Trip trip = trip(dimension, player.position(), home(player), player.getRandom());
+		if (trip != null && dimension == Level.OVERWORLD && ringFlying && !Mastery.has(player, Skill.SPACEFARER)) {
+			// The ring isn't strong enough to break out of the sky yet: it holds them just under it
+			player.connection.teleport(player.getX(), LEAVE_EARTH_Y - 2.0, player.getZ(), player.getYRot(), player.getXRot());
+			player.setDeltaMovement(player.getDeltaMovement().multiply(1.0, 0.0, 1.0));
+			player.sendOverlayMessage(Component.translatable("message.rings.needs_skill", Component.translatable(Skill.SPACEFARER.translationKey())));
+			return;
+		}
 		if (trip != null && (dimension != Level.OVERWORLD || ringFlying)) {
 			if (dimension == Level.OVERWORLD) {
 				player.setAttached(RingAttachments.EARTH_RETURN, player.blockPosition());

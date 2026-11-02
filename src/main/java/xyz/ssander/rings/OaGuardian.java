@@ -17,7 +17,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -25,18 +24,17 @@ import net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 /**
  * The Guardians of the Universe, keepers of the Central Power Battery, who walk the citadel on Oa. They can't be
- * harmed. Talk to one (right-click) to hear what they know of the rings and their enemies; a visitor with no ring is
- * given one, once.
+ * harmed. Talk to one (right-click) to hear what they know of the rings and their enemies. They give no rings: a ring
+ * only passes from a dying bearer (see CrashPilot).
  */
 public class OaGuardian extends PathfinderMob {
 	/** How many things a Guardian has to say (lang keys {@code guardian.rings.1} on). */
 	private static final int SAYINGS = 8;
-	/** Set once a player has been given a ring by the Guardians. */
+	/** Set once a player was given a ring by the Guardians (before 1.13.0, when they still gave them). Kept so old saves load cleanly. */
 	public static final AttachmentType<Boolean> GIFTED = AttachmentRegistry.create(Rings.id("guardian_gift"),
 			builder -> builder.persistent(Codec.BOOL).copyOnDeath());
 
@@ -69,15 +67,9 @@ public class OaGuardian extends PathfinderMob {
 		}
 		this.getLookControl().setLookAt(player);
 		boolean hasRing = !RingAttachments.getRing(player).isEmpty() || player.getInventory().contains(stack -> stack.getItem() instanceof RingItem);
-		if (!hasRing && !player.getAttachedOrElse(GIFTED, false)) {
-			// The ring has chosen them
-			player.setAttached(GIFTED, true);
-			ItemStack ring = new ItemStack(Rings.ring(RingColor.GREEN));
-			if (!player.getInventory().add(ring)) {
-				level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY(), player.getZ(), ring));
-			}
-			say(serverPlayer, Component.translatable("guardian.rings.gift"));
-			level.playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.BEACON_POWER_SELECT, SoundSource.NEUTRAL, 1.0F, 1.2F);
+		if (!hasRing) {
+			// Rings aren't given out: they come from the fallen
+			say(serverPlayer, Component.translatable("guardian.rings.no_ring"));
 			return InteractionResult.SUCCESS;
 		}
 		this.saying = this.saying % SAYINGS + 1;

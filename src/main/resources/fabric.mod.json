@@ -3,7 +3,7 @@
 	"id": "rings",
 	"version": "${version}",
 	"name": "Rings",
-	"description": "Adds a ring slot to the inventory, and power rings in seven colours. Rings grant flight and a suit when you activate them, and charge at a Power Lantern of their colour.",
+	"description": "Adds a ring slot to the inventory, and power rings in eight colours, found only with ring-bearers dying beside their crashed ships. Rings grant flight and a suit when you activate them, grow stronger with their bearer on a skill tree, and charge at a Power Lantern of their colour.",
 	"authors": ["ssan9876"],
 	"icon": "assets/rings/icon.png",
 	"environment": "*",

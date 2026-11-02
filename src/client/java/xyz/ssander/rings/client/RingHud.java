@@ -9,6 +9,9 @@ import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
+import net.minecraft.network.chat.Component;
+
+import xyz.ssander.rings.Mastery;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingItem;
 
@@ -61,5 +64,13 @@ public class RingHud implements HudElement {
 		}
 
 		graphics.text(minecraft.font, Math.round(charge * 100) + "%", barX + 8, y + 4, low ? LOW : active ? textOn : TEXT_OFF, true);
+
+		// The ring level above it, with a star when there are skill points to spend (on the skill screen)
+		Mastery.Data mastery = Mastery.of(player);
+		String level = Component.translatable("hud.rings.level", mastery.level()).getString();
+		graphics.text(minecraft.font, level, barX + 8, y - 6, active ? textOn : TEXT_OFF, true);
+		if (mastery.points() > 0) {
+			graphics.text(minecraft.font, "✦", barX + 9 + minecraft.font.width(level), y - 6, 0xFFFFD060, true);
+		}
 	}
 }

@@ -15,6 +15,8 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.component.DyedItemColor;
 
 import xyz.ssander.rings.ColorPowers;
+import xyz.ssander.rings.Mastery;
+import xyz.ssander.rings.Skill;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingConstructs.Construct;
 import xyz.ssander.rings.RingItem;
@@ -104,6 +106,10 @@ public class ConstructWheelScreen extends Screen {
 			graphics.fill(x - half - 1, y - half - 1, x + half + 1, y + half + 1, chosen ? bright : ARGB.scaleRGB(energy, 0.5F));
 			graphics.fill(x - half, y - half, x + half, y + half, chosen ? ARGB.color(220, ARGB.scaleRGB(energy, 0.35F)) : 0xC0101010);
 			graphics.item(this.icons[index], x - 8, y - 8);
+			if (!this.known(construct)) {
+				// Not learned yet: dimmed
+				graphics.fill(x - half, y - half, x + half, y + half, 0xA0000000);
+			}
 		}
 
 		// The eye in the middle, for making any item
@@ -112,12 +118,19 @@ public class ConstructWheelScreen extends Screen {
 		graphics.fill(centreX - half - 1, centreY - half - 1, centreX + half + 1, centreY + half + 1, eye ? bright : ARGB.scaleRGB(energy, 0.5F));
 		graphics.fill(centreX - half, centreY - half, centreX + half, centreY + half, eye ? ARGB.color(220, ARGB.scaleRGB(energy, 0.35F)) : 0xC0101010);
 		graphics.item(EYE, centreX - 8, centreY - 8);
+		if (!this.knowsMatter()) {
+			graphics.fill(centreX - half, centreY - half, centreX + half, centreY + half, 0xA0000000);
+		}
 
 		// Above and below it: what letting go makes, and what it costs
 		Component title = this.selected >= 0 ? Component.translatable(constructs[this.selected].translationKey())
 				: Component.translatable("screen.rings.construct_any");
 		graphics.text(this.font, title, centreX - this.font.width(title) / 2, centreY - SLOT / 2 - 16, bright, true);
-		Component below = this.selected >= 0
+		Skill missing = this.selected >= 0 ? (this.known(constructs[this.selected]) ? null : constructs[this.selected].skill())
+				: this.knowsMatter() ? null : Skill.MATTER;
+		Component below = missing != null
+				? Component.translatable("message.rings.needs_skill", Component.translatable(missing.translationKey()))
+				: this.selected >= 0
 				? Component.translatable("screen.rings.construct_cost",
 						String.format("%.1f", 100.0F * ColorPowers.constructCost(constructs[this.selected], this.color) / RingItem.MAX_CHARGE))
 				: Component.translatable("screen.rings.construct_any_click");
@@ -153,15 +166,26 @@ public class ConstructWheelScreen extends Screen {
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		this.selected = this.pick(event.x(), event.y());
 		if (this.selected < 0) {
-			this.minecraft.gui.setScreen(new ConstructAnyScreen(this.color));
+			if (this.knowsMatter()) {
+				this.minecraft.gui.setScreen(new ConstructAnyScreen(this.color));
+			}
 			return true;
 		}
 		this.finish();
 		return true;
 	}
 
+	/** Whether the wearer has learned to make the construct. */
+	private boolean known(Construct construct) {
+		return construct.skill() == null || this.minecraft != null && this.minecraft.player != null && Mastery.has(this.minecraft.player, construct.skill());
+	}
+
+	private boolean knowsMatter() {
+		return this.minecraft != null && this.minecraft.player != null && Mastery.has(this.minecraft.player, Skill.MATTER);
+	}
+
 	private void finish() {
-		if (this.selected >= 0) {
+		if (this.selected >= 0 && this.known(Construct.values()[this.selected])) {
 			ClientPlayNetworking.send(new CreateConstructPayload(Construct.values()[this.selected]));
 		}
 		this.onClose();

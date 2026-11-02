@@ -58,7 +58,8 @@ public final class RingProtection {
 			return true;
 		}
 		ItemStack ring = RingAttachments.getRing(guard);
-		int cost = Math.max(1, Mth.ceil(amount * SHIELD_COST_PER_DAMAGE));
+		float perDamage = Mastery.has(guard, Skill.AEGIS) ? SHIELD_COST_PER_DAMAGE / 2.0F : SHIELD_COST_PER_DAMAGE;
+		int cost = Math.max(1, Mth.ceil(amount * perDamage * Mastery.drainFactor(guard)));
 		if (RingItem.charge(ring) < cost) {
 			return true;
 		}
@@ -87,7 +88,8 @@ public final class RingProtection {
 	}
 
 	private static boolean allowDeath(LivingEntity entity, DamageSource source, float amount) {
-		if (!(entity instanceof ServerPlayer player) || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) || !RingAttachments.isActive(player)) {
+		if (!(entity instanceof ServerPlayer player) || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) || !RingAttachments.isActive(player)
+				|| !Mastery.has(player, Skill.GUARDIAN_ANGEL)) {
 			return true;
 		}
 		ItemStack ring = RingAttachments.getRing(player);

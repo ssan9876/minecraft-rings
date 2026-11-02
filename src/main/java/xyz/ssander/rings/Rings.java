@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
+import net.fabricmc.fabric.api.biome.v1.BiomeSelectors;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
@@ -24,6 +26,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.item.component.BlocksAttacks;
 import net.minecraft.world.entity.MobCategory;
@@ -38,12 +41,16 @@ import net.minecraft.world.item.Rarity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.levelgen.GenerationStep;
 
 import xyz.ssander.rings.network.ActivateRingPayload;
 import xyz.ssander.rings.network.ChooseSuitPayload;
 import xyz.ssander.rings.network.ConstructItemPayload;
 import xyz.ssander.rings.network.CreateConstructPayload;
 import xyz.ssander.rings.network.FireBeamPayload;
+import xyz.ssander.rings.network.LearnSkillPayload;
+import xyz.ssander.rings.network.OpenDialoguePayload;
+import xyz.ssander.rings.network.TakeRingPayload;
 import xyz.ssander.rings.network.RingActionPayload;
 import xyz.ssander.rings.network.RingAnimationPayload;
 import xyz.ssander.rings.network.TeleportToPayload;
@@ -122,6 +129,9 @@ public class Rings implements ModInitializer {
 			EntityType.Builder.of(Nekron::new, MobCategory.MONSTER).sized(1.2F, 3.9F).eyeHeight(3.4F).clientTrackingRange(12).fireImmune());
 	public static final EntityType<OaGuardian> OA_GUARDIAN = registerEntity("oa_guardian",
 			EntityType.Builder.of(OaGuardian::new, MobCategory.MISC).sized(0.55F, 1.55F).clientTrackingRange(10));
+	/** A ring-bearer dying beside their crashed ship, who hands their ring on (see CrashSite). */
+	public static final EntityType<CrashPilot> CRASH_PILOT = registerEntity("crash_pilot",
+			EntityType.Builder.of(CrashPilot::new, MobCategory.MISC).sized(0.6F, 1.3F).eyeHeight(1.1F).clientTrackingRange(10));
 
 	/** Construct creatures and the construct jet. */
 	public static final EntityType<ConstructBeast> CONSTRUCT_WOLF = registerEntity("construct_wolf",
@@ -192,6 +202,14 @@ public class Rings implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		RingAttachments.init();
+		Mastery.init();
+		ShipBlocks.init();
+		CrashSite.init();
+		RingCommands.init();
+		// Crash sites, very rarely, on dry land anywhere on the Earth
+		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld().and(BiomeSelectors.tag(BiomeTags.IS_OCEAN).negate())
+						.and(BiomeSelectors.tag(BiomeTags.IS_RIVER).negate()),
+				GenerationStep.Decoration.SURFACE_STRUCTURES, ResourceKey.create(Registries.PLACED_FEATURE, id("crash_site")));
 		RingParticles.init();
 		PlanetBlocks.init();
 		PlanetFeatures.init();
@@ -206,6 +224,7 @@ public class Rings implements ModInitializer {
 		FabricDefaultAttributeRegistry.register(PARALLAX, Parallax.createAttributes());
 		FabricDefaultAttributeRegistry.register(NEKRON, Nekron.createAttributes());
 		FabricDefaultAttributeRegistry.register(OA_GUARDIAN, OaGuardian.createAttributes());
+		FabricDefaultAttributeRegistry.register(CRASH_PILOT, CrashPilot.createAttributes());
 		ColorPowers.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {
@@ -213,6 +232,7 @@ public class Rings implements ModInitializer {
 			LANTERN_ITEMS.values().forEach(output::accept);
 			output.accept(POWER_BATTERY_ITEM);
 		});
+		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.BUILDING_BLOCKS).register(output -> ShipBlocks.items().forEach(output::accept));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.NATURAL_BLOCKS).register(output ->
 				PlanetBlocks.items().stream().filter(item -> item instanceof BlockItem).forEach(output::accept));
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS).register(output -> {
@@ -234,6 +254,15 @@ public class Rings implements ModInitializer {
 		ServerPlayNetworking.registerGlobalReceiver(ActivateRingPayload.TYPE, (payload, context) -> RingPowers.toggle(context.player()));
 		PayloadTypeRegistry.serverboundPlay().register(RingActionPayload.TYPE, RingActionPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(RingActionPayload.TYPE, (payload, context) -> RingAbilities.use(context.player(), payload.action()));
+		PayloadTypeRegistry.serverboundPlay().register(LearnSkillPayload.TYPE, LearnSkillPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(LearnSkillPayload.TYPE, (payload, context) -> Mastery.learn(context.player(), payload.skill()));
+		PayloadTypeRegistry.clientboundPlay().register(OpenDialoguePayload.TYPE, OpenDialoguePayload.CODEC);
+		PayloadTypeRegistry.serverboundPlay().register(TakeRingPayload.TYPE, TakeRingPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(TakeRingPayload.TYPE, (payload, context) -> {
+			if (context.player().level().getEntity(payload.pilotId()) instanceof CrashPilot pilot) {
+				pilot.giveRing(context.player());
+			}
+		});
 		PayloadTypeRegistry.serverboundPlay().register(TeleportToPayload.TYPE, TeleportToPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(TeleportToPayload.TYPE, (payload, context) -> ColorPowers.teleportTo(context.player(), payload.friend()));
 
@@ -245,6 +274,7 @@ public class Rings implements ModInitializer {
 			RingCall.tick(server);
 			Thralls.tick(server);
 			Bosses.tick(server);
+			Crashes.tick(server);
 			MobMoods.tick();
 			SwordWave.tick(server);
 		});

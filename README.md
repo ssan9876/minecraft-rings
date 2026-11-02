@@ -4,6 +4,10 @@ A Fabric mod for Minecraft 26.3 that adds a ring slot to the player's inventory,
 Rings grant powers while switched on with the **Activate Ring** key (default `R`). Every key is rebindable under
 Options → Controls → Rings.
 
+Rings can't be crafted. The only way to get one is from a ring-bearer dying beside their crashed ship, and those
+crashes are very rare (see [Getting a ring](#getting-a-ring)). A new bearer starts weak and grows stronger with the
+ring, unlocking its powers on a skill tree (see [Ring levels and the skill tree](#ring-levels-and-the-skill-tree)).
+
 | Key | Default | What it does (with the ring on) |
 |---|---|---|
 | Activate Ring | `R` | Switches the ring on and off |
@@ -14,6 +18,84 @@ Options → Controls → Rings.
 | Ring Scan | `Z` | Scans what's round about |
 | Call Ring | `H` | Calls your rings back to you from wherever they are (works with no ring on) |
 | Choose Suit | `J` | Picks which suit your rings dress you in (works with no ring on) |
+| Skill Tree | `K` | Shows your ring level and the skill tree, where you spend skill points (works with no ring on) |
+
+Most of these powers have to be learned on the skill tree first. Below, each one that does says which skill it needs.
+
+## Getting a ring
+
+**Crash sites.** Very rarely, a ring-bearer's ship lies crashed somewhere on the Earth: a scorched crater with a furrow
+ploughed in behind it, the wreck nosed into the middle (alien hull split open on one side, its canopy cracked, a wing
+torn off and lying in the furrow, the engine still glowing), and columns of smoke rising from its fires that can be
+seen from far off. They're generated with new ground, on dry land, about one in every 2,400 chunks.
+
+**Falling ships.** Worlds explored before crash sites existed get them too: every so often (about once in two or three
+hours of play) a burning ship streaks down out of the sky somewhere 100 to 200 blocks from a player who's out under the
+open sky, and everyone near is told which way it came down and how far off. Only one fallen ship waits at a time; the
+next can't fall until its pilot's ring has been taken.
+
+**The pilot.** Beside the breach in the hull sits the dying pilot, slumped against the wreck with their ring in their
+hand and their lantern beside them. Each colour's pilot is of a different people: the green ring's bearer is **Abin
+Sur**. When you come near, the ship's computer warns them you're coming and they call out. Right-click them to talk:
+they tell you who they are, what brought their ship down and what the ring is, and offer it to you. Take it and they
+give you their ring (low on charge after the crash, and bound to you) and their lantern, then pass, fading into the
+ring's light. A player who already wears or carries a ring can't take another.
+
+**The ship's console**, inside the wreck, holds the flight recorder: right-click it to read the ship's last log
+entries, and once the ring has found its new bearer, the final one.
+
+The colours come down about this often: green 4 in 11, and blue, red, pink, orange, white, black and yellow 1 in 11
+each. The Guardians on Oa no longer hand out rings, and Nekron no longer drops one.
+
+## Ring levels and the skill tree
+
+Everything you do with your ring on earns it **ring experience**: wearing it switched on and flying on it, hitting
+hostile creatures with the beam, defeating creatures (more for tougher ones: a Manhunter 25, Parallax and Nekron 400),
+making constructs and items, using your colour's power, bubbles and the scan, and charging the ring at its
+lantern. Enough of it and the ring goes up a **level**, up to level 40; each level gives a **skill
+point**. Press **Skill Tree** (`K`) to see your level, your progress to the next and the skill tree, and click a skill
+to learn it. The meter by the hotbar shows your level, with a star when there are points to spend.
+
+Experience and skills are yours, not the ring's: they stay with you whatever ring you wear, and through death. Players
+who already had a ring when levels came in (1.13.0) start at level 10.
+
+A new bearer can switch the ring on, hover, fire the beam (weakly), make walls, bridges, stairs, fists and grabs,
+charge the ring and call it back, and the ring gives +4 armor. Each level makes hovering a little faster, up to nearly
+twice vanilla's flight. Everything else is learned. Each skill needs the one above it, and some need a level first:
+
+| Branch | Skill | Points | From level | What it does |
+|---|---|---|---|---|
+| Flight | Soaring | 1 | 1 | Elytra mode: sprint forward while flying |
+| | Super Flight | 2 | 4 | Hold sneak in elytra mode to blast off, up to 50 blocks a second |
+| | Sonic Flight | 2 | 12 | Super flight up to 80 blocks a second, breaking the sound barrier |
+| | Spacefarer | 2 | 8 | Fly up into space (without it the ring can't break out of the sky, though a construct jet can carry you) |
+| Power | Focused Beam | 1 | 1 | The beam hits for 2 hearts (1¼ before) |
+| | Lance | 1 | 6 | 3 hearts |
+| | Annihilator | 2 | 15 | 4½ hearts, and sets what it hits alight |
+| | Emotional Spectrum | 1 | 2 | Your colour's power, on the power key |
+| | Spectrum Mastery | 2 | 10 | The colour's power costs 40% less and reaches half as far again |
+| Constructs | Shaper | 1 | 1 | The dome, cage, giant hammer, axe, pickaxe and shovel |
+| | Armory | 1 | 3 | The sword and shield |
+| | Living Light | 2 | 6 | The wolf and golem |
+| | Enduring Constructs | 1 | 5 | Walls, bridges, stairs, domes, cages and creatures last twice as long |
+| | Starship | 1 | 10 | The jet |
+| | Matter Mastery | 3 | 14 | Construct any item (the eye in the middle of the wheel) |
+| Defence | Hard-Light Skin | 1 | 1 | The ring's armor goes to +8, with +2 toughness |
+| | Guardian Angel | 2 | 5 | The last save from a fatal hit |
+| | Fortress | 2 | 12 | +12 armor, +4 toughness, and half the knockback |
+| | Force Field | 1 | 2 | The force field round you |
+| | Bubbles | 1 | 4 | Carry creatures and players in bubbles |
+| | Aegis | 1 | 9 | The force field and bubbles take hits for half the charge |
+| Will | Ring Scan | 1 | 1 | The scan |
+| | Deep Scan | 1 | 6 | The scan reaches 80 blocks for creatures and 28 for ores |
+| | Efficiency | 1 | 3 | Everything the ring does uses a quarter less charge |
+| | Willpower | 2 | 10 | Everything the ring does uses half the charge |
+| | Lantern Bond | 1 | 8 | Lanterns charge your ring twice as fast |
+
+The whole tree takes 37 points, so it's level 37 before a bearer has learned everything. Locked constructs are dimmed
+on the construct wheel, and trying a power you haven't learned tells you which skill it needs.
+
+## The rings
 
 **Power rings** come in eight colours: green, yellow, blue, red, pink, orange, white and black. The ring shows on
 your right hand whenever it's worn, glowing when it's on. While one is on:
@@ -30,13 +112,19 @@ your right hand whenever it's worn, glowing when it's on. While one is on:
   to pick which: **Classic** (black shoulders and sleeves over the ring's colour), **Shadow** (black, lit by the
   ring's colour at the emblem, stripes, gloves and boots), **Armored** (plates of the colour with metal pauldrons,
   belt, knee guards and gauntlets), **Robed** (a long tunic with a sash over black trousers), or **No suit**, keeping
-  your own skin with just the glowing outline. Your choice is kept, for every ring you wear;
+  your own skin with just the glowing outline. More are earned: **Veteran** at ring level 5 (the classic suit,
+  battle-worn, with pauldrons, rank chevrons and knee pads), **Honor Guard** at 10 (a high collar, gold trim and a
+  cape), **Starfield** at 15 (the night sky, full of stars, traced with the ring's light), **Sentinel** at 20 (heavy
+  armour plates in a steel frame), **Paragon** at 30 (light pouring down from the shoulders, gold and white, with a
+  cape), and the **Fallen Pilot's Uniform**, for taking a ring from a dying ring-bearer. The suit screen shows what
+  each locked one needs. Your choice is kept, for every ring you wear;
 - you're outlined in the ring's colour. Like the Glowing effect, the outline shows through walls;
 - you glow, lighting up the world around you (brighter while firing the beam), with LambDynamicLights installed;
-- the ring's energy shields you: +8 armor and +2 armor toughness, about a full set of iron armor, on top of
-  whatever you wear;
+- the ring's energy shields you: +4 armor at first, on top of whatever you wear; +8 and +2 toughness (about a full
+  set of iron armor) with Hard-Light Skin, and +12 and +4 toughness with Fortress;
 - hold **Fire Ring Beam** (default `G`) to fire a beam of the ring's energy from your fist to wherever you look,
-  up to 40 blocks. It hits for 2 hearts every half second with knockback, and uses extra power while it fires.
+  up to 40 blocks. It hits every half second with knockback, for 1¼ hearts at first and up to 4½ with the beam
+  skills, and uses extra power while it fires.
 
 Switching it on, you dip and then thrust the ring to the sky. Making a construct, you draw your fist back and lunge;
 using the colour's power, you gather your fists and fling them wide; putting up the force field, you cross your arms
@@ -44,7 +132,8 @@ and throw them apart; scanning, you raise your hand to your brow and look the wo
 glowing motes in its colour that flare up, twinkle and fade, and shine even in the dark. Everyone else sees all of
 this too.
 
-**Each colour's own power** (the Ring Power key) and gift (always on with the ring):
+**Each colour's own power** (the Ring Power key, once you've learned Emotional Spectrum) and gift (always on with the
+ring):
 
 | Colour | Power | Gift |
 |---|---|---|
@@ -61,14 +150,14 @@ Creatures a ring raises (orange copies, Black Lanterns, construct creatures) fig
 attack, follow you about, and fade away when their time's up or they die, leaving nothing.
 
 **The ring looks after you:**
-- **Force field** (`B`): a sphere of the ring's energy round you that takes hits in your place, paid for out of the
+- **Force field** (`B`, needs Force Field; bubbles need Bubbles): a sphere of the ring's energy round you that takes hits in your place, paid for out of the
   ring's charge. Look at a creature or player when you press it and you blow a bubble round them instead, carrying
   them along beside you wherever you fly, into space too, safe and breathing. They sneak to climb out; press it
   again to let them go.
-- **Ring scan** (`Z`): for 15 seconds, creatures within 48 blocks are outlined through walls (hostile red, players
+- **Ring scan** (`Z`, needs Ring Scan): for 15 seconds, creatures within 48 blocks are outlined through walls (hostile red, players
   white, the rest green), ores within 16 blocks glow through the rock in their own colours, and looking at a
   creature reads out its health, armor and ring.
-- **A last save:** a hit that would kill you is stopped instead, if the ring has a quarter of its charge to spend.
+- **A last save** (needs Guardian Angel): a hit that would kill you is stopped instead, if the ring has a quarter of its charge to spend.
 - **Rings come back:** a dropped ring lying 10 seconds flies back to whoever dropped it, one fallen into the void
   comes straight back, and rings don't burn. When its wearer dies, a ring flies off to choose a new one: the nearest
   player within 64 blocks with no ring. With nobody to choose, it stays on its wearer's finger through death.
@@ -80,7 +169,7 @@ attack, follow you about, and fade away when their time's up or they die, leavin
   left where nobody is (its chunk unloaded) is found where it was last seen: that spot wakes up for a few seconds
   while the ring answers.
 
-**Space:** fly up past Y 450 on a ring and you're in space, over the curve of the Earth, with three planets hanging
+**Space:** fly up past Y 450 on a ring (once you've learned Spacefarer) and you're in space, over the curve of the Earth, with three planets hanging
 in the stars and the sun blazing beyond them (always out of reach; fly at it all you like). The sun shines in every
 planet's sky too, in place of the Overworld's sun and moon. Fly into a planet to land on it:
 
@@ -109,8 +198,7 @@ Low gravity means higher jumps, slower falls and softer landings. Beds and respa
 
 **Oa** has the Guardians' citadel at its middle, right where you land: a great plaza ringed by towers, with the
 **Central Power Battery** at its heart. Right-click its glowing core and any ring, of any colour, is charged full at
-once. The **Guardians of the Universe** walk the plaza: right-click one to hear what they know (a visitor with no
-ring is given one, once).
+once. The **Guardians of the Universe** walk the plaza: right-click one to hear what they know.
 
 **Enemies among the stars:**
 - **Manhunters**, androids that fly and shoot bolts of energy, hunt players in space and on the Moon and Mars.
@@ -119,13 +207,15 @@ ring is given one, once).
   It drops a yellow lantern, diamonds and gold.
 - **Nekron**, lord of the dead, sleeps on the Moon. Charge a black ring full at a black lantern there and he
   wakes: a towering skeleton with a scythe who raises the dead, hurls bolts of death and steps through the shadows
-  to whoever runs. A black ring can't hurt him, and a white ring hurts him three times over. He drops a white ring,
-  a white lantern and diamonds.
+  to whoever runs. A black ring can't hurt him, and a white ring hurts him three times over. He drops a white
+  lantern, will shards and diamonds.
 
 **Constructs:** hold **Construct Wheel** (default `V`) while the ring is on, point at a construct and let go (or
-click) to make it out of the ring's light, in its colour. Each costs a little power (the wheel shows how much).
+click) to make it out of the ring's light, in its colour. Each costs a little power (the wheel shows how much). Every
+bearer can make the wall, bridge, stairs, fist and grab; the rest are learned on the skill tree (the wheel dims those
+you haven't, and says which skill they need).
 
-**Any item:** click the eye in the middle of the wheel and type an item's name, then click an item for one or
+**Any item** (needs Matter Mastery): click the eye in the middle of the wheel and type an item's name, then click an item for one or
 shift-click for a stack. It's a real, lasting item, paid for out of the ring's charge: 0.5% each for common things,
 2% for gold, emerald and uncommon items, 7.5% for diamond and rare ones, 20% for netherite and epic ones. Operator
 blocks (command and structure blocks, barriers, light, the debug stick) and the rings themselves can't be made; the
@@ -162,28 +252,31 @@ language file as `oath.rings.<colour>.1` to `.4`, so a resource pack can swap in
 `assets/rings/lang/en_us.json` setting those keys). When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
 sky. A lantern of another colour won't charge it.
 
-Crafting (shaped). Every colour uses the same pattern with its own material:
+**Power Lanterns** stand on a stepped plinth: a barrel of etched glass with the lantern emblem, held in metal ribs
+and bands of the colour, with a living, pulsing core of light inside that lights up the room, and motes of energy
+rising off the top. Rings can't be crafted, but more lanterns can (shaped):
 
 ```
-Power Ring:      Phantom Membrane  Core        Phantom Membrane
-                 Gold Ingot        ·           Gold Ingot
-                 ·                 Gold Ingot  ·
-
 Power Lantern:   Iron Ingot  Side     Iron Ingot
                  Side        Lantern  Side
                  Iron Ingot  Side     Iron Ingot
 ```
 
-| Colour | Ring core | Lantern sides |
-|---|---|---|
-| Green | Diamond | Emerald |
-| Blue | Block of Lapis Lazuli | Lapis Lazuli |
-| Red | Block of Redstone | Redstone Dust |
-| Pink | Block of Amethyst | Amethyst Shard |
-| Orange | Block of Copper | Copper Ingot |
-| White | Block of Quartz | Nether Quartz |
-| Black | Obsidian | Obsidian |
-| Yellow | Block of Gold | Glowstone Dust |
+| Colour | Lantern sides |
+|---|---|
+| Green | Emerald |
+| Blue | Lapis Lazuli |
+| Red | Redstone Dust |
+| Pink | Amethyst Shard |
+| Orange | Copper Ingot |
+| White | Nether Quartz |
+| Black | Obsidian |
+| Yellow | Glowstone Dust |
+
+**For operators:** `/rings level <players> <level>`, `/rings xp <players> <amount>`, `/rings unlockall <players>`
+(every skill and suit), `/rings reset <players>` (back to a new bearer), `/rings info <player>`, `/rings crash
+[colour]` (a ship falls 40 to 70 blocks from you) and `/rings crashsite [colour]` (a crash site built right where you
+stand).
 
 How it behaves:
 - Shift-click a ring to equip it, like armor. Taking it off switches it off.
@@ -214,8 +307,8 @@ Needs JDK 25.
 | `./gradlew runClientGameTest` | Opens a real client and plays through the ring (`src/gametest`). Screenshots land in `build/run/clientGameTest/screenshots` |
 | `./release.sh` | Publishes the version in `gradle.properties` as a GitHub release and points `mods.txt` at it |
 | `./deploy.sh` | Builds and installs the mod on the server, then restarts it |
-| `python tools/gen_textures.py` | Redraws every texture: each colour's ring, suit and lantern, constructs, particles and the planets' blocks |
-| `python tools/gen_resources.py` | Writes every colour's models, recipes, loot tables and names, and the planets' blocks' |
+| `python tools/gen_textures.py` | Redraws every texture: each colour's ring, suits, capes, lantern and crashed pilot, constructs, particles, the ships' and the planets' blocks |
+| `python tools/gen_resources.py` | Writes every colour's models, recipes, loot tables and names, the planets' blocks', the ships' blocks' and the crash sites' worldgen |
 | `python tools/gen_worlds.py` | Writes space and the planets (dimensions, terrain, skies, ores and features) and their maps |
 | `RINGS_SPACE=1 ./gradlew runClientGameTest` | Only flies to space and each planet and back, filming each |
 | `RINGS_FLIGHT=1 ./gradlew runClientGameTest` | Only films the ring on the hand, elytra mode and super flight |
@@ -226,6 +319,7 @@ Needs JDK 25.
 | `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
 | `RINGS_GEAR=1 ./gradlew runClientGameTest` | Only the construct sword's slash, the construct shield and a will shard |
 | `RINGS_SUITS=1 ./gradlew runClientGameTest` | Only choosing each suit, on the suit screen and from the front |
+| `RINGS_MASTERY=1 ./gradlew runClientGameTest` | Only ring levels, the skill tree, the earned suits, a crash site and its pilot's dialogue, the console, the lanterns and a falling ship |
 
 ## Releasing
 
@@ -288,5 +382,13 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
   what it blocks.
 - **Planets' blocks:** `PlanetBlocks` (blocks and items), `PlanetFeatures` (craters, spires and crystal patches,
   as worldgen feature types), placed by the planets' biome files that `tools/gen_worlds.py` writes.
+- **Levels and skills:** `Mastery` (the player's experience and skills, a synced attachment, and what each skill
+  changes), `Skill` (the tree), `SkillTreeScreen`. Each power checks its skill on the server (`Mastery.require`); the
+  client checks too for what it decides itself (elytra mode and super flight in `SuperFlight`, the wheel, the scan's
+  reach).
+- **Crash sites:** `CrashSite` builds one (the world generates them through its `Feature`, added to every Overworld
+  land biome in `Rings`), `Crashes` sends ships falling out of the sky, `CrashPilot` is the dying pilot,
+  `ShipBlocks` the wreck's blocks and console, and `Dialogues` what the pilot and the console say (the client walks
+  the dialogue in `DialogueScreen`; only taking the ring goes to the server). `RingCommands` is `/rings`.
 - **Oa and its foes:** `OaCitadel` builds the citadel on the first visit (once, marked on the level), `Bosses`
   spawns Manhunters and wakes Parallax and Nekron; `SpaceFlyer` is the flying base for Manhunters and Parallax.

@@ -108,9 +108,10 @@ public final class ColorPowers {
 		return color == RingColor.GREEN ? construct.cost() * 3 / 4 : construct.cost();
 	}
 
-	/** The ring's armor, which a red ring's rage halves. */
-	public static double armor(RingColor color) {
-		return color == RingColor.RED ? 4.0 : 8.0;
+	/** The ring's armor, as strong as the wearer has learned to make it, which a red ring's rage halves. */
+	public static double armor(RingColor color, Player player) {
+		double armor = Mastery.armor(player);
+		return color == RingColor.RED ? armor / 2.0 : armor;
 	}
 
 	/** The wearer pressed the ring power key (sneaking or not). */
@@ -118,6 +119,9 @@ public final class ColorPowers {
 		RingColor color = RingAttachments.activeColor(player);
 		if (color == null) {
 			player.sendOverlayMessage(Component.translatable("message.rings.power_inactive"));
+			return;
+		}
+		if (!Mastery.require(player, Skill.SPECTRUM)) {
 			return;
 		}
 		ServerLevel level = player.level();
@@ -136,7 +140,7 @@ public final class ColorPowers {
 			case WHITE -> HEAL_COST;
 			case BLACK -> DRAIN_COST;
 		};
-		if (RingItem.charge(ring) < cost) {
+		if (RingItem.charge(ring) < mastered(player, cost)) {
 			player.sendOverlayMessage(Component.translatable("message.rings.construct_no_power", ring.getHoverName()));
 			return;
 		}
@@ -153,34 +157,45 @@ public final class ColorPowers {
 		};
 		if (spent > 0) {
 			LAST_USED.put(player, now);
-			RingItem.addCharge(ring, -spent);
+			RingItem.addCharge(ring, -Mastery.cost(player, mastered(player, spent)));
+			Mastery.addXp(player, Mastery.XP_POWER);
 			RingPowers.playAnimation(player, RingAnimationPayload.Kind.POWER, color);
 		}
+	}
+
+	/** A power's cost once the wearer has mastered the spectrum: 40% less. */
+	private static int mastered(ServerPlayer player, int cost) {
+		return Mastery.has(player, Skill.SPECTRUM_MASTERY) ? cost * 3 / 5 : cost;
+	}
+
+	/** How far a power reaches: half as far again once the wearer has mastered the spectrum. */
+	private static double reach(ServerPlayer player, double radius) {
+		return Mastery.has(player, Skill.SPECTRUM_MASTERY) ? radius * 1.5 : radius;
 	}
 
 	/** A burst of will: everything round about is struck and thrown back. */
 	private static int will(ServerLevel level, ServerPlayer player) {
 		DamageSource source = new DamageSource(level.registryAccess().lookupOrThrow(Registries.DAMAGE_TYPE).getOrThrow(ConstructFist.DAMAGE_TYPE), player);
-		for (LivingEntity target : around(level, player, WILL_RADIUS)) {
+		for (LivingEntity target : around(level, player, reach(player, WILL_RADIUS))) {
 			target.hurtServer(level, source, WILL_DAMAGE);
 			Vec3 away = target.position().subtract(player.position()).multiply(1.0, 0.0, 1.0);
 			away = away.lengthSqr() < 1.0E-4 ? player.getViewVector(1.0F) : away.normalize();
 			target.push(away.scale(1.6).add(0.0, 0.5, 0.0));
 			target.needsSync = true;
 		}
-		ring(level, player, RingColor.GREEN, WILL_RADIUS);
+		ring(level, player, RingColor.GREEN, reach(player, WILL_RADIUS));
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.MACE_SMASH_GROUND_HEAVY, SoundSource.PLAYERS, 1.0F, 0.7F);
 		return WILL_COST;
 	}
 
 	/** A wave of terror: creatures round about flee, weakened and slowed. */
 	private static int fear(ServerLevel level, ServerPlayer player) {
-		for (Mob mob : level.getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(FEAR_RADIUS), mob -> mob.isAlive() && Thralls.of(mob) == null)) {
+		for (Mob mob : level.getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(reach(player, FEAR_RADIUS)), mob -> mob.isAlive() && Thralls.of(mob) == null)) {
 			MobMoods.scare(mob, player.position(), FEAR_TICKS);
 			mob.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, FEAR_TICKS, 0));
 			mob.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, FEAR_TICKS / 2, 0));
 		}
-		ring(level, player, RingColor.YELLOW, FEAR_RADIUS);
+		ring(level, player, RingColor.YELLOW, reach(player, FEAR_RADIUS));
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WARDEN_ROAR, SoundSource.PLAYERS, 1.0F, 1.2F);
 		return FEAR_COST;
 	}
@@ -195,13 +210,13 @@ public final class ColorPowers {
 
 	/** Hope: the wearer and every player near by are healed. */
 	private static int hope(ServerLevel level, ServerPlayer player) {
-		for (Player other : level.getEntitiesOfClass(Player.class, player.getBoundingBox().inflate(HOPE_RADIUS), Player::isAlive)) {
+		for (Player other : level.getEntitiesOfClass(Player.class, player.getBoundingBox().inflate(reach(player, HOPE_RADIUS)), Player::isAlive)) {
 			other.heal(8.0F);
 			other.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 1));
 			level.sendParticles(RingColor.BLUE.dust(0.6F, 1.0F), other.getX(), other.getY() + 1.0, other.getZ(), 20, 0.3, 0.6, 0.3, 0.0);
 			level.sendParticles(ParticleTypes.HAPPY_VILLAGER, other.getX(), other.getY() + 1.0, other.getZ(), 6, 0.3, 0.5, 0.3, 0.0);
 		}
-		ring(level, player, RingColor.BLUE, HOPE_RADIUS);
+		ring(level, player, RingColor.BLUE, reach(player, HOPE_RADIUS));
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.PLAYERS, 1.5F, 0.8F);
 		return HOPE_COST;
 	}
@@ -239,7 +254,7 @@ public final class ColorPowers {
 	/** Love: a crystal round what the wearer looks at, which charms it. */
 	private static int crystal(ServerLevel level, ServerPlayer player) {
 		RingBeam.Hit hit = RingBeam.trace(player, 1.0F);
-		if (!(hit.entity() instanceof LivingEntity target) || player.distanceTo(target) > CRYSTAL_RANGE) {
+		if (!(hit.entity() instanceof LivingEntity target) || player.distanceTo(target) > reach(player, CRYSTAL_RANGE)) {
 			player.sendOverlayMessage(Component.translatable("message.rings.crystal_no_target"));
 			return 0;
 		}
@@ -258,7 +273,7 @@ public final class ColorPowers {
 
 	/** Sends a pink ring's wearer straight to a friend, wherever they are. */
 	public static void teleportTo(ServerPlayer player, UUID friendId) {
-		if (RingAttachments.activeColor(player) != RingColor.PINK) {
+		if (RingAttachments.activeColor(player) != RingColor.PINK || !Mastery.require(player, Skill.SPECTRUM)) {
 			return;
 		}
 		ServerPlayer friend = player.level().getServer().getPlayerList().getPlayer(friendId);
@@ -271,7 +286,7 @@ public final class ColorPowers {
 			player.sendOverlayMessage(Component.translatable("message.rings.construct_no_power", ring.getHoverName()));
 			return;
 		}
-		RingItem.addCharge(ring, -TELEPORT_COST);
+		RingItem.addCharge(ring, -Mastery.cost(player, TELEPORT_COST));
 		ServerLevel from = player.level();
 		from.sendParticles(RingColor.PINK.dust(0.5F, 1.2F), player.getX(), player.getY() + 1.0, player.getZ(), 40, 0.4, 0.8, 0.4, 0.0);
 		from.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1.0F, 1.4F);
@@ -340,7 +355,7 @@ public final class ColorPowers {
 	private static int death(ServerLevel level, ServerPlayer player) {
 		DamageSource source = player.damageSources().indirectMagic(player, player);
 		float drained = 0.0F;
-		for (LivingEntity target : around(level, player, DRAIN_RADIUS)) {
+		for (LivingEntity target : around(level, player, reach(player, DRAIN_RADIUS))) {
 			if (target.hurtServer(level, source, DRAIN_DAMAGE)) {
 				drained += DRAIN_DAMAGE;
 				Vec3 toward = player.position().subtract(target.position()).normalize().scale(0.3);
@@ -349,7 +364,7 @@ public final class ColorPowers {
 			}
 		}
 		player.heal(Math.min(DRAIN_MAX_HEAL, drained));
-		ring(level, player, RingColor.BLACK, DRAIN_RADIUS);
+		ring(level, player, RingColor.BLACK, reach(player, DRAIN_RADIUS));
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.WITHER_AMBIENT, SoundSource.PLAYERS, 0.8F, 1.4F);
 		return DRAIN_COST;
 	}

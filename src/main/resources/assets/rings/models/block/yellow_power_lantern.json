@@ -2,6 +2,10 @@
   "parent": "rings:block/template_power_lantern",
   "textures": {
     "metal": "rings:block/yellow_power_lantern_metal",
-    "glass": "rings:block/yellow_power_lantern_glass"
+    "glass": {
+      "sprite": "rings:block/yellow_power_lantern_glass",
+      "force_translucent": true
+    },
+    "core": "rings:block/yellow_power_lantern_core"
   }
 }

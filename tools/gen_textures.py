@@ -398,54 +398,520 @@ def robed_skin(p):
     return paint_suit(suit_head(p), body, arm, arm, leg, leg)
 
 
+
+
+def cape_texture(painter):
+    """A 64x32 cape: the cape box is 10 wide, 16 tall and 1 deep, at the top left."""
+    image = Image.new("RGBA", (64, 32), CLEAR)
+    paint_box(image, 0, 0, 10, 16, 1, painter)
+    return image
+
+
+GOLD = (236, 196, 92, 255)
+GOLD_DARK = (176, 134, 48, 255)
+
+
+def veteran_skin(p):
+    """The veteran's suit: the classic one, battle-worn: darker, with pauldrons, rank chevrons, a belt and knee pads."""
+    rng = random.Random(11)
+    worn = shade(p.suit, 0.8)
+    worn_dark = shade(p.suit_dark, 0.8)
+    suit = lambda: textured(worn, worn_dark, p.suit, rng)
+    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
+    scuff = lambda base: (90, 90, 96, 255) if rng.random() < 0.05 else base
+
+    def body(face, x, y, w, h):
+        if y == 7:
+            return p.rivet if face == "front" and x in (3, 4) else black()
+        if face == "front":
+            ch = CHEST[y][x]
+            return black() if ch == "K" else p.emblem if ch == "W" else scuff(suit())
+        if face in ("left", "right", "top"):
+            return black()
+        if face == "back":
+            return black() if y < 2 or x in (0, w - 1) else scuff(suit())
+        return suit()
+
+    def arm(face, x, y, w, h):
+        if face == "top" or y < 2:
+            return p.metal_light if y == 0 else p.metal
+        if face == "bottom":
+            return worn
+        if face in ("right", "left", "front") and y in (3, 5) and 0 < x < w - 1:
+            return p.suit_light
+        if y == 8:
+            return p.suit_light
+        return suit() if y > 8 else black()
+
+    def leg(outer_face):
+        def paint(face, x, y, w, h):
+            if face == "top":
+                return worn
+            if face == "bottom":
+                return p.panel
+            if face == "front" and y in (5, 6):
+                return p.metal_light if y == 5 else p.metal
+            if y == 8:
+                return worn_dark
+            if y > 8:
+                return black()
+            return black() if face == outer_face else scuff(suit())
+        return paint
+
+    return paint_suit(suit_head(p), body, arm, arm, leg("right"), leg("left"))
+
+
+def honor_guard_skin(p):
+    """The Honor Guard's suit: a high black collar, the emblem large on the chest, gold trim, and a cape."""
+    rng = random.Random(13)
+    suit = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
+    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
+
+    def body(face, x, y, w, h):
+        if y == 0 or face == "top":
+            return black()
+        if face == "front":
+            if x in (0, w - 1):
+                return GOLD
+            ch = CHEST[y][x]
+            return GOLD if ch == "K" and y == 1 else black() if ch == "K" else p.emblem if ch == "W" else suit()
+        if face in ("left", "right"):
+            return GOLD if x == 0 else black()
+        return suit() if 2 <= y else black()
+
+    def arm(face, x, y, w, h):
+        if face == "top":
+            return GOLD
+        if face == "bottom":
+            return p.suit
+        if y in (0, 9):
+            return GOLD
+        return suit() if y < 9 else black()
+
+    def leg(face, x, y, w, h):
+        if face == "top":
+            return p.suit
+        if face == "bottom":
+            return p.panel
+        if y == 9:
+            return GOLD
+        return black() if y > 9 else suit()
+
+    return paint_suit(suit_head(p), body, arm, arm, leg, leg)
+
+
+def honor_guard_cape(p):
+    rng = random.Random(14)
+    cloth = lambda: textured(p.suit_dark, shade(p.suit_dark, 0.8), p.suit, rng)
+
+    def painter(face, x, y, w, h):
+        if face in ("top", "bottom", "left", "right"):
+            return GOLD_DARK
+        if x in (0, w - 1) or y == h - 1:
+            return GOLD
+        # The emblem on the outside (the face seen from behind the wearer), high on the back
+        if face == "front" and 2 <= y <= 5 and 3 <= x <= 6 and (y in (2, 5) or x in (3, 6)):
+            return p.emblem
+        return cloth()
+    return cape_texture(painter)
+
+
+def starfield_skin(p):
+    """The starfield suit: the night sky, scattered with stars, traced with the ring's light."""
+    rng = random.Random(17)
+    night = (16, 14, 30, 255)
+    night_light = (30, 26, 52, 255)
+
+    def sky():
+        r = rng.random()
+        if r < 0.05:
+            return (255, 255, 255, 255)
+        if r < 0.09:
+            return p.glow
+        return night_light if r > 0.85 else night
+
+    def body(face, x, y, w, h):
+        if face == "front":
+            ch = CHEST[y][x]
+            if ch == "W":
+                return p.glow
+            if ch == "G" and 1 <= y <= 6:
+                return p.dark
+            return p.mid if x in (0, w - 1) else sky()
+        if face == "back" and x in (3, 4):
+            return p.mid
+        return sky()
+
+    def arm(face, x, y, w, h):
+        if y >= 10:
+            return p.mid
+        if face == "right" and x == 1 or face == "left" and x == 2:
+            return p.light
+        return sky()
+
+    def leg(face, x, y, w, h):
+        if y >= 10:
+            return p.mid
+        if face in ("right", "left") and x == 1:
+            return p.light
+        return sky()
+
+    return paint_suit(suit_head(p), body, arm, arm, leg, leg)
+
+
+def sentinel_skin(p):
+    """The sentinel's armour: plates of the ring's colour in a heavy metal frame, gauntlets and greaves."""
+    rng = random.Random(19)
+    steel = lambda: textured((108, 112, 122, 255), (78, 82, 92, 255), (140, 144, 154, 255), rng)
+    plate = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
+
+    def body(face, x, y, w, h):
+        if y == 8:
+            return (30, 30, 34, 255)
+        if face == "front":
+            if 1 <= y <= 6 and 1 <= x <= 6:
+                ch = CHEST[y][x]
+                return p.glow if ch == "W" else BLACK
+            return steel() if x in (0, w - 1) or y in (0, 7) else plate()
+        if face in ("left", "right"):
+            return steel()
+        return steel() if y < 2 or y > 8 else plate()
+
+    def arm(face, x, y, w, h):
+        if y < 3 or face == "top":
+            return steel()
+        if y >= 8:
+            return steel() if y != 8 else p.light
+        return plate()
+
+    def leg(face, x, y, w, h):
+        if y >= 6:
+            return p.light if face == "front" and x in (1, 2) and y < 10 else steel()
+        return plate() if y > 0 else (30, 30, 34, 255)
+
+    return paint_suit(suit_head(p), body, arm, arm, leg, leg)
+
+
+def paragon_skin(p):
+    """The paragon's suit: light pouring down it from the shoulders, a gold-bordered emblem, white gloves and boots."""
+    rng = random.Random(23)
+
+    def light(y, h):
+        return mix(p.glow, p.suit, min(1.0, y / (h * 0.7)))
+
+    def body(face, x, y, w, h):
+        if face == "front":
+            if 1 <= y <= 6 and 1 <= x <= 6:
+                ch = CHEST[y][x]
+                if ch == "K":
+                    return GOLD
+                if ch == "W":
+                    return (255, 255, 255, 255)
+                return p.dark
+            if x in (0, w - 1) or y == 7:
+                return GOLD
+        if face in ("left", "right") and x == 1:
+            return GOLD
+        return light(y, h)
+
+    def arm(face, x, y, w, h):
+        if y >= 9:
+            return (250, 250, 252, 255) if y > 9 else GOLD
+        return light(y, h)
+
+    def leg(face, x, y, w, h):
+        if y >= 9:
+            return (250, 250, 252, 255) if y > 9 else GOLD
+        if face in ("right", "left") and x == 1:
+            return GOLD
+        return textured(p.suit, p.suit_dark, p.suit_light, rng)
+
+    return paint_suit(suit_head(p), body, arm, arm, leg, leg)
+
+
+def paragon_cape(p):
+    def painter(face, x, y, w, h):
+        if face in ("top", "bottom", "left", "right"):
+            return GOLD_DARK
+        if x in (0, w - 1) or y == h - 1:
+            return GOLD
+        if face == "front" and 3 <= y <= 7 and 2 <= x <= 7:
+            ring = (x in (2, 7) and 4 <= y <= 6) or (y in (3, 7) and 3 <= x <= 6)
+            if ring:
+                return (255, 255, 255, 255)
+        return mix(p.suit, p.dark, y / h)
+    return cape_texture(painter)
+
+
+def pilot_body(p):
+    """The fallen pilot's uniform: black, with a panel of the ring's colour down the front, colour sleeves and boots."""
+    rng = random.Random(29)
+    suit = lambda: textured(p.suit, p.suit_dark, p.suit_light, rng)
+    black = lambda: textured(p.panel, p.panel, p.panel_light, rng)
+
+    def body(face, x, y, w, h):
+        if face == "front":
+            ch = CHEST[y][x]
+            if ch == "W":
+                return p.emblem
+            # A colour panel that narrows down to the belt
+            inset = max(0, (y - 6) // 2)
+            return suit() if 1 + inset <= x <= 6 - inset else black()
+        if face == "back":
+            return suit() if 2 <= x <= 5 and y < 7 else black()
+        return black()
+
+    def arm(face, x, y, w, h):
+        if face == "top":
+            return black()
+        return black() if y >= 9 else suit()
+
+    def leg(outer_face):
+        def paint(face, x, y, w, h):
+            if face == "bottom":
+                return p.suit_dark
+            if y >= 9:
+                return suit()
+            return p.suit if face == outer_face and x in (1, 2) else black()
+        return paint
+
+    return body, arm, leg
+
+
+def pilot_skin(p):
+    body, arm, leg = pilot_body(p)
+    return paint_suit(suit_head(p), body, arm, arm, leg("right"), leg("left"))
+
+
+# The crashed pilots: an alien of a different people for each colour (green's is Abin Sur's)
+PILOT_SKINS = {
+    "green": ((196, 72, 150, 255), (150, 48, 112, 255)),
+    "blue": ((92, 170, 210, 255), (64, 128, 170, 255)),
+    "red": ((168, 64, 52, 255), (124, 42, 36, 255)),
+    "pink": ((236, 176, 196, 255), (200, 136, 160, 255)),
+    "orange": ((120, 150, 70, 255), (86, 112, 48, 255)),
+    "white": ((228, 222, 210, 255), (186, 178, 164, 255)),
+    "black": ((120, 120, 132, 255), (84, 84, 96, 255)),
+    "yellow": ((200, 168, 90, 255), (156, 126, 60, 255)),
+}
+
+
+def crash_pilot_skin(name, p):
+    """A crashed pilot: an alien head, their uniform torn and scorched, bloodied in places."""
+    skin, skin_dark = PILOT_SKINS[name]
+    body, arm, leg = pilot_body(p)
+    rng = random.Random(31)
+    wound = (120, 24, 24, 255)
+    soot = (46, 44, 48, 255)
+
+    def head(face, x, y, w, h):
+        if face == "top":
+            return skin_dark if x in (3, 4) else skin
+        if face == "bottom":
+            return skin_dark
+        if face in ("left", "right"):
+            return skin_dark if y in (2, 5) and x < 3 else skin
+        if face == "back":
+            return skin_dark if y in (1, 3, 5) else skin
+        if y == 2 and 1 <= x <= 6:
+            return skin_dark
+        if y == 3 and x in (1, 2, 5, 6):
+            return (250, 250, 250, 255) if x in (1, 6) else (20, 20, 24, 255)
+        if y == 5 and x in (3, 4):
+            return skin_dark
+        if y == 6 and 2 <= x <= 5:
+            return (90, 30, 50, 255)
+        return skin
+
+    def hurt(painter):
+        def paint(face, x, y, w, h):
+            r = rng.random()
+            if face == "front" and r < 0.06:
+                return wound
+            if r < 0.12:
+                return soot
+            return painter(face, x, y, w, h)
+        return paint
+
+    return creature_skin(head, hurt(body), hurt(arm), hurt(leg("right")))
+
+
 # Same names as SuitStyle (the classic suit keeps its first name, lantern)
-SUITS = {"lantern": lantern_skin, "shadow": shadow_skin, "armored": armored_skin, "robed": robed_skin}
+SUITS = {"lantern": lantern_skin, "shadow": shadow_skin, "armored": armored_skin, "robed": robed_skin,
+         "veteran": veteran_skin, "honor_guard": honor_guard_skin, "starfield": starfield_skin,
+         "sentinel": sentinel_skin, "paragon": paragon_skin, "pilot": pilot_skin}
+CAPES = {"honor_guard": honor_guard_cape, "paragon": paragon_cape}
 
 
-# Power lantern glass, 16x16. The lantern's glass faces show x 4-11, y 5-13 of it (the model's UVs).
-LANTERN_GLASS = [
-    "gggggggggggggggg",
-    "gggggggggggggggg",
-    "gggggggggggggggg",
-    "gggggggggggggggg",
-    "ggggddddddddgggg",
-    "ggggdwwwwwwdgggg",
-    "ggggdlwwwwldgggg",
-    "ggggdwllllwdgggg",
-    "ggggdwllllwdgggg",
-    "ggggdlwwwwldgggg",
-    "ggggdwwwwwwdgggg",
-    "ggggdlllllldgggg",
-    "ggggdlllllldgggg",
-    "ggggddddddddgggg",
-    "gggggggggggggggg",
-    "gggggggggggggggg",
+# The lantern emblem etched into the power lantern's glass: a ring between two bars. The glass faces show x 4-11 and
+# y 4-11 of the texture (the model's UVs).
+LANTERN_EMBLEM = [
+    "........",
+    ".eeeeee.",
+    "..e..e..",
+    ".e....e.",
+    ".e....e.",
+    "..e..e..",
+    ".eeeeee.",
+    "........",
 ]
 
 
 def lantern_glass(p):
-    colors = {"g": p.mid, "d": p.dark, "l": p.light, "w": p.glow}
+    """See-through glass tinted with the colour, with a bright rim, a glint, and the emblem etched in."""
     image = Image.new("RGBA", (16, 16), CLEAR)
-    for y, row in enumerate(LANTERN_GLASS):
-        for x, ch in enumerate(row):
-            image.putpixel((x, y), colors[ch])
+    for y in range(16):
+        for x in range(16):
+            gx, gy = x - 4, y - 4
+            if not (0 <= gx < 8 and 0 <= gy < 8):
+                image.putpixel((x, y), p.mid[:3] + (90,))
+                continue
+            if gx in (0, 7) or gy in (0, 7):
+                color = p.light[:3] + (230,)
+            elif LANTERN_EMBLEM[gy][gx] == "e":
+                color = p.glow[:3] + (235,)
+            elif gx + gy == 3:
+                color = mix(p.light, (255, 255, 255), 0.5)[:3] + (110,)
+            else:
+                color = p.dark[:3] + (45,)
+            image.putpixel((x, y), color)
+    return image
+
+
+CORE_FRAMES = 8
+
+
+def lantern_core(p):
+    """The lantern's heart: living light, white-hot in the middle, pulsing (frames stacked for the .mcmeta)."""
+    import math
+    image = Image.new("RGBA", (16, 16 * CORE_FRAMES), CLEAR)
+    rng = random.Random(5)
+    for frame in range(CORE_FRAMES):
+        pulse = 0.7 + 0.3 * math.sin(math.pi * 2 * frame / CORE_FRAMES)
+        for y in range(16):
+            for x in range(16):
+                d = math.hypot(x - 7.5, y - 7.5) / 6.0
+                t = max(0.0, 1.0 - d)
+                flicker = rng.random() * 0.12
+                color = mix(p.mid, (255, 255, 255), min(1.0, 0.1 + 0.85 * t * pulse + flicker))
+                image.putpixel((x, frame * 16 + y), color)
     return image
 
 
 def lantern_metal(p):
-    """Metal tinted with the colour, with a lighter top edge and rivets."""
+    """Metal tinted with the colour. The model takes its parts from set rows and columns: the hoops from row 1 (a band
+    of the colour), the ribs from columns 1 and 2, the base and cap sides from rows 12 and 13, and the plinth's edge
+    from row 14. The tops show the middle, engraved with a ring."""
+    import math
     rng = random.Random(3)
     image = Image.new("RGBA", (16, 16), CLEAR)
     for y in range(16):
         for x in range(16):
             color = textured(p.metal, p.metal_dark, p.metal_light, rng)
-            if x in (0, 15) or y in (0, 15):
+            r = math.hypot(x - 7.5, y - 7.5)
+            if 4.6 < r < 5.6 or 2.0 < r < 2.8:
                 color = p.metal_dark
-            elif y == 1:
+            if y == 1:
+                color = p.light if 3 <= x <= 12 else p.metal_light
+            elif y == 2:
+                color = p.metal_dark
+            elif y == 12:
                 color = p.metal_light
-            if (x, y) in ((2, 2), (13, 2), (2, 13), (13, 13)):
+            elif y == 13:
+                color = p.metal_dark
+            elif y == 14:
+                color = p.dark
+            elif x == 1 and 3 <= y <= 11:
+                color = p.metal_light
+            elif x == 2 and 3 <= y <= 11:
+                color = p.metal_dark
+            if (x, y) in ((4, 4), (11, 4), (4, 11), (11, 11)):
                 color = p.rivet
             image.putpixel((x, y), color)
+    return image
+
+
+# The crashed ships' blocks
+SHIP = (58, 50, 74, 255)
+SHIP_DARK = (38, 32, 50, 255)
+SHIP_LIGHT_SHADE = (82, 74, 100, 255)
+RUNNING_LIGHT = (150, 230, 255, 255)
+
+
+def ship_hull():
+    """Alien hull: dark lilac metal in panels, riveted, scorched in places."""
+    rng = random.Random(41)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            color = textured(SHIP, SHIP_DARK, SHIP_LIGHT_SHADE, rng)
+            if x % 8 == 0 or y % 8 == 0:
+                color = SHIP_DARK
+            elif x % 8 == 1 or y % 8 == 1:
+                color = SHIP_LIGHT_SHADE
+            if (x % 8, y % 8) in ((2, 2), (6, 2), (2, 6), (6, 6)):
+                color = (120, 112, 140, 255)
+            if rng.random() < 0.04:
+                color = (26, 24, 30, 255)
+            image.putpixel((x, y), color)
+    return image
+
+
+def ship_plating():
+    """Lighter plating, with a sheen and seams across it."""
+    rng = random.Random(43)
+    base, dark, light = (112, 104, 132, 255), (84, 76, 102, 255), (146, 138, 166, 255)
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y in range(16):
+        for x in range(16):
+            color = textured(base, dark, light, rng)
+            if y in (0, 15) or x in (0, 15):
+                color = dark
+            elif y == 5 or y == 10:
+                color = dark
+            elif (x + y) % 11 == 0:
+                color = light
+            image.putpixel((x, y), color)
+    return image
+
+
+def ship_light():
+    """A running light: a glowing strip set in the hull."""
+    image = ship_hull()
+    for y in range(5, 11):
+        for x in range(2, 14):
+            edge = y in (5, 10) or x in (2, 13)
+            image.putpixel((x, y), (96, 170, 210, 255) if edge else mix(RUNNING_LIGHT, (255, 255, 255), 0.3 if y in (7, 8) else 0.0))
+    return image
+
+
+def ship_console_front():
+    """The console's screen: lines of glowing script, and the lantern emblem in the corner."""
+    rng = random.Random(47)
+    image = ship_hull()
+    for y in range(2, 14):
+        for x in range(2, 14):
+            if y in (2, 13) or x in (2, 13):
+                color = (90, 84, 110, 255)
+            elif y % 2 == 0 and x < 11 and rng.random() < 0.7:
+                color = (110, 220, 250, 255)
+            else:
+                color = (10, 22, 34, 255)
+            image.putpixel((x, y), color)
+    for (x, y) in ((11, 4), (12, 4), (11, 6), (12, 6), (11, 5), (12, 5)):
+        image.putpixel((x, y), (200, 250, 255, 255))
+    return image
+
+
+def ship_console_top():
+    """The console's top: buttons and dials."""
+    image = ship_hull()
+    for (x, y), color in {(3, 3): (220, 60, 60, 255), (5, 3): (80, 220, 100, 255), (7, 3): (110, 220, 250, 255),
+                          (3, 5): (240, 200, 60, 255), (5, 5): (110, 220, 250, 255), (7, 5): (220, 60, 60, 255)}.items():
+        image.putpixel((x, y), color)
+    for y in range(9, 14):
+        for x in range(3, 13):
+            image.putpixel((x, y), (10, 22, 34, 255) if 3 < x < 12 and 9 < y < 13 else (90, 84, 110, 255))
     return image
 
 
@@ -595,6 +1061,27 @@ def ring_band():
             v = 255 if (x + y) % 5 else 236
             image.putpixel((x, y), (v, v, v, 255))
     return image
+
+
+# The Central Power Battery's pattern (the lanterns' glass had it too, before their glass was redrawn)
+LANTERN_GLASS = [
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+    "ggggddddddddgggg",
+    "ggggdwwwwwwdgggg",
+    "ggggdlwwwwldgggg",
+    "ggggdwllllwdgggg",
+    "ggggdwllllwdgggg",
+    "ggggdlwwwwldgggg",
+    "ggggdwwwwwwdgggg",
+    "ggggdlllllldgggg",
+    "ggggdlllllldgggg",
+    "ggggddddddddgggg",
+    "gggggggggggggggg",
+    "gggggggggggggggg",
+]
 
 
 def power_battery():
@@ -996,12 +1483,23 @@ if __name__ == "__main__":
         save(ring_item(palette), f"textures/item/{RING_IDS[name]}.png")
         for style, skin in SUITS.items():
             save(skin(palette), f"textures/entity/costume/{name}_{style}.png")
+        for style, cape in CAPES.items():
+            save(cape(palette), f"textures/entity/costume/{name}_{style}_cape.png")
+        save(crash_pilot_skin(name, palette), f"textures/entity/crash_pilot/{name}.png")
         save(lantern_glass(palette), f"textures/block/{LANTERN_IDS[name]}_glass.png")
+        save(lantern_core(palette), f"textures/block/{LANTERN_IDS[name]}_core.png")
+        core_meta = ASSETS / f"textures/block/{LANTERN_IDS[name]}_core.png.mcmeta"
+        core_meta.write_text('{"animation": {"frametime": 2, "interpolate": true}}\n', encoding="utf-8", newline="\n")
         save(lantern_metal(palette), f"textures/block/{LANTERN_IDS[name]}_metal.png")
         save(hard_light(palette), f"textures/block/hard_light_{name}.png")
     save(ring_slot_icon(), "textures/gui/sprites/container/slot/ring.png")
     save(ring_band(), "textures/entity/ring_band.png")
     save(power_battery(), "textures/block/power_battery.png")
+    save(ship_hull(), "textures/block/ship_hull.png")
+    save(ship_plating(), "textures/block/ship_plating.png")
+    save(ship_light(), "textures/block/ship_light.png")
+    save(ship_console_front(), "textures/block/ship_console_front.png")
+    save(ship_console_top(), "textures/block/ship_console_top.png")
     save(guardian_skin(), "textures/entity/oa_guardian.png")
     save(manhunter_skin(), "textures/entity/manhunter.png")
     save(nekron_skin(), "textures/entity/nekron.png")
