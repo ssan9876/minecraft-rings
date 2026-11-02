@@ -44,8 +44,10 @@ ring's light. A player who already wears or carries a ring can't take another.
 **The ship's console**, inside the wreck, holds the flight recorder: right-click it to read the ship's last log
 entries, and once the ring has found its new bearer, the final one.
 
-The colours come down about this often: green 4 in 11, and blue, red, pink, orange, white, black and yellow 1 in 11
-each. The Guardians on Oa no longer hand out rings, and Nekron no longer drops one.
+Which colour comes down depends on where: green most often, and blue, red, pink and orange anywhere, but the rarer
+three only in their own lands: **white** in snowy places, **yellow** in deserts and badlands, **black** in dark
+forests, pale gardens and swamps (where each is as likely as green). Finding every colour means looking in the right
+places. The Guardians on Oa don't hand out rings, and Nekron doesn't drop one.
 
 ## Ring levels and the skill tree
 
@@ -92,8 +94,25 @@ twice vanilla's flight. Everything else is learned. Each skill needs the one abo
 | | Willpower | 2 | 10 | Everything the ring does uses half the charge |
 | | Lantern Bond | 1 | 8 | Lanterns charge your ring twice as fast |
 
-The whole tree takes 37 points, so it's level 37 before a bearer has learned everything. Locked constructs are dimmed
-on the construct wheel, and trying a power you haven't learned tells you which skill it needs.
+The whole tree takes 37 points, so it's level 37 before a bearer has learned everything (sooner with Oan relics, below).
+Hover a skill to see yourself act it out beside the tree. Locked constructs are dimmed on the construct wheel, and
+trying a power you haven't learned tells you which skill it needs.
+
+**Oan relics**, from the Moon's shrines, Mars's wrecks, the Guardians' missions and the Devourer, give one more skill
+point each: right-click with one. A Guardian on Oa will unmake everything you've learned, giving back the points to
+spend again, for 8 will shards.
+
+**Firsts:** some things earn ring experience the first time you do them: reaching space (100), the Moon (150), Mars
+(150) and Oa (200), charging at the Central Power Battery (50), finishing a Guardian's mission (100), winning a duel
+(50), and defeating Parallax (500), Nekron (500) and the Devourer (800).
+
+**Ranks:** a ring-bearer's Corps rank and level show under their name, in their ring's colour: Recruit, Lantern (level
+5), Veteran Lantern (10), Honor Guard (20), Alpha Lantern (30) and Guardians' Champion (40).
+
+**Duels:** `/duel <player>` challenges another ring-bearer; they `/duel accept` or `/duel decline` within a minute.
+Duellists can hurt each other even with PvP off, and a blow that would kill one ends the duel instead, leaving them
+standing: the other wins (60 ring experience, and 15 for the loser). A duel ends drawn after five minutes, or if the
+two get more than 96 blocks apart or one leaves.
 
 ## The rings
 
@@ -183,8 +202,8 @@ Each planet is made of its own rock, with its own things to find:
 
 | Planet | Ground | To find |
 |---|---|---|
-| The Moon | Moon Dust over Moon Rock | Craters, with moonstone glinting in their floors; Moon Iron Ore; Moonstone Ore, which drops moonstone (nine make a glowing Block of Moonstone) |
-| Mars | Red sand over Mars Rock | Tall banded rock spires; Mars Iron Ore, rich in iron (2 to 4 raw iron); Mars Gold Ore; geodes of glowing Mars Crystal; ice frozen in the rock |
+| The Moon | Moon Dust over Moon Rock | Craters, with moonstone glinting in their floors; Moon Iron Ore; Moonstone Ore, which drops moonstone (nine make a glowing Block of Moonstone); **shrines of the first Lanterns** |
+| Mars | Red sand over Mars Rock | Tall banded rock spires; Mars Iron Ore, rich in iron (2 to 4 raw iron); Mars Gold Ore; geodes of glowing Mars Crystal; ice frozen in the rock; **wrecked Manhunter scouts** |
 | Oa | Green ground over Oan Stone | Glowing Oan Crystals, on the surface and in caves; Oan Emerald Ore; Will Crystal Ore, which drops Will Shards |
 
 A **Will Shard** charges the ring you wear by a quarter, whatever its colour: right-click with it. Every planet rock
@@ -196,15 +215,33 @@ Fly back up past Y 400 to return to space, and down into the Earth to come home 
 airless planets only an active ring keeps you breathing: if it goes out, your air runs out like underwater.
 Low gravity means higher jumps, slower falls and softer landings. Beds and respawn anchors don't work off the Earth.
 
-**Oa** has the Guardians' citadel at its middle, right where you land: a great plaza ringed by towers, with the
-**Central Power Battery** at its heart. Right-click its glowing core and any ring, of any colour, is charged full at
-once. The **Guardians of the Universe** walk the plaza: right-click one to hear what they know.
+**Why go to each:**
+- **Oa** has the Guardians' citadel at its middle, right where you land: a great plaza ringed by towers, with the
+  **Central Power Battery** at its heart. Right-click its glowing core and any ring, of any colour, is charged full
+  at once. In the Battery's light, everything you do on Oa earns **twice the ring experience**. The **Guardians of
+  the Universe** walk the plaza: right-click one to talk. They stop and face you, tell you of Oa and the Corps, give
+  **missions** (bring 16 moonstone or 12 Mars crystals or 8 will shards, destroy 5 Manhunters, or defeat Nekron,
+  Parallax or the Devourer, the great foes only for higher levels), each paying ring experience and sometimes an Oan
+  relic (always for the great foes), and for 8 will shards **unmake what you've learned** so you can choose again.
+  One mission at a time; tell any Guardian when it's done.
+- **The Moon** has the **shrines of the first Lanterns**, about one in forty chunks: a ruined platform of moon rock
+  bricks, broken pillars capped with glowing moonstone, an old lantern of a random colour on a pedestal (yours to
+  take), and a chest of moonstone, will shards, diamonds, ender pearls and, three times in ten, an Oan relic. The
+  Guardians want its moonstone, and Nekron sleeps there.
+- **Mars** has the **wrecks of Manhunter scouts**, about one in thirty-five chunks: a pod of alien hull nosed into the
+  red sand, torn open, with a chest of salvage inside (iron, redstone, Mars crystals, gold, running lights and,
+  two times in ten, an Oan relic). Its **Mars crystals attune lanterns** (below), and the Guardians want them too.
 
 **Enemies among the stars:**
 - **Manhunters**, androids that fly and shoot bolts of energy, hunt players in space and on the Moon and Mars.
 - **Parallax**, fear itself, is sealed in the Central Power Battery. A yellow ring's touch sets it free: a vast
   flying serpent that spits fear, swoops, slows everyone near and saps their rings. A yellow ring can't hurt it.
   It drops a yellow lantern, diamonds and gold.
+- **The Devourer**, the thing out of the dark that brings ring-bearers' ships down, hunts the strong: about once
+  every five minutes a ring-bearer of level 20 or more spends in space, it may come for them (not again for the same
+  one for twenty minutes). A towering shadow with a maw full of stars, it eats the light of every ring near it (healing
+  on what it eats), darkens their sight, hurls volleys of death and lunges. It drops two Oan relics, will shards and
+  diamonds.
 - **Nekron**, lord of the dead, sleeps on the Moon. Charge a black ring full at a black lantern there and he
   wakes: a towering skeleton with a scythe who raises the dead, hurls bolts of death and steps through the shadows
   to whoever runs. A black ring can't hurt him, and a white ring hurts him three times over. He drops a white
@@ -250,7 +287,10 @@ ring fist thrust at the lantern and the other hand gripping the wrist, pulsing w
 around you, as the colour's oath appears line by line across your screen (each colour has its own, in the
 language file as `oath.rings.<colour>.1` to `.4`, so a resource pack can swap in other words: a pack with
 `assets/rings/lang/en_us.json` setting those keys). When the ring is full the power bursts out: a shockwave along the ground as you throw your fist to the
-sky. A lantern of another colour won't charge it.
+sky. A lantern of another colour won't charge it, unless it's **attuned**: hold a Mars crystal to a lantern
+(right-click) and it's attuned to the whole spectrum, charging a ring of any colour (others than its own at half
+speed), with motes of every colour rising off it. That way friends with different rings can share one. As the oath
+goes on, a bar under it shows how full the ring is.
 
 **Power Lanterns** stand on a stepped plinth: a barrel of etched glass with the lantern emblem, held in metal ribs
 and bands of the colour, with a living, pulsing core of light inside that lights up the room, and motes of energy
@@ -275,8 +315,9 @@ Power Lantern:   Iron Ingot  Side     Iron Ingot
 
 **For operators:** `/rings level <players> <level>`, `/rings xp <players> <amount>`, `/rings unlockall <players>`
 (every skill and suit), `/rings reset <players>` (back to a new bearer), `/rings info <player>`, `/rings crash
-[colour]` (a ship falls 40 to 70 blocks from you) and `/rings crashsite [colour]` (a crash site built right where you
-stand).
+[colour]` (a ship falls 40 to 70 blocks from you), `/rings crashsite [colour]` (a crash site built right where you
+stand, moving you out of it), `/rings crashes` (how often ships fall), `/rings crashes every <minutes>` and `/rings
+crashes off`, and `/rings devourer` (the Devourer comes for you).
 
 How it behaves:
 - Shift-click a ring to equip it, like armor. Taking it off switches it off.
@@ -319,6 +360,7 @@ Needs JDK 25.
 | `RINGS_POSES=1 ./gradlew runClientGameTest` | Only films the ring animations, from four sides, for tuning them |
 | `RINGS_GEAR=1 ./gradlew runClientGameTest` | Only the construct sword's slash, the construct shield and a will shard |
 | `RINGS_SUITS=1 ./gradlew runClientGameTest` | Only choosing each suit, on the suit screen and from the front |
+| `RINGS_WORLDS=1 ./gradlew runClientGameTest` | Only crash colours and rates, skill previews, attuned lanterns and the oath's bar, ranks and duels, Oa's doubled experience and the Guardians' missions and respec, Oan relics, the Moon's shrines and Mars's wrecks, and the Devourer |
 | `RINGS_MASTERY=1 ./gradlew runClientGameTest` | Only ring levels, the skill tree, the earned suits, a crash site and its pilot's dialogue, the console, the lanterns and a falling ship |
 
 ## Releasing
@@ -386,6 +428,10 @@ Powers live in `RingPowers.java`, which runs every server tick for each player. 
   changes), `Skill` (the tree), `SkillTreeScreen`. Each power checks its skill on the server (`Mastery.require`); the
   client checks too for what it decides itself (elytra mode and super flight in `SuperFlight`, the wheel, the scan's
   reach).
+- **Reasons to go places:** `Missions` (the Guardians' tasks, an attachment per player), `OaGuardian` (their talk and
+  the respec), `PlanetRuins` (the Moon's shrines and Mars's wrecks, worldgen features with loot-table chests),
+  `Devourer` (spawned by `Bosses`), `OanRelicItem`, `Mastery.first` (one-off rewards) and `RingDuels` (with
+  `ServerPlayerMixin` letting duellists hurt each other with PvP off).
 - **Crash sites:** `CrashSite` builds one (the world generates them through its `Feature`, added to every Overworld
   land biome in `Rings`), `Crashes` sends ships falling out of the sky, `CrashPilot` is the dying pilot,
   `ShipBlocks` the wreck's blocks and console, and `Dialogues` what the pilot and the console say (the client walks

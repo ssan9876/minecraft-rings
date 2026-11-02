@@ -22,7 +22,18 @@ public final class Dialogues {
 	public enum Action {
 		NONE,
 		/** Takes the dying ring-bearer's ring (the server decides whether they can). */
-		TAKE_RING
+		TAKE_RING,
+		/** Asks a Guardian for work (the server answers with the player's task). */
+		MISSION,
+		/** Tells a Guardian the task is done (the server checks, and answers). */
+		TURN_IN,
+		/** Asks a Guardian to unmake everything the player has learned, for will shards (the server answers). */
+		RESPEC;
+
+		/** Whether the server answers it with what's said next, rather than the answer leading on by itself. */
+		public boolean serverAnswers() {
+			return this == MISSION || this == TURN_IN || this == RESPEC;
+		}
 	}
 
 	/** An answer: what it says, the node it leads to (null to end the talk), and what it does. */
@@ -42,12 +53,14 @@ public final class Dialogues {
 
 	public enum Speaker {
 		PILOT,
-		SHIP
+		SHIP,
+		GUARDIAN
 	}
 
 	public enum Dialogue {
 		PILOT("pilot"),
-		SHIP_LOG("ship_log");
+		SHIP_LOG("ship_log"),
+		GUARDIAN("guardian");
 
 		public static final StreamCodec<ByteBuf, Dialogue> STREAM_CODEC = ByteBufCodecs.idMapper(
 				ByIdMap.continuous(Dialogue::ordinal, values(), ByIdMap.OutOfBoundsStrategy.ZERO), Dialogue::ordinal);
@@ -91,6 +104,10 @@ public final class Dialogues {
 	/** The console's log, before and after the ring has found its new bearer. */
 	public static final String LOG_START = "start";
 	public static final String LOG_AFTER = "after";
+	/** How many of the Oan lore sayings a Guardian has (nodes lore_1 on). */
+	public static final int GUARDIAN_LORE = 8;
+	/** Will shards a Guardian asks to unmake what a player has learned. */
+	public static final int RESPEC_SHARDS = 8;
 	/** Leads back to wherever the talk started. */
 	public static final String BACK = "@start";
 
@@ -146,6 +163,29 @@ public final class Dialogues {
 				Option.to("entry_1", "entry_1"), Option.to("final", "final"), Option.end("close"));
 		log.add("final", Speaker.SHIP,
 				Option.to("back", BACK), Option.end("close"));
+
+		// The Guardians: their lore, their missions, and unmaking what you've learned. What the server answers is
+		// sent as its own node, so those have no answers leading to them here.
+		Dialogue guardian = Dialogue.GUARDIAN;
+		Option work = new Option("work", null, Action.MISSION);
+		guardian.add("start", Speaker.GUARDIAN,
+				Option.to("lore", "lore_1"), work, Option.to("respec", "respec_ask"), Option.end("farewell"));
+		for (int i = 1; i <= GUARDIAN_LORE; i++) {
+			guardian.add("lore_" + i, Speaker.GUARDIAN,
+					Option.to("more", "lore_" + (i % GUARDIAN_LORE + 1)), Option.to("back", "start"));
+		}
+		guardian.add("respec_ask", Speaker.GUARDIAN,
+				new Option("respec_yes", null, Action.RESPEC), Option.to("respec_no", "start"));
+		guardian.add("respec_done", Speaker.GUARDIAN, Option.to("back", "start"), Option.end("farewell"));
+		guardian.add("respec_poor", Speaker.GUARDIAN, Option.to("back", "start"), Option.end("farewell"));
+		guardian.add("respec_nothing", Speaker.GUARDIAN, Option.to("back", "start"), Option.end("farewell"));
+		guardian.add("mission_new", Speaker.GUARDIAN, Option.end("will_do"), Option.to("back", "start"));
+		guardian.add("mission_active", Speaker.GUARDIAN,
+				new Option("done", null, Action.TURN_IN), Option.end("not_yet"), Option.to("back", "start"));
+		guardian.add("mission_not_done", Speaker.GUARDIAN, Option.end("will_do"), Option.to("back", "start"));
+		guardian.add("mission_none", Speaker.GUARDIAN, work, Option.to("back", "start"));
+		guardian.add("mission_done", Speaker.GUARDIAN, work, Option.to("back", "start"), Option.end("farewell"));
+		guardian.add("no_ring", Speaker.GUARDIAN, Option.to("lore", "lore_1"), Option.end("farewell"));
 	}
 
 	private Dialogues() {

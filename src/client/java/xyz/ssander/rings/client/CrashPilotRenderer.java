@@ -22,9 +22,13 @@ public class CrashPilotRenderer extends HumanoidMobRenderer<CrashPilot, CrashPil
 	/** How far back they lean against the hull. */
 	private static final float SLUMP = 18.0F;
 
+	/** Set while a dialogue draws the pilot's portrait, which shows them upright. */
+	public static boolean portrait;
+
 	public static class State extends HumanoidRenderState {
 		public RingColor color = RingColor.GREEN;
 		public boolean ringTaken;
+		public boolean portrait;
 	}
 
 	public CrashPilotRenderer(EntityRendererProvider.Context context) {
@@ -41,8 +45,9 @@ public class CrashPilotRenderer extends HumanoidMobRenderer<CrashPilot, CrashPil
 		super.extractRenderState(entity, state, partialTicks);
 		state.color = entity.color();
 		state.ringTaken = entity.ringTaken();
-		// Sitting on the ground, as a rider sits
-		state.isPassenger = true;
+		// Sitting on the ground, as a rider sits (but upright in a portrait)
+		state.portrait = portrait;
+		state.isPassenger = !portrait;
 	}
 
 	@Override
@@ -53,6 +58,9 @@ public class CrashPilotRenderer extends HumanoidMobRenderer<CrashPilot, CrashPil
 	@Override
 	protected void setupRotations(State state, PoseStack poseStack, float bodyRot, float entityScale) {
 		super.setupRotations(state, poseStack, bodyRot, entityScale);
+		if (state.portrait) {
+			return;
+		}
 		// Down onto the ground (a rider's legs hang below the seat), and leaning back
 		poseStack.translate(0.0F, -0.55F, 0.0F);
 		poseStack.rotateDegrees(Axis.XP, -SLUMP);

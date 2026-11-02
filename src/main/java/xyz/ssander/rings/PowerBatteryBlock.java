@@ -30,6 +30,9 @@ public class PowerBatteryBlock extends Block {
 	protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
 		if (level instanceof ServerLevel serverLevel && player instanceof ServerPlayer serverPlayer) {
 			charge(serverLevel, pos, serverPlayer);
+			if (RingAttachments.getRing(serverPlayer).getItem() instanceof RingItem) {
+				Mastery.first(serverPlayer, Mastery.First.BATTERY);
+			}
 		}
 		return InteractionResult.SUCCESS;
 	}

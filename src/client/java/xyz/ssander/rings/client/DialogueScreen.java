@@ -23,7 +23,7 @@ import xyz.ssander.rings.Dialogues;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.ShipBlocks;
 import xyz.ssander.rings.network.OpenDialoguePayload;
-import xyz.ssander.rings.network.TakeRingPayload;
+import xyz.ssander.rings.network.DialogueActionPayload;
 
 /**
  * Talking to a crash site: the dying pilot, or the ship's console. Along the bottom of the screen, the speaker (the
@@ -41,6 +41,7 @@ public class DialogueScreen extends Screen {
 	private final String start;
 	private final RingColor color;
 	private final int entityId;
+	private final java.util.List<Component> args;
 	private Dialogues.Node node;
 	private float typed;
 	private String words = "";
@@ -52,6 +53,7 @@ public class DialogueScreen extends Screen {
 		this.start = payload.node();
 		this.color = payload.color();
 		this.entityId = payload.entityId();
+		this.args = payload.args();
 		Dialogues.Node first = this.dialogue.node(payload.node());
 		this.node = first != null ? first : this.dialogue.node(Dialogues.PILOT_START);
 	}
@@ -61,12 +63,30 @@ public class DialogueScreen extends Screen {
 	}
 
 	private Component speaker() {
-		return this.node.speaker() == Dialogues.Speaker.PILOT ? CrashPilot.name(this.color) : Component.translatable("ship.rings.computer");
+		return switch (this.node.speaker()) {
+			case PILOT -> CrashPilot.name(this.color);
+			case SHIP -> Component.translatable("ship.rings.computer");
+			case GUARDIAN -> Component.translatable("entity.rings.oa_guardian");
+		};
+	}
+
+	/** The speaker's colour: the pilot's ring, the ship's screen, the Guardians' blue. */
+	private int speakerColor() {
+		return switch (this.node.speaker()) {
+			case PILOT -> ARGB.opaque(this.color.ui());
+			case SHIP -> 0xFF60C8F0;
+			case GUARDIAN -> 0xFF6E9CF0;
+		};
 	}
 
 	private Component text() {
-		return Component.translatable(this.dialogue.textKey(this.node), CrashPilot.name(this.color),
-				Component.translatable("color.rings." + this.color.id()));
+		Object[] args = new Object[2 + this.args.size()];
+		args[0] = CrashPilot.name(this.color);
+		args[1] = Component.translatable("color.rings." + this.color.id());
+		for (int i = 0; i < this.args.size(); i++) {
+			args[2 + i] = this.args.get(i);
+		}
+		return Component.translatable(this.dialogue.textKey(this.node), args);
 	}
 
 	private int panelTop() {
@@ -99,8 +119,12 @@ public class DialogueScreen extends Screen {
 
 	/** The player gave an answer. */
 	public void choose(Dialogues.Option option) {
-		if (option.action() == Dialogues.Action.TAKE_RING) {
-			ClientPlayNetworking.send(new TakeRingPayload(this.entityId));
+		if (option.action() != Dialogues.Action.NONE) {
+			ClientPlayNetworking.send(new DialogueActionPayload(this.entityId, option.action()));
+		}
+		if (option.action().serverAnswers()) {
+			// What's said next comes back from the server
+			return;
 		}
 		if (option.next() == null) {
 			this.onClose();
@@ -168,11 +192,14 @@ public class DialogueScreen extends Screen {
 		// The speaker: the pilot, or the console
 		int px = 12;
 		graphics.fill(px, top, px + PORTRAIT_WIDTH, top + this.panelHeight, 0xC0101018);
-		graphics.outline(px, top, PORTRAIT_WIDTH, this.panelHeight, this.node.speaker() == Dialogues.Speaker.PILOT ? energy : 0xFF60C8F0);
+		graphics.outline(px, top, PORTRAIT_WIDTH, this.panelHeight, this.speakerColor());
 		LivingEntity speaker = this.speakerEntity();
-		if (speaker != null && this.node.speaker() == Dialogues.Speaker.PILOT) {
+		if (speaker != null && this.node.speaker() != Dialogues.Speaker.SHIP) {
+			// Upright for the portrait, however they're sitting in the world
+			CrashPilotRenderer.portrait = true;
 			InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, px + 1, top + 1, px + PORTRAIT_WIDTH - 1, top + this.panelHeight - 1,
 					40, 0.0625F, mouseX, mouseY, speaker);
+			CrashPilotRenderer.portrait = false;
 		} else {
 			graphics.pose().pushMatrix();
 			graphics.pose().translate(px + PORTRAIT_WIDTH / 2.0F - 16, top + this.panelHeight / 2.0F - 20);
@@ -181,9 +208,10 @@ public class DialogueScreen extends Screen {
 			graphics.pose().popMatrix();
 		}
 
-		// Who's speaking, and what they say so far
+		// Who's speaking, and what they say so far, on a backing so chat behind doesn't show through
 		int left = this.textLeft();
-		graphics.text(this.font, this.speaker(), left, top + 4, this.node.speaker() == Dialogues.Speaker.PILOT ? bright : 0xFF80D8FF, true);
+		graphics.fill(left - 6, top, left + this.textWidth() + 6, top + this.panelHeight, 0xC0101018);
+		graphics.text(this.font, this.speaker(), left, top + 4, ARGB.srgbLerp(0.4F, this.speakerColor(), 0xFFFFFFFF), true);
 		int shown = Math.min(this.words.length(), (int) this.typed);
 		graphics.textWithWordWrap(this.font, FormattedText.of(this.words.substring(0, shown)), left, top + 18, this.textWidth(), 0xFFEFEFEF);
 	}

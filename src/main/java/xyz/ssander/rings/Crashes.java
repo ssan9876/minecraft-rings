@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.minecraft.core.BlockPos;
@@ -33,9 +34,14 @@ public final class Crashes {
 	private static final AttachmentType<BlockPos> WAITING = AttachmentRegistry.create(Rings.id("crash_waiting"),
 			builder -> builder.persistent(BlockPos.CODEC));
 
-	/** Ticks between chances of a ship falling, and the odds each time: about once in 2 to 3 hours of play. */
+	/**
+	 * How often, on average, a ship falls while someone is out under the sky: in minutes, 0 for never (kept on the
+	 * Overworld; /rings crashes sets it). A chance is taken each minute.
+	 */
+	private static final AttachmentType<Integer> EVERY = AttachmentRegistry.create(Rings.id("crash_every"),
+			builder -> builder.persistent(Codec.INT));
+	public static final int DEFAULT_EVERY = 150;
 	private static final int CHECK_TICKS = 60 * 20;
-	private static final int CHANCE = 150;
 	/** How far from the player it comes down. */
 	private static final double MIN_DISTANCE = 96.0;
 	private static final double MAX_DISTANCE = 192.0;
@@ -93,19 +99,32 @@ public final class Crashes {
 			return;
 		}
 		RandomSource random = overworld.getRandom();
-		if (random.nextInt(CHANCE) != 0) {
+		int every = every(server);
+		if (every <= 0 || random.nextInt(every) != 0) {
 			return;
 		}
 		List<ServerPlayer> outside = overworld.players().stream()
 				.filter(player -> !player.isSpectator() && !player.isCreative() && overworld.canSeeSky(player.blockPosition()))
 				.toList();
 		if (!outside.isEmpty()) {
-			fall(overworld, outside.get(random.nextInt(outside.size())), CrashSite.pickColor(random), MIN_DISTANCE, MAX_DISTANCE);
+			fall(overworld, outside.get(random.nextInt(outside.size())), null, MIN_DISTANCE, MAX_DISTANCE);
 		}
 	}
 
-	/** Sends a ship down somewhere between the distances from the player. Returns where it'll come down. */
-	public static BlockPos fall(ServerLevel level, ServerPlayer near, RingColor color, double minDistance, double maxDistance) {
+	/** How often ships fall, on average, in minutes (0 for never). */
+	public static int every(MinecraftServer server) {
+		return server.overworld().getAttachedOrElse(EVERY, DEFAULT_EVERY);
+	}
+
+	public static void setEvery(MinecraftServer server, int minutes) {
+		server.overworld().setAttached(EVERY, minutes);
+	}
+
+	/**
+	 * Sends a ship down somewhere between the distances from the player, of the colour (or null for whatever falls
+	 * there). Returns where it'll come down.
+	 */
+	public static BlockPos fall(ServerLevel level, ServerPlayer near, @Nullable RingColor color, double minDistance, double maxDistance) {
 		RandomSource random = level.getRandom();
 		double angle = random.nextDouble() * Math.PI * 2.0;
 		double distance = Mth.lerp(random.nextDouble(), minDistance, maxDistance);
@@ -120,6 +139,9 @@ public final class Crashes {
 		int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
 		double heading = random.nextDouble() * Math.PI * 2.0;
 		Vec3 to = new Vec3(x + 0.5, y + 1.0, z + 0.5);
+		if (color == null) {
+			color = CrashSite.pickColor(random, level.getBiome(BlockPos.containing(to)));
+		}
 		Vec3 from = to.add(-Math.cos(heading) * FALL_RUN, FALL_HEIGHT, -Math.sin(heading) * FALL_RUN);
 		FALLING.add(new Fall(level, from, to, color));
 		for (ServerPlayer player : level.players()) {

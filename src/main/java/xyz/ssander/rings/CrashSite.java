@@ -1,6 +1,13 @@
 package xyz.ssander.rings;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.mojang.serialization.MapCodec;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.BiomeTags;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
@@ -52,7 +59,7 @@ public final class CrashSite {
 
 		@Override
 		public boolean place(WorldGenLevel level, ChunkGenerator generator, RandomSource random, BlockPos origin) {
-			return build(level, origin, random, pickColor(random), Heightmap.Types.WORLD_SURFACE_WG, Block.UPDATE_CLIENTS, true) != null;
+			return build(level, origin, random, pickColor(random, level.getBiome(origin)), Heightmap.Types.WORLD_SURFACE_WG, Block.UPDATE_CLIENTS, true) != null;
 		}
 	}
 
@@ -63,14 +70,35 @@ public final class CrashSite {
 		Registry.register(BuiltInRegistries.FEATURE_TYPE, Rings.id("crash_site"), Feature.CODEC);
 	}
 
-	/** Which colour of ring-bearer crashed: green as often as all the rest together, nearly. */
-	public static RingColor pickColor(RandomSource random) {
-		int roll = random.nextInt(11);
-		if (roll < 4) {
-			return RingColor.GREEN;
+	/**
+	 * Which colour of ring-bearer crashed, by where: green most often, blue, red, pink and orange anywhere, and the
+	 * rarer three only in their own lands: white in the snow, yellow in deserts and badlands, black in dark forests and
+	 * swamps (where each is as likely as green).
+	 */
+	public static RingColor pickColor(RandomSource random, Holder<Biome> biome) {
+		List<RingColor> pool = new ArrayList<>(List.of(RingColor.GREEN, RingColor.GREEN, RingColor.GREEN, RingColor.GREEN,
+				RingColor.BLUE, RingColor.RED, RingColor.PINK, RingColor.ORANGE));
+		RingColor special = special(biome);
+		if (special != null) {
+			for (int i = 0; i < 4; i++) {
+				pool.add(special);
+			}
 		}
-		RingColor[] others = {RingColor.BLUE, RingColor.RED, RingColor.PINK, RingColor.ORANGE, RingColor.WHITE, RingColor.BLACK, RingColor.YELLOW};
-		return others[roll - 4];
+		return pool.get(random.nextInt(pool.size()));
+	}
+
+	/** The rare colour whose bearers fall in the biome, if any. */
+	public static @Nullable RingColor special(Holder<Biome> biome) {
+		if (biome.is(Biomes.DARK_FOREST) || biome.is(Biomes.PALE_GARDEN) || biome.is(Biomes.SWAMP) || biome.is(Biomes.MANGROVE_SWAMP)) {
+			return RingColor.BLACK;
+		}
+		if (biome.is(Biomes.DESERT) || biome.is(BiomeTags.IS_BADLANDS)) {
+			return RingColor.YELLOW;
+		}
+		if (biome.value().coldEnoughToSnow(BlockPos.ZERO.atY(64), 64)) {
+			return RingColor.WHITE;
+		}
+		return null;
 	}
 
 	/**

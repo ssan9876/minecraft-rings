@@ -10,6 +10,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -43,6 +45,10 @@ public class SkillTreeScreen extends Screen {
 	private static final int NODE = 22;
 	private static final int HEADER = 50;
 	private static final int FOOTER = 26;
+	private static final int PREVIEW_WIDTH = 72;
+	private static final int PREVIEW_HEIGHT = 100;
+	/** Ticks before the preview plays its animation again. */
+	private static final int PREVIEW_LOOP = 50;
 
 	private final Map<Skill, ItemStack> icons = new EnumMap<>(Skill.class);
 	private int left;
@@ -205,8 +211,62 @@ public class SkillTreeScreen extends Screen {
 		graphics.centeredText(this.font, base, this.width / 2, this.top + height - 14, 0xFF909090);
 
 		if (hovered != null) {
+			this.preview(graphics, hovered, mouseX, mouseY);
 			graphics.setTooltipForNextFrame(this.tooltip(hovered, data), mouseX, mouseY);
+		} else {
+			if (this.previewing != null && Minecraft.getInstance().player != null) {
+				RingAnimations.stop(Minecraft.getInstance().player);
+			}
+			this.previewing = null;
 		}
+	}
+
+	private @Nullable Skill previewing;
+	private int previewStart;
+
+	/**
+	 * A window on the other side of the screen from the pointer (clear of the tooltip), with the player acting out the
+	 * skill on a loop. The animation plays on the player themselves, only on their own screen, while the tree is open.
+	 */
+	private void preview(GuiGraphicsExtractor graphics, Skill skill, int mouseX, int mouseY) {
+		Minecraft minecraft = Minecraft.getInstance();
+		if (minecraft.player == null) {
+			return;
+		}
+		int age = minecraft.player.tickCount;
+		if (skill != this.previewing || age - this.previewStart > PREVIEW_LOOP) {
+			this.previewing = skill;
+			this.previewStart = age;
+			RingAnimations.play(minecraft.player, animation(skill));
+		}
+		int x = mouseX > this.width / 2 ? 6 : this.width - PREVIEW_WIDTH - 6;
+		int y = Mth.clamp(mouseY - PREVIEW_HEIGHT / 2, 4, this.height - PREVIEW_HEIGHT - 4);
+		int energy = ARGB.opaque(this.color().ui());
+		graphics.fill(x, y, x + PREVIEW_WIDTH, y + PREVIEW_HEIGHT, 0xF0080810);
+		graphics.outline(x, y, PREVIEW_WIDTH, PREVIEW_HEIGHT, energy);
+		InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, x + 1, y + 1, x + PREVIEW_WIDTH - 1, y + PREVIEW_HEIGHT - 1,
+				40, 0.0625F, x + PREVIEW_WIDTH / 2.0F + 25, y + PREVIEW_HEIGHT / 3.0F, minecraft.player);
+	}
+
+	@Override
+	public void removed() {
+		// Done previewing: back to whatever the player was doing
+		Minecraft minecraft = Minecraft.getInstance();
+		if (this.previewing != null && minecraft.player != null) {
+			RingAnimations.stop(minecraft.player);
+		}
+		super.removed();
+	}
+
+	/** Which of the ring's animations shows the skill off. */
+	private static Identifier animation(Skill skill) {
+		return switch (skill.branch()) {
+			case FLIGHT -> RingAnimations.ACTIVATE;
+			case BEAM -> skill == Skill.SPECTRUM || skill == Skill.SPECTRUM_MASTERY ? RingAnimations.POWER : RingAnimations.CONSTRUCT;
+			case CONSTRUCTS -> RingAnimations.CONSTRUCT;
+			case DEFENSE -> skill == Skill.FORCE_FIELD || skill == Skill.BUBBLES || skill == Skill.AEGIS ? RingAnimations.FIELD : RingAnimations.CHARGE_FULL;
+			case WILL -> skill == Skill.SCAN || skill == Skill.DEEP_SCAN ? RingAnimations.SCAN : RingAnimations.CHARGE_FULL;
+		};
 	}
 
 	/** A padlock, 6 wide and 7 tall. */

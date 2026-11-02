@@ -1,6 +1,9 @@
 {
   "variants": {
-    "": {
+    "attuned=false": {
+      "model": "rings:block/pink_power_lantern"
+    },
+    "attuned=true": {
       "model": "rings:block/pink_power_lantern"
     }
   }

@@ -141,12 +141,13 @@ public final class RingPowers {
 
 	/**
 	 * Tops up a ring from a power lantern: the worn ring, or one held in the main hand, whichever matches the
-	 * lantern's colour.
+	 * lantern's colour. A lantern attuned with a Mars crystal charges a ring of any colour, at half the speed for the
+	 * others.
 	 */
-	public static void chargeAt(ServerPlayer player, ServerLevel level, BlockPos pos, PowerLanternBlock lantern) {
+	public static void chargeAt(ServerPlayer player, ServerLevel level, BlockPos pos, PowerLanternBlock lantern, boolean attuned) {
 		ItemStack worn = RingAttachments.getRing(player);
 		ItemStack held = player.getMainHandItem();
-		ItemStack stack = matches(worn, lantern) ? worn : matches(held, lantern) ? held : null;
+		ItemStack stack = matches(worn, lantern, attuned) ? worn : matches(held, lantern, attuned) ? held : null;
 		if (stack == null) {
 			ItemStack other = worn.getItem() instanceof RingItem ? worn : held;
 			if (other.getItem() instanceof RingItem ring) {
@@ -164,7 +165,9 @@ public final class RingPowers {
 		}
 
 		int before = RingItem.charge(stack);
-		int charge = RingItem.addCharge(stack, Mastery.has(player, Skill.LANTERN_BOND) ? CHARGE_PER_USE * 2 : CHARGE_PER_USE);
+		boolean ownColor = ((RingItem) stack.getItem()).color() == lantern.color();
+		int added = Mastery.has(player, Skill.LANTERN_BOND) ? CHARGE_PER_USE * 2 : CHARGE_PER_USE;
+		int charge = RingItem.addCharge(stack, ownColor ? added : added / 2);
 		boolean full = charge >= RingItem.MAX_CHARGE;
 		// Taking the oath earns the ring's experience, by how much it fills: XP_CHARGED for a ring charged from empty
 		if (player.getRandom().nextFloat() < (float) (charge - before) * Mastery.XP_CHARGED / RingItem.MAX_CHARGE) {
@@ -188,7 +191,7 @@ public final class RingPowers {
 		level.sendParticles(color.dust(0.5F, 1.0F), from.x, from.y, from.z, 4, 0.2, 0.25, 0.2, 0.0);
 
 		playAnimation(player, full ? RingAnimationPayload.Kind.CHARGE_FULL : RingAnimationPayload.Kind.CHARGE, lantern.color());
-		if (full && lantern.color() == RingColor.BLACK) {
+		if (full && ownColor && lantern.color() == RingColor.BLACK) {
 			Bosses.maybeWakeNekron(level, pos, player);
 		}
 		level.playSound(null, pos, full ? SoundEvents.BEACON_ACTIVATE : SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.BLOCKS,
@@ -220,8 +223,8 @@ public final class RingPowers {
 		return drain;
 	}
 
-	private static boolean matches(ItemStack stack, PowerLanternBlock lantern) {
-		return stack.getItem() instanceof RingItem ring && ring.color() == lantern.color();
+	private static boolean matches(ItemStack stack, PowerLanternBlock lantern, boolean attuned) {
+		return stack.getItem() instanceof RingItem ring && (attuned || ring.color() == lantern.color());
 	}
 
 	/** Plays a ring animation on the player for them and everyone who can see them. */

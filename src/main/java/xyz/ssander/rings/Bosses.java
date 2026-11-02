@@ -1,5 +1,9 @@
 package xyz.ssander.rings;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
@@ -29,6 +33,14 @@ public final class Bosses {
 	private static final float SPAWN_CHANCE = 0.35F;
 	/** A great foe won't wake while another of its kind is this near. */
 	private static final double BOSS_RANGE = 256.0;
+	/**
+	 * The Devourer hunts ring-bearers of this level and up out in space: a chance in this many each check (about once
+	 * in five minutes there), and not again for the same player for a while.
+	 */
+	public static final int DEVOURER_LEVEL = 20;
+	private static final int DEVOURER_CHANCE = 60;
+	private static final long DEVOURER_COOLDOWN = 20L * 60 * 20;
+	private static final Map<UUID, Long> LAST_DEVOURER = new HashMap<>();
 
 	private Bosses() {
 	}
@@ -40,6 +52,11 @@ public final class Bosses {
 		}
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
 			ServerLevel level = player.level();
+			if (level.dimension() == Space.SPACE && !player.isCreative() && !player.isSpectator() && level.getDifficulty() != Difficulty.PEACEFUL
+					&& Mastery.level(player) >= DEVOURER_LEVEL && player.getRandom().nextInt(DEVOURER_CHANCE) == 0
+					&& level.getGameTime() - LAST_DEVOURER.getOrDefault(player.getUUID(), Long.MIN_VALUE / 2) > DEVOURER_COOLDOWN) {
+				summonDevourer(level, player);
+			}
 			boolean hunted = level.dimension() == Space.SPACE || level.dimension() == Space.Planet.MOON.dimension()
 					|| level.dimension() == Space.Planet.MARS.dimension();
 			if (!hunted || player.isCreative() || player.isSpectator() || level.getDifficulty() == Difficulty.PEACEFUL
@@ -71,6 +88,24 @@ public final class Bosses {
 
 	private static boolean awake(ServerLevel level, Class<? extends Mob> kind, BlockPos near) {
 		return !level.getEntitiesOfClass(kind, new AABB(near).inflate(BOSS_RANGE)).isEmpty();
+	}
+
+	/** The Devourer comes out of the dark for a ring-bearer (also /rings devourer). Returns it, or null if one is near already. */
+	public static Devourer summonDevourer(ServerLevel level, ServerPlayer prey) {
+		if (awake(level, Devourer.class, prey.blockPosition())) {
+			return null;
+		}
+		LAST_DEVOURER.put(prey.getUUID(), level.getGameTime());
+		float angle = prey.getRandom().nextFloat() * Mth.TWO_PI;
+		Vec3 at = prey.position().add(Mth.cos(angle) * 36.0, 10.0, Mth.sin(angle) * 36.0);
+		Devourer devourer = spawn(level, Rings.DEVOURER, at);
+		if (devourer != null) {
+			devourer.setTarget(prey);
+		}
+		level.sendParticles(RingColor.BLACK.dust(0.0F, 2.5F), at.x, at.y, at.z, 200, 3.0, 3.0, 3.0, 0.0);
+		level.playSound(null, at.x, at.y, at.z, SoundEvents.WARDEN_EMERGE, SoundSource.HOSTILE, 6.0F, 0.6F);
+		level.getServer().getPlayerList().broadcastSystemMessage(Component.translatable("message.rings.devourer_comes", prey.getDisplayName()), false);
+		return devourer;
 	}
 
 	/** A yellow ring touched the Central Power Battery: Parallax breaks free. */

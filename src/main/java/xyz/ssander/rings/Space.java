@@ -230,6 +230,21 @@ public final class Space {
 		}
 		player.sendOverlayMessage(Component.translatable(trip.message()));
 		level.playSound(null, position.x, position.y, position.z, SoundEvents.BEACON_ACTIVATE, SoundSource.PLAYERS, 0.8F, 0.6F);
+		arrived(player, trip.to());
+	}
+
+	/** The first time a player reaches space, and each planet, earns them ring experience. */
+	private static void arrived(ServerPlayer player, ResourceKey<Level> where) {
+		if (where == SPACE) {
+			Mastery.first(player, Mastery.First.SPACE);
+		} else if (where == Planet.MOON.dimension()) {
+			Mastery.first(player, Mastery.First.MOON);
+		} else if (where == Planet.MARS.dimension()) {
+			Mastery.first(player, Mastery.First.MARS);
+		} else if (where == Planet.OA.dimension()) {
+			Mastery.first(player, Mastery.First.OA);
+			player.sendSystemMessage(Component.translatable("message.rings.oa_light").withColor(RingColor.GREEN.ui()));
+		}
 	}
 
 	/** Readies a place for visitors: the first to reach Oa finds the Guardians' citadel built there. */
@@ -252,6 +267,7 @@ public final class Space {
 					player.setAttached(RingAttachments.EARTH_RETURN, player.blockPosition());
 				}
 				player.sendOverlayMessage(Component.translatable(trip.message()));
+				arrived(player, trip.to());
 			}
 		}
 		vehicle.teleport(new TeleportTransition(level, trip.position(), vehicle.getDeltaMovement(), vehicle.getYRot(), vehicle.getXRot(), TeleportTransition.DO_NOTHING));

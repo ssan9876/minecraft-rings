@@ -157,6 +157,13 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			}
 			return;
 		}
+		if (System.getenv("RINGS_WORLDS") != null) {
+			try (TestSingleplayerContext world = context.worldBuilder().create()) {
+				world.getConnection().waitForChunksRender();
+				WorldsTest.run(context, world.getConnection(), world.getServer());
+			}
+			return;
+		}
 		if (System.getenv("RINGS_GEAR") != null) {
 			try (TestSingleplayerContext world = context.worldBuilder().create()) {
 				world.getConnection().waitForChunksRender();
@@ -1499,6 +1506,11 @@ public class RingsClientGameTest implements FabricClientGameTest {
 			guardian.interact(p, InteractionHand.MAIN_HAND, guardian.position());
 		});
 		check(server, p -> !p.getInventory().contains(stack -> stack.getItem() instanceof RingItem), "a Guardian gives no ring to a visitor without one");
+		connection.waitForClientboundPackets();
+		context.waitTicks(2);
+		checkClient(context, mc -> mc.gui.screen() instanceof xyz.ssander.rings.client.DialogueScreen screen && screen.node().id().equals("no_ring"),
+				"a Guardian tells a visitor without a ring how rings are found");
+		context.setScreen(() -> null);
 		// Carry on as the test did when they still gave one
 		server.runOnServer(s -> player(s).getInventory().add(new ItemStack(GREEN_RING)));
 		context.runOnClient(mc -> mc.gui.hud.toggle());
@@ -1771,7 +1783,9 @@ public class RingsClientGameTest implements FabricClientGameTest {
 		int spent = RingConstructs.itemCost(new ItemStack(Items.DIAMOND_SWORD)) + 64 * RingConstructs.itemCost(new ItemStack(Items.STONE));
 		check(server, p -> p.getInventory().contains(stack -> stack.is(Items.DIAMOND_SWORD)) && p.getInventory().countItem(Items.STONE) == 64,
 				"the ring constructs one of an item, or a whole stack");
-		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) == RingItem.MAX_CHARGE - spent, "constructing items costs the ring's charge");
+		// (Less a little, if a second's drain from the ring being on came in between)
+		check(server, p -> RingItem.charge(RingAttachments.getRing(p)) <= RingItem.MAX_CHARGE - spent
+				&& RingItem.charge(RingAttachments.getRing(p)) >= RingItem.MAX_CHARGE - spent - 5, "constructing items costs the ring's charge");
 		check(server, p -> !p.getInventory().contains(stack -> stack.is(Items.COMMAND_BLOCK)), "a ring can't construct a command block");
 	}
 
@@ -1954,7 +1968,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 	}
 
 	/** The second player joinTestPlayer brought in. */
-	private static ServerPlayer friend(MinecraftServer server) {
+	static ServerPlayer friend(MinecraftServer server) {
 		return server.getPlayerList().getPlayerByName("Friend");
 	}
 
@@ -1962,7 +1976,7 @@ public class RingsClientGameTest implements FabricClientGameTest {
 	 * Joins a second player to the test server, with no client behind it (packets to it go nowhere), so the test
 	 * can try things on another player. Fabric's FakePlayer won't do: it refuses to ride anything.
 	 */
-	private static ServerPlayer joinTestPlayer(MinecraftServer server, String name) {
+	static ServerPlayer joinTestPlayer(MinecraftServer server, String name) {
 		Connection connection = new Connection(PacketFlow.SERVERBOUND) {
 			@Override
 			public void setReadOnly() {

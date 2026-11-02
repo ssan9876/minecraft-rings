@@ -50,7 +50,7 @@ import xyz.ssander.rings.network.CreateConstructPayload;
 import xyz.ssander.rings.network.FireBeamPayload;
 import xyz.ssander.rings.network.LearnSkillPayload;
 import xyz.ssander.rings.network.OpenDialoguePayload;
-import xyz.ssander.rings.network.TakeRingPayload;
+import xyz.ssander.rings.network.DialogueActionPayload;
 import xyz.ssander.rings.network.RingActionPayload;
 import xyz.ssander.rings.network.RingAnimationPayload;
 import xyz.ssander.rings.network.TeleportToPayload;
@@ -129,6 +129,11 @@ public class Rings implements ModInitializer {
 			EntityType.Builder.of(Nekron::new, MobCategory.MONSTER).sized(1.2F, 3.9F).eyeHeight(3.4F).clientTrackingRange(12).fireImmune());
 	public static final EntityType<OaGuardian> OA_GUARDIAN = registerEntity("oa_guardian",
 			EntityType.Builder.of(OaGuardian::new, MobCategory.MISC).sized(0.55F, 1.55F).clientTrackingRange(10));
+	/** The thing out of the dark that brings ring-bearers down: it hunts strong ones through space. */
+	public static final EntityType<Devourer> DEVOURER = registerEntity("devourer",
+			EntityType.Builder.of(Devourer::new, MobCategory.MONSTER).sized(1.5F, 4.6F).eyeHeight(4.0F).clientTrackingRange(16).fireImmune());
+	/** A relic of the first Lanterns: one more skill point. */
+	public static final Item OAN_RELIC = register("oan_relic", OanRelicItem::new, new Item.Properties().rarity(Rarity.EPIC).stacksTo(16));
 	/** A ring-bearer dying beside their crashed ship, who hands their ring on (see CrashSite). */
 	public static final EntityType<CrashPilot> CRASH_PILOT = registerEntity("crash_pilot",
 			EntityType.Builder.of(CrashPilot::new, MobCategory.MISC).sized(0.6F, 1.3F).eyeHeight(1.1F).clientTrackingRange(10));
@@ -203,8 +208,10 @@ public class Rings implements ModInitializer {
 	public void onInitialize() {
 		RingAttachments.init();
 		Mastery.init();
+		Missions.init();
 		ShipBlocks.init();
 		CrashSite.init();
+		PlanetRuins.init();
 		RingCommands.init();
 		// Crash sites, very rarely, on dry land anywhere on the Earth
 		BiomeModifications.addFeature(BiomeSelectors.foundInOverworld().and(BiomeSelectors.tag(BiomeTags.IS_OCEAN).negate())
@@ -216,6 +223,8 @@ public class Rings implements ModInitializer {
 		OaCitadel.init();
 		RingReturn.init();
 		RingCall.init();
+		// Before RingProtection, so a duel's last blow ends the duel rather than spending the ring's last save
+		RingDuels.init();
 		RingProtection.init();
 		Thralls.init();
 		FabricDefaultAttributeRegistry.register(CONSTRUCT_WOLF, ConstructBeast.wolfAttributes());
@@ -225,6 +234,7 @@ public class Rings implements ModInitializer {
 		FabricDefaultAttributeRegistry.register(NEKRON, Nekron.createAttributes());
 		FabricDefaultAttributeRegistry.register(OA_GUARDIAN, OaGuardian.createAttributes());
 		FabricDefaultAttributeRegistry.register(CRASH_PILOT, CrashPilot.createAttributes());
+		FabricDefaultAttributeRegistry.register(DEVOURER, Devourer.createAttributes());
 		ColorPowers.init();
 
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.TOOLS_AND_UTILITIES).register(output -> {
@@ -238,6 +248,7 @@ public class Rings implements ModInitializer {
 		CreativeModeTabEvents.modifyOutputEvent(CreativeModeTabs.INGREDIENTS).register(output -> {
 			output.accept(PlanetBlocks.MOONSTONE);
 			output.accept(PlanetBlocks.WILL_SHARD);
+			output.accept(OAN_RELIC);
 		});
 
 		PayloadTypeRegistry.serverboundPlay().register(ActivateRingPayload.TYPE, ActivateRingPayload.CODEC);
@@ -257,10 +268,36 @@ public class Rings implements ModInitializer {
 		PayloadTypeRegistry.serverboundPlay().register(LearnSkillPayload.TYPE, LearnSkillPayload.CODEC);
 		ServerPlayNetworking.registerGlobalReceiver(LearnSkillPayload.TYPE, (payload, context) -> Mastery.learn(context.player(), payload.skill()));
 		PayloadTypeRegistry.clientboundPlay().register(OpenDialoguePayload.TYPE, OpenDialoguePayload.CODEC);
-		PayloadTypeRegistry.serverboundPlay().register(TakeRingPayload.TYPE, TakeRingPayload.CODEC);
-		ServerPlayNetworking.registerGlobalReceiver(TakeRingPayload.TYPE, (payload, context) -> {
-			if (context.player().level().getEntity(payload.pilotId()) instanceof CrashPilot pilot) {
-				pilot.giveRing(context.player());
+		PayloadTypeRegistry.serverboundPlay().register(DialogueActionPayload.TYPE, DialogueActionPayload.CODEC);
+		ServerPlayNetworking.registerGlobalReceiver(DialogueActionPayload.TYPE, (payload, context) -> {
+			ServerPlayer player = context.player();
+			Entity speaker = player.level().getEntity(payload.entityId());
+			if (speaker == null || player.distanceTo(speaker) > 10.0F) {
+				return;
+			}
+			switch (payload.action()) {
+				case TAKE_RING -> {
+					if (speaker instanceof CrashPilot pilot) {
+						pilot.giveRing(player);
+					}
+				}
+				case MISSION -> {
+					if (speaker instanceof OaGuardian guardian) {
+						Missions.offer(player, guardian);
+					}
+				}
+				case TURN_IN -> {
+					if (speaker instanceof OaGuardian guardian) {
+						Missions.turnIn(player, guardian);
+					}
+				}
+				case RESPEC -> {
+					if (speaker instanceof OaGuardian guardian) {
+						guardian.respec(player);
+					}
+				}
+				case NONE -> {
+				}
 			}
 		});
 		PayloadTypeRegistry.serverboundPlay().register(TeleportToPayload.TYPE, TeleportToPayload.CODEC);
@@ -275,6 +312,7 @@ public class Rings implements ModInitializer {
 			Thralls.tick(server);
 			Bosses.tick(server);
 			Crashes.tick(server);
+			RingDuels.tick(server);
 			MobMoods.tick();
 			SwordWave.tick(server);
 		});

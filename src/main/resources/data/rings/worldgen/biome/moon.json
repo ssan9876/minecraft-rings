@@ -14,7 +14,9 @@
       "rings:moon_crater"
     ],
     [],
-    [],
+    [
+      "rings:moon_shrine"
+    ],
     [],
     [
       "rings:moon_ore_iron",

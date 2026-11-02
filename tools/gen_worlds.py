@@ -196,6 +196,8 @@ def planet_features(name, rock):
     if name == "moon":
         return {
             "local_modifications": [on_surface("moon_crater", {"type": "rings:crater"}, 3)],
+            # The shrines of the first Lanterns (see PlanetRuins)
+            "surface_structures": [on_surface("moon_shrine", {"type": "rings:moon_shrine"}, 40)],
             "underground_ores": [
                 ore("moon_ore_iron", "rings:moon_iron_ore", rock, 9, 14, -60, 160),
                 ore("moon_ore_moonstone", "rings:moonstone_ore", rock, 5, 6, -60, 50),
@@ -225,6 +227,8 @@ def planet_features(name, rock):
             {"type": "minecraft:height_range", "height": uniform(-54, 40)}, {"type": "minecraft:biome"}]})
         return {
             "local_modifications": ["mars_geode"],
+            # Crashed Manhunter scouts (see PlanetRuins)
+            "surface_structures": [on_surface("mars_wreck", {"type": "rings:mars_wreck"}, 35)],
             "underground_ores": [
                 ore("mars_ore_iron", "rings:mars_iron_ore", rock, 12, 20, -60, 180),
                 ore("mars_ore_gold", "rings:mars_gold_ore", rock, 8, 6, -60, 40),

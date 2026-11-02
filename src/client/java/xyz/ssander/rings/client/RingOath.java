@@ -8,8 +8,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 
+import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingColor;
+import xyz.ssander.rings.RingItem;
 
 /**
  * The lantern oath, spoken while charging: its four lines appear one by one across the screen, in the colour of the
@@ -81,5 +84,20 @@ public final class RingOath implements HudElement {
 			graphics.text(minecraft.font, text, x, line * 11, ARGB.color(Math.round(alpha * 255), textColor), true);
 		}
 		pose.popMatrix();
+
+		// How full the ring is, filling as the oath goes on
+		ItemStack ring = RingAttachments.getRing(player).getItem() instanceof RingItem ? RingAttachments.getRing(player) : player.getMainHandItem();
+		if (ring.getItem() instanceof RingItem && fadeOut > 0.05F) {
+			float charge = (float) RingItem.charge(ring) / RingItem.MAX_CHARGE;
+			int width = 120;
+			int x0 = graphics.guiWidth() / 2 - width / 2;
+			int y0 = Math.round(graphics.guiHeight() * 0.22F + LINES * 11 * SCALE + 8);
+			int alpha = Math.round(fadeOut * 255);
+			graphics.fill(x0 - 1, y0 - 1, x0 + width + 1, y0 + 5, ARGB.color(Math.round(alpha * 0.7F), 0x000000));
+			graphics.fill(x0, y0, x0 + Math.round(width * charge), y0 + 4, ARGB.color(alpha, ARGB.opaque(color.ui())));
+			Component percent = Component.literal(Math.round(charge * 100) + "%");
+			graphics.text(minecraft.font, percent, graphics.guiWidth() / 2 - minecraft.font.width(percent) / 2, y0 + 8,
+					ARGB.color(alpha, textColor), true);
+		}
 	}
 }

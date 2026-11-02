@@ -1226,6 +1226,78 @@ def nekron_skin():
     return creature_skin(head, body, arm, leg)
 
 
+def devourer_skin():
+    """The Devourer: a shadow out of the dark between stars, cracked with violet light, its face all hungry maw."""
+    rng = random.Random(53)
+    void = lambda: textured((14, 10, 22, 255), (6, 4, 10, 255), (30, 22, 44, 255), rng)
+    crack = (170, 70, 230, 255)
+    star = (240, 230, 255, 255)
+
+    def skin_of(face, x, y, w, h):
+        r = rng.random()
+        if r < 0.03:
+            return star
+        if (x * 7 + y * 3) % 11 == 0 and r < 0.6:
+            return crack
+        return void()
+
+    def head(face, x, y, w, h):
+        if face != "front":
+            return skin_of(face, x, y, w, h)
+        if y == 2 and x in (1, 2, 5, 6):
+            return (230, 120, 255, 255)
+        if 4 <= y <= 7 and 1 <= x <= 6:
+            # The maw: ragged, and full of stars
+            if y == 4 or x in (1, 6):
+                return (240, 240, 230, 255) if (x + y) % 2 == 0 else (8, 4, 12, 255)
+            return star if rng.random() < 0.2 else (4, 2, 8, 255)
+        return void()
+
+    def body(face, x, y, w, h):
+        if face == "front" and 2 <= x <= 5 and 3 <= y <= 7:
+            # A hollow in its chest where it keeps what it's eaten
+            return (120, 40, 200, 255) if (x in (2, 5) or y in (3, 7)) else (4, 2, 8, 255)
+        return skin_of(face, x, y, w, h)
+
+    def arm(face, x, y, w, h):
+        if y >= 10:
+            return (200, 190, 220, 255) if x % 2 == 0 else (60, 40, 80, 255)
+        return skin_of(face, x, y, w, h)
+
+    return creature_skin(head, body, arm, skin_of)
+
+
+def oan_relic():
+    """An Oan relic: a little lantern of old gold with the emblem glowing green in it."""
+    gold, gold_dark, gold_light = (214, 170, 70, 255), (150, 110, 40, 255), (250, 222, 140, 255)
+    green, green_light = (60, 220, 100, 255), (200, 255, 210, 255)
+    pattern = [
+        "................",
+        "......gGGg......",
+        ".....g....g.....",
+        "......gGGg......",
+        ".....dGGGGd.....",
+        "....dEEEEEEd....",
+        "....dEwwwwEd....",
+        "....dEwEEwEd....",
+        "....dEwEEwEd....",
+        "....dEwwwwEd....",
+        "....dEEEEEEd....",
+        ".....dGGGGd.....",
+        "....dGGGGGGd....",
+        "....dddddddd....",
+        "................",
+        "................",
+    ]
+    colors = {"g": gold_dark, "G": gold, "d": gold_dark, "E": green, "w": green_light}
+    image = Image.new("RGBA", (16, 16), CLEAR)
+    for y, row in enumerate(pattern):
+        for x, ch in enumerate(row):
+            if ch != ".":
+                image.putpixel((x, y), gold_light if ch == "G" and x == 6 else colors[ch])
+    return image
+
+
 # Energy motes, 16x16, white so the particle's colour tints them: a soft orb that sharpens into a four-pointed
 # star and shrinks to a point over the mote's life
 ENERGY_FRAMES = 6
@@ -1503,6 +1575,8 @@ if __name__ == "__main__":
     save(guardian_skin(), "textures/entity/oa_guardian.png")
     save(manhunter_skin(), "textures/entity/manhunter.png")
     save(nekron_skin(), "textures/entity/nekron.png")
+    save(devourer_skin(), "textures/entity/devourer.png")
+    save(oan_relic(), "textures/item/oan_relic.png")
     save(construct_tool(CONSTRUCT_SWORD), "textures/item/construct_sword.png")
     save(construct_tool(CONSTRUCT_PICKAXE), "textures/item/construct_pickaxe.png")
     save(construct_tool(CONSTRUCT_AXE), "textures/item/construct_axe.png")

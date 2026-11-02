@@ -8,7 +8,8 @@
 		"LivingEntityMixin",
 		"MobAccessor",
 		"PlayerMixin",
-		"ServerGamePacketListenerImplMixin"
+		"ServerGamePacketListenerImplMixin",
+		"ServerPlayerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

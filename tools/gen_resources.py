@@ -47,7 +47,9 @@ def main():
         write(ASSETS / f"items/{ring}.json", {"model": {"type": "minecraft:model", "model": f"rings:item/{ring}"}})
         write(ASSETS / f"models/item/{ring}.json", {"parent": "minecraft:item/generated", "textures": {"layer0": f"rings:item/{ring}"}})
 
-        write(ASSETS / f"blockstates/{lantern}.json", {"variants": {"": {"model": f"rings:block/{lantern}"}}})
+        # Attuned (with a Mars crystal) or not, it looks the same; attuned ones give off every colour's motes
+        write(ASSETS / f"blockstates/{lantern}.json", {"variants": {
+            f"attuned={attuned}": {"model": f"rings:block/{lantern}"} for attuned in ("false", "true")}})
         # The glass shows the glowing core inside it (the core's texture is animated, see gen_textures.py)
         write(ASSETS / f"models/block/{lantern}.json", {
             "parent": "rings:block/template_power_lantern",
@@ -165,6 +167,26 @@ def main():
     drops("manhunter", pool("minecraft:iron_ingot", 1, 3), pool("minecraft:redstone", 0, 3))
     drops("parallax", pool("rings:yellow_power_lantern", 1, 1), pool("minecraft:diamond", 3, 6), pool("minecraft:gold_block", 2, 4))
     drops("nekron", pool("rings:white_power_lantern", 1, 1), pool("rings:will_shard", 3, 5), pool("minecraft:diamond", 3, 6))
+    drops("devourer", pool("rings:oan_relic", 2, 2), pool("rings:will_shard", 4, 8), pool("minecraft:diamond", 4, 8))
+
+    # What's in the chests of the Moon's shrines and Mars's wrecks (see PlanetRuins)
+    def chance(item, low, high, odds):
+        entry = pool(item, low, high)
+        entry["conditions"] = [{"condition": "minecraft:random_chance", "chance": odds}]
+        return entry
+
+    def chest(name, *pools):
+        write(DATA / f"loot_table/chests/{name}.json", {"type": "minecraft:chest", "pools": list(pools),
+                                                       "random_sequence": f"rings:chests/{name}"})
+
+    chest("moon_shrine", pool("rings:moonstone", 3, 8), chance("rings:will_shard", 1, 3, 0.6), chance("minecraft:diamond", 1, 3, 0.4),
+          chance("rings:oan_relic", 1, 1, 0.3), chance("minecraft:ender_pearl", 1, 4, 0.5), chance("minecraft:experience_bottle", 2, 6, 0.5))
+    chest("mars_wreck", pool("minecraft:iron_ingot", 3, 9), pool("minecraft:redstone", 4, 12), pool("rings:mars_crystal", 2, 6),
+          chance("minecraft:gold_ingot", 1, 4, 0.5), chance("rings:ship_light", 1, 3, 0.4), chance("rings:oan_relic", 1, 1, 0.2))
+
+    # The Oan relic
+    write(ASSETS / "items/oan_relic.json", {"model": {"type": "minecraft:model", "model": "rings:item/oan_relic"}})
+    write(ASSETS / "models/item/oan_relic.json", {"parent": "minecraft:item/generated", "textures": {"layer0": "rings:item/oan_relic"}})
 
     # The planets' blocks (see PlanetBlocks)
     planet_blocks(lang)

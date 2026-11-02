@@ -40,17 +40,28 @@ public final class Mastery {
 	/** The level that players who already had a ring before levels came in start at. */
 	private static final int VETERAN_LEVEL = 10;
 
-	/** A player's ring experience (all they've earned) and the skills they've learned. */
-	public record Data(int xp, List<Skill> skills) {
+	/**
+	 * A player's ring experience (all they've earned), the skills they've learned, the extra skill points Oan relics
+	 * have given them, and the firsts they've been rewarded for (see {@link First}).
+	 */
+	public record Data(int xp, List<Skill> skills, int bonus, List<String> firsts) {
 		public static final Data NEW = new Data(0, List.of());
 		public static final Codec<Data> CODEC = RecordCodecBuilder.create(instance -> instance.group(
 				Codec.INT.fieldOf("xp").forGetter(Data::xp),
-				Skill.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(Data::skills)
+				Skill.CODEC.listOf().optionalFieldOf("skills", List.of()).forGetter(Data::skills),
+				Codec.INT.optionalFieldOf("bonus", 0).forGetter(Data::bonus),
+				Codec.STRING.listOf().optionalFieldOf("firsts", List.of()).forGetter(Data::firsts)
 		).apply(instance, Data::new));
 		public static final StreamCodec<RegistryFriendlyByteBuf, Data> STREAM_CODEC = StreamCodec.composite(
 				ByteBufCodecs.VAR_INT, Data::xp,
 				Skill.STREAM_CODEC.apply(ByteBufCodecs.list()), Data::skills,
+				ByteBufCodecs.VAR_INT, Data::bonus,
+				ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()), Data::firsts,
 				Data::new);
+
+		public Data(int xp, List<Skill> skills) {
+			this(xp, skills, 0, List.of());
+		}
 
 		public int level() {
 			return levelFor(this.xp);
@@ -60,13 +71,13 @@ public final class Mastery {
 			return this.skills.contains(skill);
 		}
 
-		/** Skill points earned (one a level) and not yet spent. */
+		/** Skill points earned (one a level, and one for each Oan relic) and not yet spent. */
 		public int points() {
 			int spent = 0;
 			for (Skill skill : this.skills) {
 				spent += skill.cost();
 			}
-			return this.level() - spent;
+			return this.level() + this.bonus - spent;
 		}
 
 		/** Why the skill can't be learned yet, or null if it can. */
@@ -87,19 +98,64 @@ public final class Mastery {
 		}
 
 		Data withXp(int xp) {
-			return new Data(xp, this.skills);
+			return new Data(xp, this.skills, this.bonus, this.firsts);
 		}
 
 		Data with(Skill skill) {
 			List<Skill> skills = new ArrayList<>(this.skills);
 			skills.add(skill);
-			return new Data(this.xp, List.copyOf(skills));
+			return new Data(this.xp, List.copyOf(skills), this.bonus, this.firsts);
+		}
+
+		Data withSkills(List<Skill> skills) {
+			return new Data(this.xp, List.copyOf(skills), this.bonus, this.firsts);
+		}
+
+		Data withBonus(int bonus) {
+			return new Data(this.xp, this.skills, bonus, this.firsts);
+		}
+
+		Data withFirst(String first) {
+			List<String> firsts = new ArrayList<>(this.firsts);
+			firsts.add(first);
+			return new Data(this.xp, this.skills, this.bonus, List.copyOf(firsts));
 		}
 	}
 
 	/** Synced to the player themselves, for the skill screen, the HUD and what their client lets them do. */
 	public static final AttachmentType<Data> MASTERY = AttachmentRegistry.create(Rings.id("mastery"),
 			builder -> builder.persistent(Data.CODEC).copyOnDeath().syncWith(Data.STREAM_CODEC, AttachmentSyncPredicate.targetOnly()));
+
+	/**
+	 * The player's ring level, for everyone else: their Corps rank shows under their name (see {@link #rank}). Kept in
+	 * step with {@link #MASTERY} by {@link #store}.
+	 */
+	public static final AttachmentType<Integer> RANK = AttachmentRegistry.create(Rings.id("rank"),
+			builder -> builder.syncWith(ByteBufCodecs.VAR_INT, AttachmentSyncPredicate.all()));
+
+	/** The Corps ranks, from the ring level each starts at. */
+	private static final int[] RANK_LEVELS = {1, 5, 10, 20, 30, 40};
+	private static final String[] RANK_NAMES = {"recruit", "lantern", "veteran", "honor_guard", "alpha", "champion"};
+
+	/** The Corps rank for a ring level, as a lang key. */
+	public static String rank(int level) {
+		String name = RANK_NAMES[0];
+		for (int i = 0; i < RANK_LEVELS.length; i++) {
+			if (level >= RANK_LEVELS[i]) {
+				name = RANK_NAMES[i];
+			}
+		}
+		return "rank.rings." + name;
+	}
+
+	/** Saves the player's mastery, and their rank for everyone to see. */
+	static void store(ServerPlayer player, Data data) {
+		player.setAttached(MASTERY, data);
+		int level = data.level();
+		if (player.getAttachedOrElse(RANK, 0) != level) {
+			player.setAttached(RANK, level);
+		}
+	}
 
 	/** Set once a dying ring-bearer has handed a player their ring (it unlocks the pilot's suit). */
 	public static final AttachmentType<Boolean> HEIR = AttachmentRegistry.create(Rings.id("heir"),
@@ -161,20 +217,24 @@ public final class Mastery {
 	 */
 	private static void joined(ServerPlayer player) {
 		if (player.hasAttached(MASTERY)) {
+			store(player, of(player));
 			return;
 		}
 		boolean veteran = RingAttachments.getRing(player).getItem() instanceof RingItem
 				|| player.getInventory().contains(stack -> stack.getItem() instanceof RingItem);
-		player.setAttached(MASTERY, new Data(veteran ? xpFor(VETERAN_LEVEL) : 0, List.of()));
+		store(player, new Data(veteran ? xpFor(VETERAN_LEVEL) : 0, List.of()));
 		if (veteran) {
 			player.sendSystemMessage(Component.translatable("message.rings.veteran", VETERAN_LEVEL).withStyle(ChatFormatting.GREEN));
 		}
 	}
 
-	/** Gives the player ring experience, levelling them up when it's enough. */
+	/** Gives the player ring experience, levelling them up when it's enough. On Oa, in the Battery's light, it's doubled. */
 	public static void addXp(ServerPlayer player, int amount) {
 		if (amount <= 0) {
 			return;
+		}
+		if (player.level().dimension() == Space.Planet.OA.dimension()) {
+			amount *= 2;
 		}
 		Data data = of(player);
 		int before = data.level();
@@ -182,7 +242,7 @@ public final class Mastery {
 		if (after.xp() == data.xp()) {
 			return;
 		}
-		player.setAttached(MASTERY, after);
+		store(player, after);
 		if (after.level() > before) {
 			levelledUp(player, after);
 		}
@@ -209,7 +269,7 @@ public final class Mastery {
 			player.sendOverlayMessage(blocker);
 			return;
 		}
-		player.setAttached(MASTERY, data.with(skill));
+		store(player, data.with(skill));
 		ServerLevel level = player.level();
 		level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.AMETHYST_BLOCK_RESONATE, SoundSource.PLAYERS, 1.0F, 1.2F);
 		player.sendOverlayMessage(Component.translatable("message.rings.learned", Component.translatable(skill.translationKey())));
@@ -218,24 +278,77 @@ public final class Mastery {
 	/** Sets the player's level (for operators, and the tests), keeping whichever skills still fit. */
 	public static void setLevel(ServerPlayer player, int level) {
 		int clamped = Math.max(1, Math.min(MAX_LEVEL, level));
-		Data data = new Data(xpFor(clamped), List.of());
+		Data data = new Data(xpFor(clamped), List.of(), of(player).bonus(), of(player).firsts());
 		for (Skill skill : of(player).skills()) {
 			if (data.blocker(skill) == null) {
 				data = data.with(skill);
 			}
 		}
-		player.setAttached(MASTERY, data);
+		store(player, data);
 	}
 
 	/** Every skill, the top level and every suit (for operators, and the tests). */
 	public static void unlockAll(ServerPlayer player) {
-		player.setAttached(MASTERY, new Data(xpFor(MAX_LEVEL), List.of(Skill.values())));
+		store(player, new Data(xpFor(MAX_LEVEL), List.of(Skill.values()), of(player).bonus(), of(player).firsts()));
 		player.setAttached(HEIR, true);
+	}
+
+	/**
+	 * Unlearns every skill, giving back the points (a Guardian's respec). Returns false if there was nothing to unlearn.
+	 */
+	public static boolean unlearnAll(ServerPlayer player) {
+		Data data = of(player);
+		if (data.skills().isEmpty()) {
+			return false;
+		}
+		store(player, data.withSkills(List.of()));
+		return true;
+	}
+
+	/** An extra skill point (an Oan relic's). */
+	public static void addBonusPoint(ServerPlayer player) {
+		Data data = of(player);
+		store(player, data.withBonus(data.bonus() + 1));
+	}
+
+	/** One-off rewards of ring experience for the first time a player does something. */
+	public enum First {
+		SPACE(100),
+		MOON(150),
+		MARS(150),
+		OA(200),
+		BATTERY(50),
+		MISSION(100),
+		DUEL(50),
+		PARALLAX(500),
+		NEKRON(500),
+		DEVOURER(800);
+
+		private final int xp;
+
+		First(int xp) {
+			this.xp = xp;
+		}
+
+		public String key() {
+			return this.name().toLowerCase(java.util.Locale.ROOT);
+		}
+	}
+
+	/** Rewards the player the first time they do something; nothing after that. */
+	public static void first(ServerPlayer player, First first) {
+		Data data = of(player);
+		if (data.firsts().contains(first.key())) {
+			return;
+		}
+		store(player, data.withFirst(first.key()));
+		player.sendSystemMessage(Component.translatable("first.rings." + first.key(), first.xp).withStyle(ChatFormatting.GOLD));
+		addXp(player, first.xp);
 	}
 
 	/** Back to a new bearer (for operators, and the tests). */
 	public static void reset(ServerPlayer player) {
-		player.setAttached(MASTERY, Data.NEW);
+		store(player, Data.NEW);
 	}
 
 	// What the skills do, read by the powers they change
@@ -295,10 +408,21 @@ public final class Mastery {
 	/** Something died: whoever killed it with their ring on (or by their ring's creatures) earns experience. */
 	private static void died(LivingEntity entity, DamageSource source) {
 		ServerPlayer killer = killer(entity, source);
-		if (killer == null || killer == entity || RingAttachments.activeColor(killer) == null) {
+		if (killer == null || killer == entity) {
+			return;
+		}
+		Missions.killed(killer, entity);
+		if (RingAttachments.activeColor(killer) == null) {
 			return;
 		}
 		addXp(killer, xpFor(entity));
+		if (entity instanceof Parallax) {
+			first(killer, First.PARALLAX);
+		} else if (entity instanceof Nekron) {
+			first(killer, First.NEKRON);
+		} else if (entity instanceof Devourer) {
+			first(killer, First.DEVOURER);
+		}
 	}
 
 	private static @Nullable ServerPlayer killer(LivingEntity entity, DamageSource source) {
@@ -317,6 +441,9 @@ public final class Mastery {
 	}
 
 	private static int xpFor(LivingEntity killed) {
+		if (killed instanceof Devourer) {
+			return 600;
+		}
 		if (killed instanceof Parallax || killed instanceof Nekron) {
 			return 400;
 		}

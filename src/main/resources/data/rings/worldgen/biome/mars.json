@@ -14,7 +14,9 @@
       "rings:mars_geode"
     ],
     [],
-    [],
+    [
+      "rings:mars_wreck"
+    ],
     [],
     [
       "rings:mars_ore_iron",

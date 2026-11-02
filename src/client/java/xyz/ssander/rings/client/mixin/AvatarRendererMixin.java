@@ -19,6 +19,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import xyz.ssander.rings.ForceBubble;
+import net.minecraft.network.chat.Component;
+
+import xyz.ssander.rings.Mastery;
 import xyz.ssander.rings.RingAttachments;
 import xyz.ssander.rings.RingColor;
 import xyz.ssander.rings.RingBeam;
@@ -91,6 +94,12 @@ public abstract class AvatarRendererMixin implements SlimArms {
 		}
 		if (costume != null) {
 			state.outlineColor = ARGB.opaque(costume.color().energy());
+		}
+		// A ring-bearer's Corps rank shows under their name, in their ring's colour
+		RingColor worn = player.getAttached(RingAttachments.WORN_RING);
+		Integer level = player.getAttached(Mastery.RANK);
+		if (state.nameTag != null && state.scoreText == null && worn != null && level != null) {
+			state.scoreText = Component.translatable("rank.rings.shown", Component.translatable(Mastery.rank(level)), level).withColor(worn.ui());
 		}
 
 		// Cruising is real elytra flight, so vanilla tips the body along it; this adds the arms and legs

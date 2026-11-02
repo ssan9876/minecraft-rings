@@ -53,6 +53,33 @@ public final class RingCommands {
 						.executes(context -> crash(context, null, false))
 						.then(Commands.argument("color", StringArgumentType.word()).suggests(RingCommands::colors)
 								.executes(context -> crash(context, StringArgumentType.getString(context, "color"), false))))
+				.then(Commands.literal("crashes")
+						.executes(context -> {
+							int every = Crashes.every(context.getSource().getServer());
+							context.getSource().sendSuccess(() -> every <= 0 ? Component.translatable("command.rings.crashes_off")
+									: Component.translatable("command.rings.crashes_every", every), false);
+							return every;
+						})
+						.then(Commands.literal("off").executes(context -> {
+							Crashes.setEvery(context.getSource().getServer(), 0);
+							context.getSource().sendSuccess(() -> Component.translatable("command.rings.crashes_off"), true);
+							return 1;
+						}))
+						.then(Commands.literal("every").then(Commands.argument("minutes", IntegerArgumentType.integer(1, 100000))
+								.executes(context -> {
+									int minutes = IntegerArgumentType.getInteger(context, "minutes");
+									Crashes.setEvery(context.getSource().getServer(), minutes);
+									context.getSource().sendSuccess(() -> Component.translatable("command.rings.crashes_every", minutes), true);
+									return minutes;
+								}))))
+				.then(Commands.literal("devourer").executes(context -> {
+					ServerPlayer player = context.getSource().getPlayerOrException();
+					if (Bosses.summonDevourer(player.level(), player) == null) {
+						context.getSource().sendFailure(Component.translatable("command.rings.devourer_near"));
+						return 0;
+					}
+					return 1;
+				}))
 				.then(Commands.literal("crashsite")
 						.executes(context -> crash(context, null, true))
 						.then(Commands.argument("color", StringArgumentType.word()).suggests(RingCommands::colors)
@@ -83,7 +110,7 @@ public final class RingCommands {
 	private static int crash(CommandContext<CommandSourceStack> context, String colorName, boolean here) throws CommandSyntaxException {
 		ServerPlayer player = context.getSource().getPlayerOrException();
 		ServerLevel level = player.level();
-		RingColor color = CrashSite.pickColor(level.getRandom());
+		RingColor color = CrashSite.pickColor(level.getRandom(), level.getBiome(player.blockPosition()));
 		if (colorName != null) {
 			color = null;
 			for (RingColor each : RingColor.values()) {
